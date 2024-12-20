@@ -246,6 +246,8 @@ def callback(recognizer, audio):
 
 def isdefaultCommand(text):
     global runmode
+    global tragetTranslateLanguage
+    global sourceLanguage
     for dafaultcommand in config["defaultScripts"]:
         if any( command in text for command in dafaultcommand["text"]):
             if dafaultcommand["action"]=="changToTrans":
