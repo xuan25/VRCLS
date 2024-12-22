@@ -156,6 +156,7 @@ try:
 except FileNotFoundError:
     with open('client.json', 'w', encoding="utf8") as f:
         f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
+    with open('client.json', 'w', encoding="utf8") as f:
         defaultConfig["userInfo"]["username"] = input("请输入用户名: ")
         defaultConfig["userInfo"]["password"] = input("请输入密码: ")
         f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
