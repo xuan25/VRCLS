@@ -15,7 +15,7 @@ VRCLS 全称 VRChat LinguaSync， 是一个用于在VRCAHT中使用语音来控�
 克隆或下载仓库源码后运行以下命令
 ```bash
 pip install -r requirements.txt 
-pyhton client.py
+python client.py
 ```
 
 ## 使用方法
