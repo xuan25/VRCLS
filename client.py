@@ -1,3 +1,4 @@
+# copyright boyqiu001
 import speech_recognition as sr
 from pythonosc import udp_client
 import json
@@ -128,6 +129,8 @@ defaultConfig={
     
     ]
 }
+
+logger.info("欢迎使用由VoiceLinkVR开发的VRCLS\n本程序的开发这为boyqiu-001(boyqiu玻璃球)\n欢迎大家加入qq群1011986554获取最新资讯\n\n")
 
 running = True
 try:
