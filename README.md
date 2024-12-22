@@ -108,7 +108,7 @@ python client.py
                 {
                     //osc路径 请查看 https://docs.vrchat.com/docs/osc-overview 下的内容
                     //请注意在vrc中，中文路径为Unicode
-                    // 如：模型参数为 “衣服” 其osc路径为 "/avatar/parameters/\u8863\u670d”
+                    // 如：模型参数为 “衣服” 其osc路径为 "/avatar/parameters/\\u8863\\u670d”
                     //转码网站：https://www.gseen.com/online_tools/code_change/unicode_ascii
                     "vrcPath": "/avatar/parameters/TailCloud",
                     //osc 设置参数值
