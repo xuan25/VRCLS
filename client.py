@@ -21,6 +21,10 @@ defaultConfig={
     "targetTranslationLanguage":"en",
     "defaultScripts":[
         {
+            "action":"sendText",
+            "text":["切换到文字发送模式","到文字发送模式"],
+        },
+        {
             "action":"changToTrans",
             "text":["切换到翻译模式","到翻译模式"],
         },
@@ -52,7 +56,8 @@ defaultConfig={
             "vrcActions":[
                 {
                     "vrcPath":"/input/Voice",
-                    "vrcValue":0
+                    "vrcValue":0,
+                    "sleeptime":0.1
                 },
                 {
                     "vrcPath":"/input/Voice",
@@ -210,7 +215,7 @@ def callback(recognizer, audio):
     try:
 
         logger.debug("音频输出完毕")
-        if runmode == "control":
+        if runmode == "control" or runmode == "text":
             url=baseurl+"/whisper/transcriptions"
         elif runmode == "trasnlation":
             if tragetTranslateLanguage=="en":url=baseurl+"/func/translateToEnglish"
@@ -244,6 +249,7 @@ def callback(recognizer, audio):
         logger.debug("返回值过滤")
         return
     if isdefaultCommand(res["text"]):return
+    if runmode == "text": sendTextFunction(res)
     if runmode == "control":controlFunction(res)
     if runmode == "trasnlation":translateFunction(res)
 
@@ -253,6 +259,14 @@ def isdefaultCommand(text):
     global sourceLanguage
     for dafaultcommand in config["defaultScripts"]:
         if any( command in text for command in dafaultcommand["text"]):
+            if dafaultcommand["action"]=="sendText":
+                if runmode =="text":
+                    logger.info("No need to modify mode. Currently in sendText mode ||无需修改模式 当前处于发送文字模式")
+                    return False
+                logger.info("change to sendText mode ||切换至发送文字模式")
+                runmode="text"
+                winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+                return True
             if dafaultcommand["action"]=="changToTrans":
                 if runmode =="trasnlation":
                     logger.info("No need to modify mode. Currently in translation mode ||无需修改模式 当前处于翻译模式")
@@ -308,7 +322,11 @@ def translateFunction(res):
     transtext=res['translatedText']
     logger.info(f"输出文字: {transtext}({text})")
     sendClient.send_message("/chatbox/input",[ f'{transtext}({text})', True, False])
-    
+def sendTextFunction(res):
+    global running
+    text=res['text']
+    logger.info(f"输出文字: {text}")
+    sendClient.send_message("/chatbox/input",[ f'{text}', True, False])  
 def controlFunction(res):
     text=res['text']
     global running
@@ -323,7 +341,7 @@ def controlFunction(res):
                 logger.info("执行命令:"+script["action"])
                 for vrcaction in script["vrcActions"]:
                     sendClient.send_message(vrcaction["vrcPath"],vrcaction["vrcValue"])
-                    time.sleep(0.1)
+                    time.sleep(vrcaction["sleeptime"]if vrcaction["sleeptime"] is not None else 0.1)
                 winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
     elif config["activateText"] in text:
         commandlist=text.split(config["activateText"])
@@ -340,7 +358,7 @@ def controlFunction(res):
                     logger.info("执行命令:"+script["text"])
                     for vrcaction in script["vrcActions"]:
                         sendClient.send_message(vrcaction["vrcPath"],vrcaction["vrcValue"])
-                        time.sleep(0.1)
+                        time.sleep(vrcaction["sleeptime"]if vrcaction["sleeptime"] is not None else 0.1)
                     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
 
 
