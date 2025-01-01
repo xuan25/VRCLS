@@ -82,7 +82,15 @@ if __name__ == '__main__':
     params=manager.dict()
 
     logger=MyLogger().logger
-    logger.info("欢迎使用由VoiceLinkVR开发的VRCLS\n本程序的开发这为boyqiu-001(boyqiu玻璃球)\n欢迎大家加入qq群1011986554获取最新资讯\n\n")
+    logger.info('''
+                          
+    欢迎使用由VoiceLinkVR开发的VRCLS
+    本程序的开发这为boyqiu-001(boyqiu玻璃球)
+    欢迎大家加入qq群1011986554获取最新资讯
+    目前您使用的时公测账户,限制每日2000次请求
+    如需获取更多资源请加群
+                '''
+                )
 
     params["running"] = True
 
