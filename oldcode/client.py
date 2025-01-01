@@ -3,9 +3,11 @@ import speech_recognition as sr
 from pythonosc import udp_client
 import json
 import time
-from selflogger import getlogger
+from .selflogger import getlogger
 logger =getlogger("client",'client.log')
 import requests
+import asyncio
+import aiohttp
 import winsound
 # 设置一个标志变量来控制循环
 defaultConfig={
@@ -57,6 +59,7 @@ defaultConfig={
                 {
                     "vrcPath":"/input/Voice",
                     "vrcValue":0,
+                    "vrcValueType":"float",
                     "sleeptime":0.1
                 },
                 {
@@ -186,28 +189,30 @@ while True:
     with open('client.json', 'w', encoding="utf8") as f:
         f.write(json.dumps(config,ensure_ascii=False, indent=4))
     break
-
-
-res=response.json()
-headers={'Authorization': 'Bearer '+res["access_token"]}
-r = sr.Recognizer()
-m = sr.Microphone()
-sendClient = udp_client.SimpleUDPClient(config["ip"],config["port"])
-logger.info("vrc udpClient ok||发送准备就绪")
-runmode= config["defaultMode"]
 tragetTranslateLanguage="en" if config["targetTranslationLanguage"] is None or  config["targetTranslationLanguage"] == "" else config["targetTranslationLanguage"]
 whisperSupportedLanguageList=["af","am","ar","as","az","ba","be","bg","bn","bo","br","bs","ca","cs","cy","da","de","el","en","es"
                               ,"et","eu","fa","fi","fo","fr","gl","gu","ha","haw","he","hi","hr","ht","hu","hy","id","is","it",
                               "ja","jw","ka","kk","km","kn","ko","la","lb","ln","lo","lt","lv","mg","mi","mk","ml","mn","mr","ms",
                               "mt","my","ne","nl","nn","no","oc","pa","pl","ps","pt","ro","ru","sa","sd","si","sk","sl","sn","so","sq",
                               "sr", "su", "sv","sw","ta", "te","tg","th","tk","tl","tr","tt","uk","ur","uz","vi","yi","yo","yue","zh"]
-sourceLanguage="zh" if config["sourceLanguage"] =="" else config["sourceLanguage"]
+sourceLanguage="zh" if config["sourceLanguage"] ==""  else config["sourceLanguage"]
 if sourceLanguage not in whisperSupportedLanguageList:
     logger.warning('please check your sourceLanguage in config,please choose one in following list\n 请检查sourceLanguage配置是否正确 请从下方语言列表中选择一个(中文是 zh)\n list:'+str(whisperSupportedLanguageList))
     input("press any key to exit||按下任意键退出...")
 
+res=response.json()
+headers={'Authorization': 'Bearer '+res["access_token"]}
+
+r = sr.Recognizer()
+m = sr.Microphone()
+sendClient = udp_client.SimpleUDPClient(config["ip"],config["port"])
+logger.info("vrc udpClient ok||发送准备就绪")
+runmode= config["defaultMode"]
+
 # this is called from the background thread
 def callback(recognizer, audio):
+    asyncio.run(once(audio.get_wav_data()))
+async def once(audiofile):
     global running 
     global runmode
     global tragetTranslateLanguage
@@ -217,41 +222,46 @@ def callback(recognizer, audio):
         logger.debug("音频输出完毕")
         if runmode == "control" or runmode == "text":
             url=baseurl+"/whisper/transcriptions"
-        elif runmode == "trasnlation":
-            if tragetTranslateLanguage=="en":url=baseurl+"/func/translateToEnglish"
+        elif runmode == "translation":
+            if tragetTranslateLanguage=="en" and sourceLanguage== "zh":url=baseurl+"/func/translateToEnglish"
+            elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
             else:url=baseurl+"/func/translateToOtherLanguage"
         else: 
             logger.error("运行模式异常,运行默认控制模式")
             runmode = "control"
             url = baseurl+"/whisper/transcriptions"
         logger.debug(f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}")
-        response = requests.post(url,files={"file":audio.get_wav_data()},data={"targetLanguage":tragetTranslateLanguage},headers=headers)
-        if response.status_code != 200: 
-            logger.warning(f"数据接收异常:{response.text}")
-            return
-        res = response.json()
-    except sr.UnknownValueError:
-        logger.info("无法理解这个语音")
-        return
-    except sr.RequestError as e:
-        logger.warning("识别服务无法达到; 检查您的互联网连接或者是服务本身是否下线")
-        return
-    except sr.WaitTimeoutError:
-        logger.info("说话超时")
-    except requests.exceptions.JSONDecodeError:
+        async with aiohttp.ClientSession() as session:
+            # 准备表单数据，包括文件和其他字段
+            form = aiohttp.FormData()
+            form.add_field("targetLanguage", tragetTranslateLanguage)
+            form.add_field("sourceLanguage", sourceLanguage)
+            form.add_field("file", audiofile, content_type='audio/wav')  # 假设audiofile是一个文件对象
+ 
+            # 发送异步POST请求
+            async with session.post(url, data=form, headers=headers) as response:
+                # 检查响应状态码
+                if response.status != 200:
+                    logger.warning(f"数据接收异常:{await response.text()}")
+                    return
+ 
+                # 解析JSON响应
+                res = await response.json()
+                logger.debug("你说的是: " + res["text"])
+                if res["text"] =="":
+                    logger.debug("返回值过滤")
+                    return
+                if isdefaultCommand(res["text"]):return
+                if runmode == "text": sendTextFunction(res)
+                if runmode == "control":controlFunction(res)
+                if runmode == "translation":translateFunction(res)
+    except aiohttp.ContentTypeError:
         logger.warning("json解析异常,code:"+str(response.status_code)+" info:"+response.text)
         return
     except Exception as e:
-        logger.warning("未知异常："+str(e))
+        logger.warning(e)
         return
-    logger.debug("你说的是: " + res["text"])
-    if res["text"] =="":
-        logger.debug("返回值过滤")
-        return
-    if isdefaultCommand(res["text"]):return
-    if runmode == "text": sendTextFunction(res)
-    if runmode == "control":controlFunction(res)
-    if runmode == "trasnlation":translateFunction(res)
+
 
 def isdefaultCommand(text):
     global runmode
@@ -268,11 +278,11 @@ def isdefaultCommand(text):
                 winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
                 return True
             if dafaultcommand["action"]=="changToTrans":
-                if runmode =="trasnlation":
+                if runmode =="translation":
                     logger.info("No need to modify mode. Currently in translation mode ||无需修改模式 当前处于翻译模式")
                     return False
                 logger.info("change to translation mode ||切换至翻译模式")
-                runmode="trasnlation"
+                runmode="translation"
                 winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
                 return True
             if dafaultcommand["action"]=="changToControl":
@@ -318,6 +328,7 @@ def isdefaultCommand(text):
     return False
 def translateFunction(res):
     global running
+    global sourceLanguage
     text=res['text']
     transtext=res['translatedText']
     logger.info(f"输出文字: {transtext}({text})")
@@ -336,12 +347,12 @@ def controlFunction(res):
             stop_listening(wait_for_stop=False)
             running = False
             exit(0)
-        for script in config["scripts"]:
-            if any( command in text  for command in script["text"]):
+        for script in config.get("scripts"):
+            if any( command in text  for command in script.get("text")):
                 logger.info("执行命令:"+script["action"])
                 for vrcaction in script["vrcActions"]:
-                    sendClient.send_message(vrcaction["vrcPath"],vrcaction["vrcValue"])
-                    time.sleep(vrcaction["sleeptime"]if vrcaction["sleeptime"] is not None else 0.1)
+                    sendClient.send_message(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
+                    time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
                 winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
     elif config["activateText"] in text:
         commandlist=text.split(config["activateText"])
@@ -353,12 +364,12 @@ def controlFunction(res):
                 stop_listening(wait_for_stop=False)
                 running = False
                 exit(0)
-            for script in config["scripts"]:
-                if command in script["text"]:
-                    logger.info("执行命令:"+script["text"])
-                    for vrcaction in script["vrcActions"]:
-                        sendClient.send_message(vrcaction["vrcPath"],vrcaction["vrcValue"])
-                        time.sleep(vrcaction["sleeptime"]if vrcaction["sleeptime"] is not None else 0.1)
+            for script in config.get("scripts"):
+                if command in script.get("text"):
+                    logger.info("执行命令:"+script.get("action"))
+                    for vrcaction in script.get("vrcActions"):
+                        sendClient.send_message(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
+                        time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None else 0.1)
                     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
 
 
