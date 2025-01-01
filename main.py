@@ -5,7 +5,7 @@ from src.handler.ChatBox import ChatboxHandler
 from src.handler.Avatar import AvatarHandler
 import speech_recognition as sr
 import requests
-from multiprocessing import Process,Manager
+from multiprocessing import Process,Manager,freeze_support
 import threading
 import winsound
 import time
@@ -75,7 +75,9 @@ def threaded_listen(baseurl,sendClient,config,headers,params):
                 if params["running"]:
                     p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params))
                     p.start()
+
 if __name__ == '__main__':
+    freeze_support()
     manager = Manager()
     params=manager.dict()
 

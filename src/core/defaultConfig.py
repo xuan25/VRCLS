@@ -1,5 +1,5 @@
 defaultConfig={
-    "userInfo":{"username":"","password":""},
+    "userInfo":{"username":"testuser","password":"abc123!"},
     "baseurl":"https://whisper.boyqiu001.cn:7070",
     "port":9000,
     "ip":"127.0.0.1",
