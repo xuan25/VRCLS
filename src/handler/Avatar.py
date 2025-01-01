@@ -25,7 +25,7 @@ class AvatarHandler(BaseHandler):
                 if any( command in text  for command in script.get("text")):
                     logger.info("执行命令:"+script["action"])
                     for vrcaction in script["vrcActions"]:
-                        self.osc_client.sendOSCMesssage(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
+                        self.osc_client.send_message(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
                         time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
                     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
         elif config["activateText"] in text:
@@ -41,6 +41,6 @@ class AvatarHandler(BaseHandler):
                     if command in script.get("text"):
                         logger.info("执行命令:"+script.get("action"))
                         for vrcaction in script.get("vrcActions"):
-                            self.osc_client.sendOSCMesssage(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
+                            self.osc_client.send_message(vrcaction.get("vrcPath"),float(vrcaction.get("vrcValue")))
                             time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None else 0.1)
                         winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
