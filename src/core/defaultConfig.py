@@ -1,127 +1,168 @@
 defaultConfig={
-    "userInfo":{"username":"testuser","password":"abc123!"},
-    "baseurl":"https://whisper.boyqiu001.cn:7070",
-    "port":9000,
-    "ip":"127.0.0.1",
-    "defaultMode":"control",
-    "exitText":"关闭语音助手",
-    "activateText":"",
-    "stopText":"",
-    "sourceLanguage":"zh",
-    "targetTranslationLanguage":"en",
-    "defaultScripts":[
+    "userInfo": {
+        "username": "testuser",
+        "password": "abc123!"
+    },
+    "baseurl": "https://whisper.boyqiu001.cn:7070",
+    "port": 9000,
+    "ip": "127.0.0.1",
+    "defaultMode": "control",
+    "exitText": "关闭语音助手",
+    "activateText": "",
+    "stopText": "",
+    "sourceLanguage": "zh",
+    "targetTranslationLanguage": "en",
+    "defaultScripts": [
         {
-            "action":"sendText",
-            "text":["切换到文字发送模式","到文字发送模式"],
+            "action": "sendText",
+            "text": [
+                "切换到文字发送模式",
+                "到文字发送模式",
+	            "文字发送"
+            ]
         },
         {
-            "action":"changToTrans",
-            "text":["切换到翻译模式","到翻译模式"],
+            "action": "changToTrans",
+            "text": [
+                "切换到翻译模式",
+                "到翻译模式"
+            ]
         },
         {
-            "action":"changToControl",
-            "text":["切换到控制模式","到控制模式"],
+            "action": "changToControl",
+            "text": [
+                "切换到控制模式",
+                "到控制模式"
+            ]
         },
         {
-            "action":"changToEnglish",
-            "text":["切换到英语翻译"]
+            "action": "changToEnglish",
+            "text": [
+                "切换到英语翻译"
+            ]
         },
         {
-            "action":"changTojapanese",
-            "text":["切换到日语翻译"]
+            "action": "changTojapanese",
+            "text": [
+                "切换到日语翻译"
+            ]
         },
         {
-            "action":"changToRussian",
-            "text":["切换到俄语翻译"]
+            "action": "changToRussian",
+            "text": [
+                "切换到俄语翻译"
+            ]
         },
         {
-            "action":"changToKorean",
-            "text":["切换到韩语翻译"]
+            "action": "changToKorean",
+            "text": [
+                "切换到韩语翻译"
+            ]
         }
     ],
-    "scripts":[
+    "scripts": [
         {
-            "action":"toggle Mic",
-            "text":["切换麦克风","切換麥克風"],
-            "vrcActions":[
+            "action": "toggle Mic",
+            "text": [
+                "切换麦克风",
+                "切換麥克風"
+            ],
+            "vrcActions": [
                 {
-                    "vrcPath":"/input/Voice",
-                    "vrcValue":0,
-                    "vrcValueType":"float",
-                    "sleeptime":0.1
+                    "vrcPath": "/input/Voice",
+                    "vrcValue": 0,
+                    "vrcValueType": "bool",
+                    "sleeptime": 0.1
                 },
                 {
-                    "vrcPath":"/input/Voice",
-                    "vrcValue":1
+                    "vrcPath": "/input/Voice",
+                    "vrcValueType": "bool",
+                    "vrcValue": 1
                 },
                 {
-                    "vrcPath":"/input/Voice",
-                    "vrcValue":0
+                    "vrcPath": "/input/Voice",
+                    "vrcValueType": "bool",
+                    "vrcValue": 0
                 }
             ]
-
         },
         {
-            "action":"blackCloth",
-            "text":["黑色衣服"],            
-            "vrcActions":[
+            "action": "blackCloth",
+            "text": [
+                "黑色衣服"
+            ],
+            "vrcActions": [
                 {
-            "vrcPath":"/avatar/parameters/Change_material",
-            "vrcValue":0
+                    "vrcPath": "/avatar/parameters/Change_material",
+	                "vrcValueType": "float",
+                    "vrcValue": 0
                 }
             ]
         },
         {
-            "action":"whiteCloth",
-            "text":["白色衣服"],
-            "vrcActions":[
+            "action": "whiteCloth",
+            "text": [
+                "白色衣服"
+            ],
+            "vrcActions": [
                 {
-            "vrcPath":"/avatar/parameters/Change_material",
-            "vrcValue":0.5
+                    "vrcPath": "/avatar/parameters/Change_material",
+	                "vrcValueType": "float",
+                    "vrcValue": 0.5
                 }
             ]
-
         },
         {
-            "action":"openBaseballBat",
-            "text":["打开棒球棒"],
-            "vrcActions":[
+            "action": "openBaseballBat",
+            "text": [
+                "打开棒球棒"
+            ],
+            "vrcActions": [
                 {
-                    "vrcPath":"/avatar/parameters/IsBaseballBat",
-                    "vrcValue":1
+                    "vrcPath": "/avatar/parameters/IsBaseballBat",
+	                "vrcValueType": "bool",
+                    "vrcValue": 1
                 }
             ]
         },
         {
-            "action":"closeBaseballBat",
-            "text":["关闭棒球棒"],
-            "vrcActions":[
+            "action": "closeBaseballBat",
+            "text": [
+                "关闭棒球棒"
+            ],
+            "vrcActions": [
                 {
-                    "vrcPath":"/avatar/parameters/IsBaseballBat",
-                    "vrcValue":0
-                }
-            ]
-
-        },
-        {
-            "action":"openTailCloud",
-            "text":["打开尾巴云朵"],
-            "vrcActions":[{
-            "vrcPath":"/avatar/parameters/TailCloud",
-            "vrcValue":1
+                    "vrcPath": "/avatar/parameters/IsBaseballBat",
+	                "vrcValueType": "bool",
+                    "vrcValue": 0
                 }
             ]
         },
         {
-            "action":"closeTailCloud",
-            "text":["关闭尾巴云朵"],
-            "vrcActions":[{
-            "vrcPath":"/avatar/parameters/TailCloud",
-            "vrcValue":0
+            "action": "openTailCloud",
+            "text": [
+                "打开尾巴云朵"
+            ],
+            "vrcActions": [
+                {
+                    "vrcPath": "/avatar/parameters/TailCloud",
+	                "vrcValueType": "bool",
+                    "vrcValue": 1
                 }
             ]
-
+        },
+        {
+            "action": "closeTailCloud",
+            "text": [
+                "关闭尾巴云朵"
+            ],
+            "vrcActions": [
+                {
+                    "vrcPath": "/avatar/parameters/TailCloud",
+	                "vrcValueType": "bool",
+                    "vrcValue": 0
+                }
+            ]
         }
-    
     ]
 }

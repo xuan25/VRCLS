@@ -112,12 +112,16 @@ python client.py
                     //转码网站：https://www.gseen.com/online_tools/code_change/unicode_ascii
                     "vrcPath": "/avatar/parameters/TailCloud",
                     //osc 设置参数值
-                    "vrcValue": 1
+                    "vrcValue": 1,
+                    //osc 参数格式 "float","bool","int"
+                    "vrcValueType": "float",
+                    //状态持续时间
+                    "sleeptime": 0.1
                 }
             ]
         },
         //作为input,控制静音开关示例
-        {   
+        {
             "action": "toggle Mic",
             "text": [
                 "切换麦克风",
@@ -126,20 +130,22 @@ python client.py
             "vrcActions": [
                 {
                     "vrcPath": "/input/Voice",
-                    
-                    "vrcValue": 0
+                    "vrcValue": 0,
+                    "vrcValueType": "bool",
+                    "sleeptime": 0.1
                 },
                 {
                     "vrcPath": "/input/Voice",
+                    "vrcValueType": "bool",
                     "vrcValue": 1
                 },
                 {
                     "vrcPath": "/input/Voice",
+                    "vrcValueType": "bool",
                     "vrcValue": 0
                 }
             ]
         }
-    ]
 }
 
 ```
