@@ -17,20 +17,20 @@ class AvatarHandler(BaseHandler):
         text=res['text']
         global running
         if config["activateText"] == "":
-            logger.info("无头命令:"+text)
+            logger.put({"text":"无头命令:"+text,"level":"info"})
             if text == config["exitText"]:
                 running = False
                 exit(0)
             for script in config.get("scripts"):
                 if any( command in text  for command in script.get("text")):
-                    logger.info("执行命令:"+script["action"])
+                    logger.put({"text":"执行命令:"+script["action"],"level":"info"})
                     for vrcaction in script["vrcActions"]:
                         type=vrcaction.get("vrcValueType")
                         if type=="float":value=float(vrcaction.get("vrcValue"))
                         elif type=="int":value=int(vrcaction.get("vrcValue"))
                         elif type=="bool":value=bool(vrcaction.get("vrcValue"))
                         else:
-                            logger.info("未知参数类型，使用bool模式")
+                            logger.put({"text":"未知参数类型，使用bool模式","level":"warning"})
                             value=bool(vrcaction.get("vrcValue"))
                         self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                         time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
@@ -40,20 +40,20 @@ class AvatarHandler(BaseHandler):
             command=commandlist[-1]
             if (config["stopText"] in command) or config["stopText"] == "":
                 if config["stopText"] != "":command=command.split(config["stopText"])[0]
-                logger.info("有头命令:"+command)
+                logger.put({"text":"有头命令:"+command,"level":"info"})
                 if command == config["exitText"]:
                     running = False
                     exit(0)
                 for script in config.get("scripts"):
                     if command in script.get("text"):
-                        logger.info("执行命令:"+script.get("action"))
+                        logger.put({"text":"执行命令:"+script.get("action"),"level":"info"})
                         for vrcaction in script["vrcActions"]:
                             type=vrcaction.get("vrcValueType")
                             if type=="float":value=float(vrcaction.get("vrcValue"))
                             elif type=="int":value=int(vrcaction.get("vrcValue"))
                             elif type=="bool":value=bool(vrcaction.get("vrcValue"))
                             else:
-                                logger.info("未知参数类型，使用bool模式")
+                                logger.put({"text":"未知参数类型，使用bool模式","level":"warning"})
                                 value=bool(vrcaction.get("vrcValue"))
                             self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                             time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None else 0.1)

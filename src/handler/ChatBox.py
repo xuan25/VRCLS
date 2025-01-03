@@ -14,10 +14,10 @@ class ChatboxHandler(BaseHandler):
     def translateFunction(self,res:str):
         text=res['text']
         transtext=res['translatedText']
-        self.logger.info(f"输出文字: {transtext}({text})")
+        self.logger.put({"text":f"输出文字: {transtext}({text})","level":"info"})
         self.osc_client.send_message("/chatbox/input",[ f'{transtext}({text})', True, False])
 
     def sendTextFunction(self,res:str):
         text=res['text']
-        self.logger.info(f"输出文字: {text}")
+        self.logger.put({"text":f"输出文字: {text}","level":"info"})
         self.osc_client.send_message("/chatbox/input",[ f'{text}', True, False])   
