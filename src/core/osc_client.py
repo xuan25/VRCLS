@@ -15,5 +15,5 @@ class OSCClient:
             address: OSC 地址
             value: 要发送的值
         """
-        self.logger.debug(f"Sending OSC message to {address}: {value}")
+        self.logger.put({'text':f"Sending OSC message to {address}: {value}",'level':'debug'})
         self.client.send_message(address, value) 

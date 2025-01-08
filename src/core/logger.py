@@ -16,7 +16,7 @@ class MyLogger:
         # 最多保留的日志文件数
         backup_count = 20
         # 创建 file handler 并设置日志级别
-        fh = logging.handlers.RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count)
+        fh = logging.handlers.RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count,encoding="utf-8")
         fh.setLevel(logging.DEBUG)
         
         # 创建 console handler 并设置日志级别

@@ -12,6 +12,7 @@ defaultConfig={
     "stopText": "",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
+    "translationServer":"whisper",# "whisper","libre"
     "defaultScripts": [
         {
             "action": "sendText",
