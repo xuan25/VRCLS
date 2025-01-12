@@ -1,83 +1,73 @@
 # VRCLS
+([简体中文](README-zh.md)|english)
 
-VRCLS 全称 VRChat LinguaSync， 是一个用于在VRCHAT中使用语音来控制模型或作为翻译器输出内容的程序
+VRCLS, also known as VRChat LinguaSync, is a program used in VRCHAT to control models or output content as a translator using speech
 
-## 启动方法
+## Program Features
 
-### 构筑包
-如没有python环境可以访问通过[下载链接](https://github.com/VoiceLinkVR/VRCLS/releases)下载打包后的程序
+- Low load. Use server client mode in conjunction with VoiceLinkVR server.
+- No performance requirements for client devices
+- The client does not require excessive configuration, only the account password and model control function configuration are needed
+- Client integrated HTTP API
+- Both the client and server support local deployment
 
-解压压缩包后双击VRCLS.exe 
+## Startup method
+
+### Build Package
+If there is no Python environment available, you can access it through [download link](https://github.com/VoiceLinkVR/VRCLS/releases )Download the packaged program
+
+After decompressing the compressed file, double-click VRCLS.exe
 
 ---
-### 本地python运行
+### Local Python Run
 
-克隆或下载仓库源码后运行以下命令
+After cloning or downloading the repository source code, run the following command
 ```bash
 pip install -r requirements.txt 
 python main.py
 ```
 
-## 使用方法
+## Usage method
 
-### 登录
+### Login
 
-#### 1. 使用默认开发者提供的服务器（测试用）
+#### 1.  Use the default developer provided server (for testing purposes)
 
-    程序默认使用开发者提供的服务器网址
-    如需使用，请加QQ群: 1011986554 ，问题答案为VoiceLinkVR
+    The program defaults to using the server URL provided by the developer
 
-    根据提示，输入账号和密码
+    If you need to use it, please join the QQ group: 1011986554, the answer to the question is VoiceLinkVR
 
-    等待噪声检查后可以开始使用
+    Follow the prompts and enter your account and password
+
+    Wait for noise inspection before starting to use
 
 
-####  2. 使用本地搭建的服务器或他人的服务器
+####  2.  Use a locally built server or someone else's server
 
-    如果要使用其他人的服务器请与VoiceLinkVR-server服务器管理员联系并获取账号密码
+    If you want to use someone else's server, please contact the VoiceLinkVR server administrator
 
-    先运行程序后修改配置文件client.json中的baseurl，请看下方 配置文件参数详解
+    Run the program first and then modify the baseURL in the client. json configuration file. Please refer to the detailed explanation of the configuration file parameters below
 
-    根据提示，输入账号和密码
+    Follow the prompts and enter your account and password
 
-    等待噪声检查后可以开始使用
+    Wait for noise inspection before starting to use
 
 
 
 
 ---
 
-### 默认指令
-
-### 配置文件参数详解
-
-```json
-{
-    //账户信息
-    "userInfo": {
-        "username": "",
-        "password": ""
-    },
-    //默认为开发者服务器，本地服务器请填写服务器apiURL 例： http://192.168.2.10:8980/api
-    "baseurl": "https://whisper.boyqiu001.cn:7070",
-    //vrc osc 接收端口号
-    "port": 9000,
-    //vrc osc ip
-    "ip": "127.0.0.1",
-    //启动默认运行模式  控制模式为"control" 翻译模式为"trasnlation"
-    "defaultMode": "control",
-    //退出语音助手的触发文本
-    "exitText": "关闭语音助手",
-    //启动热词，设置后只有说了这个词之后才会检查触发词
-    "activateText": "",
-    //结束热词，设置后只有说了开始词和结束词之后才会检查中间的触发词
-    "stopText": "",
-    //使用者语音语言
-    "sourceLanguage": "zh",
-    //默认翻译输出的语言
-    "targetTranslationLanguage": "en",
-    //官方语音触发脚本,每次更新会检查新增，可以修改text中的触发词
-    "defaultScripts": [
+###Default command (default in chinese ,modifiable)
+```
+"defaultScripts": [
+        {
+            "action": "sendText",
+            "text": [
+                "切换到文字发送模式",
+                "到文字发送模式",
+	            "文字发送"
+            ]
+        },
         {
             "action": "changToTrans",
             "text": [
@@ -85,7 +75,31 @@ python main.py
                 "到翻译模式"
             ]
         },
-       ...
+        {
+            "action": "changToControl",
+            "text": [
+                "切换到控制模式",
+                "到控制模式"
+            ]
+        },
+        {
+            "action": "changToEnglish",
+            "text": [
+                "切换到英语翻译"
+            ]
+        },
+        {
+            "action": "changTojapanese",
+            "text": [
+                "切换到日语翻译"
+            ]
+        },
+        {
+            "action": "changToRussian",
+            "text": [
+                "切换到俄语翻译"
+            ]
+        },
         {
             "action": "changToKorean",
             "text": [
@@ -93,59 +107,106 @@ python main.py
             ]
         }
     ],
-    //用户自定义语音触发脚本
+```
+###Detailed explanation of configuration file parameters
+
+```json
+{
+    //Account information
+    "userInfo": {
+    "username": "",
+    "password": ""
+    },
+    //Default is developer server. For local servers, please fill in the server apiURL example: http://192.168.2.10:8980/api
+    "baseurl": " https://whisper.boyqiu001.cn:7070 ",
+    //VRC OSC receiving port number
+    "port": 9000,
+    //vrc osc ip
+    "ip": "127.0.0.1",
+    //Start default running mode, control mode is set to "control", translation mode is set to "traction"
+    "defaultMode": "control",
+    //The trigger text for exiting the voice assistant
+    "exitText":  "Close the voice assistant",
+    //Activate the hot word, and only check the trigger word after saying it
+    "activateText": "",
+    //End the hot word, only after the start and end words are spoken will the trigger word in between be checked
+    "stopText": "",
+    //User's voice language
+    "sourceLanguage": "zh",
+    //Default translation output language
+    "targetTranslationLanguage": "en",
+    //Whisper "and" libre "can be translated using libreTranslte or Whisper
+    "translationServer":"libre",
+    //Official voice trigger script, checks for new additions every time it is updated, and can modify trigger words in the text
+    "defaultScripts": [
+    {
+        "action": "changToTrans",
+        "text": [
+        "Switch to translation mode",
+        "To Translation Mode"
+        ]
+    },
+    ...
+    {
+        "action": "changToKorean",
+        "text": [
+        "Switch to Korean translation"
+        ]
+    }
+    ],
+    //User defined voice trigger script
     "scripts": [
-        //控制模型参数示例
+    //Example of Control Model Parameters
+    {
+    //The action name displayed in the log
+        "action": "openTailCloud",
+        //Script trigger words, multiple can be configured
+        "text": [
+            "Open the tail cloud"
+        ],
+        //Multiple operations can be configured, with an interval of half a second between each operation
+        "vrcActions": [
         {
-            //日志显示的动作名称
-            "action": "openTailCloud",
-            //脚本触发词，可配置多个
-            "text": [
-                "打开尾巴云朵"
-            ],
-            //执行的操作，可配置多个，每个操作间隔半秒
-            "vrcActions": [
-                {
-                    //osc路径 请查看 https://docs.vrchat.com/docs/osc-overview 下的内容
-                    //请注意在vrc中，中文路径为Unicode
-                    // 如：模型参数为 “衣服” 其osc路径为 "/avatar/parameters/\\u8863\\u670d”
-                    //转码网站：https://www.gseen.com/online_tools/code_change/unicode_ascii
-                    "vrcPath": "/avatar/parameters/TailCloud",
-                    //osc 设置参数值
-                    "vrcValue": 1,
-                    //osc 参数格式 "float","bool","int"
-                    "vrcValueType": "float",
-                    //状态持续时间
-                    "sleeptime": 0.1
-                }
-            ]
-        },
-        //作为input,控制静音开关示例
-        {
-            "action": "toggle Mic",
-            "text": [
-                "切换麦克风",
-                "切換麥克風"
-            ],
-            "vrcActions": [
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValue": 0,
-                    "vrcValueType": "bool",
-                    "sleeptime": 0.1
-                },
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValueType": "bool",
-                    "vrcValue": 1
-                },
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValueType": "bool",
-                    "vrcValue": 0
-                }
-            ]
+            //Please check the OSC path https://docs.vrchat.com/docs/osc-overview The following content
+            //Please note that in VRC, the Chinese path is Unicode
+            //For example, if the model parameter is "clothing", its OSC path is "/avatar/parameters/\ u8863 \ \ u670d"
+            //Transcoding website: https://www.gseen.com/online_tools/code_change/unicode_ascii
+            "vrcPath": "/avatar/parameters/TailCloud",
+            //OSC sets parameter values
+            "vrcValue": 1,
+            //OSC parameter format "float", "boolean", "int"
+            "vrcValueType": "float",
+            //Duration of Status
+            "sleeptime": 0.1
         }
+        ]
+    },
+    //As an input, control the mute switch example
+    {
+        "action": "toggle Mic",
+        "text": [
+            "Switch microphone",
+            "Switch microphone"
+        ],
+        "vrcActions": [
+            {
+                "vrcPath": "/input/Voice",
+                "vrcValue": 0,
+                "vrcValueType": "bool",
+                "sleeptime": 0.1
+            },
+            {
+                "vrcPath": "/input/Voice",
+                "vrcValueType": "bool",
+                "vrcValue": 1
+            },
+            {
+                "vrcPath": "/input/Voice",
+                "vrcValueType": "bool",
+                "vrcValue": 0
+            }
+        ]
+    }
 }
 
 ```

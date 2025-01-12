@@ -21,7 +21,7 @@ class StartUp:
             exit(0)
 
     def setOSCClient(self,logger):
-        self.oscClient=OSCClient(logger=logger,host=self.config.get("ip"),port=self.config.get("port"))
+        self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=self.config.get("osc-port"))
         return self.oscClient.client
     def run(self):
         self.configCheck()

@@ -4,15 +4,17 @@ defaultConfig={
         "password": "abc123!"
     },
     "baseurl": "https://whisper.boyqiu001.cn:7070",
-    "port": 9000,
-    "ip": "127.0.0.1",
+    "api-ip":"127.0.0.1",
+    "api-port":8980,
+    "osc-port": 9000,
+    "osc-ip": "127.0.0.1",
     "defaultMode": "control",
     "exitText": "关闭语音助手",
     "activateText": "",
     "stopText": "",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
-    "translationServer":"whisper",# "whisper","libre"
+    "translationServer":"libre",# "whisper","libre"
     "defaultScripts": [
         {
             "action": "sendText",

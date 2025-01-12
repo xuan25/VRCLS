@@ -74,7 +74,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger):
                 if params["running"]:
                     p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger))
                     p.start()
-        p.join()
+
     logger.put({"text":"sound process exited complete||音频进程退出完毕","level":"info"})
 def logger_process(queue):
     logger=MyLogger().logger
