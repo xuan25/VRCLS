@@ -35,8 +35,9 @@ jobs:
         path: dist\  # 注意Windows路径使用反斜杠\
 
     
-  release:
+  publish:
     runs-on: ubuntu-latest
+    steps:
     # 新增步骤：下载artifact以便后续作为release资产上传
     - name: Download artifact for release
       uses: actions/download-artifact@v4
