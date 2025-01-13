@@ -114,7 +114,33 @@ def find_avatar_json( avatar_id):
  
 # 示例函数
 def open_web(host,port):
-    webbrowser.open(f"http://{host}:{port}")
+    
+    # 定义要打开的URL
+    url = f"http://{host}:{port}"
+    
+    # 获取Edge浏览器的可执行文件路径
+    # 不同的操作系统有不同的路径
+    edge_path = None
+    if os.name == 'nt':  # Windows系统
+        edge_path = os.path.join(os.environ.get('ProgramFiles(x86)'), 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+    elif os.uname().sysname == 'Darwin':  # macOS系统（注意：macOS上默认可能没有安装Edge）
+        # 通常需要用户手动指定Edge的路径，或者通过其他方式获取
+        # 例如：edge_path = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
+        pass  # 这里不做处理，因为路径需要用户指定
+    elif os.uname().sysname == 'Linux':  # Linux系统
+        # Linux上Edge的路径也可能需要用户手动指定
+        # 例如：edge_path = '/opt/microsoft/edge/microsoft-edge'
+        pass  # 这里不做处理，因为路径需要用户指定
+    
+    # 如果找到了Edge的路径，则使用它打开网页
+    if edge_path:
+        # 创建一个新的Edge控制器
+        edge = webbrowser.get(using=edge_path)
+        # 使用Edge控制器打开网页
+        edge.open(url)
+    else:
+        # 如果没有找到Edge的路径，则使用默认浏览器打开网页
+        webbrowser.open(url)
  
 
 if __name__ == '__main__':
@@ -126,7 +152,9 @@ if __name__ == '__main__':
         manager = Manager()
         params=manager.dict()
 
-        queue.put({'text':'''
+        params["running"] = True
+        startUp=StartUp(queue)
+        queue.put({'text':r'''
 ------------------------------------------------------------------------
      __     __  _______    ______   __         ______  
     /  |   /  |/       \  /      \ /  |       /      \ 
@@ -138,7 +166,9 @@ if __name__ == '__main__':
        $$$/    $$ |  $$ |$$    $$/ $$       |$$    $$/ 
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
-                                                   
+
+                   
+        '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
         》》》》                  《《《《            
         》》》》请保持本窗口持续开启《《《《          
@@ -152,11 +182,6 @@ if __name__ == '__main__':
 ------------------------------------------------------------------------
                     ''','level':'info'}
                     )
-
-        params["running"] = True
-
-
-        startUp=StartUp(queue)
         headers=startUp.run()
         sendClient= startUp.setOSCClient(queue)
         baseurl=startUp.config.get("baseurl")

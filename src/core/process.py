@@ -41,10 +41,10 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
             return
         # 解析JSON响应
         res = response.json()
-        logger.put({"text":"你说的是: " + res["text"],"level":"info"})
         if res["text"] =="":
             logger.put({"text":"返回值过滤","level":"debug"})
             return
+        logger.put({"text":"你说的是: " + res["text"],"level":"info"})
         if defaultCommand.handle(res["text"],params=params):return
         if params["runmode"] == "text" or params["runmode"] == "translation": chatbox.handle(res,runMode=params["runmode"])
         if params["runmode"] == "control":avatar.handle(res)
