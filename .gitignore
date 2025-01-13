@@ -30,6 +30,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 *.json
+!webUI/*.json
 MANIFEST
 !errorDict.json
 # PyInstaller
