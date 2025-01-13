@@ -53,7 +53,7 @@ jobs:
         body: |
           Release ${{ github.ref_name }}
         files: |
-          release-assets
+          D:\a\VRCLS\VRCLS\release-assets\packaged-app-windows.zip
         draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
