@@ -51,11 +51,9 @@ jobs:
         tag_name: ${{ github.ref_name }} # 使用触发的标签名作为发布版本
         name: Release ${{ github.ref_name }} # 发布名称，可以根据需要自定义
         body: |
-          # 发布说明
-          这里是发布的详细说明，可以包含新功能、修复的问题等。
-          自动生成于${{ github.event.repository.name }}仓库的${{ github.ref }}提交。
+          Release ${{ github.ref_name }}
         files: |
-          release-assets/* 
+          release-assets\*
         draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
