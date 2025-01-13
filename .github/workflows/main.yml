@@ -34,6 +34,10 @@ jobs:
         name: packaged-app-windows
         path: dist\  # 注意Windows路径使用反斜杠\
 
+    
+  release:
+    name: publish release
+    runs-on: ubuntu-latest
     # 新增步骤：下载artifact以便后续作为release资产上传
     - name: Download artifact for release
       uses: actions/download-artifact@v4
@@ -53,7 +57,7 @@ jobs:
         body: |
           Release ${{ github.ref_name }}
         files: |
-          D:\a\VRCLS\VRCLS\release-assets\packaged-app-windows.zip
+          release-assets/*
         draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
