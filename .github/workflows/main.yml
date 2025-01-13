@@ -54,9 +54,9 @@ jobs:
           # 发布说明
           这里是发布的详细说明，可以包含新功能、修复的问题等。
           自动生成于${{ github.event.repository.name }}仓库的${{ github.ref }}提交。
-         files: |
-          release-assets/* # 上传release-assets目录下的所有文件作为资产
-         draft: true # 是否创建为草稿发布
+        files: |
+          release-assets/* 
+        draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
 # 注意：如果您不需要上传构建工件，可以省略上传步骤
