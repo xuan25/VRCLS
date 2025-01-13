@@ -28,37 +28,23 @@ jobs:
       run: |
         pyinstaller .\main.spec -y
 
+
+
+   - name: Create ZIP archive
+      run: |
+        cd dist/VRCLS
+        ..\..\..\zip -r ../"VRCLS-windows-${{ github.ref_name }}" *
+        cd ..\..\..
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v4
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./"${{ github.ref_name }}"
+        asset_name: "${{ github.ref_name }}"
+        asset_content_type: application/zip
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: packaged-app-windows
         path: dist\  # 注意Windows路径使用反斜杠\
-
-    
-  publish:
-    needs: build-windows
-    runs-on: ubuntu-latest
-    steps:
-    # 新增步骤：下载artifact以便后续作为release资产上传
-    - name: Download artifact for release
-      uses: actions/download-artifact@v4
-      with:
-        name: packaged-app-windows
-        path: release-assets
- 
-    # 新增步骤：创建GitHub release并上传资产
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用GitHub提供的令牌
-      with:
-        tag_name: ${{ github.ref_name }} # 使用触发的标签名作为发布版本
-        name: Release ${{ github.ref_name }} # 发布名称，可以根据需要自定义
-        body: |
-          Release ${{ github.ref_name }}
-        files: |
-          release-assets/*
-        draft: true # 是否创建为草稿发布
-        prerelease: false # 是否创建为预发布
-
