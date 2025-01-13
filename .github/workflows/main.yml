@@ -36,7 +36,6 @@ jobs:
 
     
   release:
-    name: publish release
     runs-on: ubuntu-latest
     # 新增步骤：下载artifact以便后续作为release资产上传
     - name: Download artifact for release
