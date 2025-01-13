@@ -36,6 +36,7 @@ jobs:
 
     
   publish:
+    needs: build-windows
     runs-on: ubuntu-latest
     steps:
     # 新增步骤：下载artifact以便后续作为release资产上传
