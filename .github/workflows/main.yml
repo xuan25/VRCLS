@@ -53,7 +53,7 @@ jobs:
         body: |
           Release ${{ github.ref_name }}
         files: |
-          release-assets\*
+          release-assets
         draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
