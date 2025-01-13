@@ -44,7 +44,7 @@ jobs:
     # 新增步骤：创建GitHub release并上传资产
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v4
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用GitHub提供的令牌
       with:
