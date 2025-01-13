@@ -59,4 +59,3 @@ jobs:
         draft: true # 是否创建为草稿发布
         prerelease: false # 是否创建为预发布
 
-# 注意：如果您不需要上传构建工件，可以省略上传步骤
