@@ -1,6 +1,9 @@
 name: Package Python Application on Windows
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*' # 监听以v开头的标签，例如v1.0.0
 
 jobs:
   build-windows:
@@ -30,5 +33,30 @@ jobs:
       with:
         name: packaged-app-windows
         path: dist\  # 注意Windows路径使用反斜杠\
+
+    # 新增步骤：下载artifact以便后续作为release资产上传
+    - name: Download artifact for release
+      uses: actions/download-artifact@v4
+      with:
+        name: packaged-app-windows
+        path: release-assets
+ 
+    # 新增步骤：创建GitHub release并上传资产
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用GitHub提供的令牌
+      with:
+        tag_name: ${{ github.ref_name }} # 使用触发的标签名作为发布版本
+        name: Release ${{ github.ref_name }} # 发布名称，可以根据需要自定义
+        body: |
+          # 发布说明
+          这里是发布的详细说明，可以包含新功能、修复的问题等。
+          自动生成于${{ github.event.repository.name }}仓库的${{ github.ref }}提交。
+         files: |
+          release-assets/* # 上传release-assets目录下的所有文件作为资产
+         draft: true # 是否创建为草稿发布
+        prerelease: false # 是否创建为预发布
 
 # 注意：如果您不需要上传构建工件，可以省略上传步骤
