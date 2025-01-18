@@ -1,5 +1,5 @@
 import time
-from tinyoscquery.query import OSCQueryBrowser, OSCQueryClient
+from .tinyoscquery.query import OSCQueryBrowser, OSCQueryClient
 
 class avatar:
     def __init__(self):
