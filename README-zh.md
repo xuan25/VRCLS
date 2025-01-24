@@ -36,7 +36,7 @@ python main.py
     程序默认使用开发者提供的服务器网址
     如需使用，请加QQ群: 1011986554 ，问题答案为VoiceLinkVR
 
-    根据提示，输入账号和密码
+    根据控制台提示，输入账号和密码，或在网页中输入账户密码
 
     等待噪声检查后可以开始使用
 
@@ -51,62 +51,13 @@ python main.py
 
     等待噪声检查后可以开始使用
 
-
-
-
 ---
 
-### 默认指令(可修改)
-```
-"defaultScripts": [
-        {
-            "action": "sendText",
-            "text": [
-                "切换到文字发送模式",
-                "到文字发送模式",
-	            "文字发送"
-            ]
-        },
-        {
-            "action": "changToTrans",
-            "text": [
-                "切换到翻译模式",
-                "到翻译模式"
-            ]
-        },
-        {
-            "action": "changToControl",
-            "text": [
-                "切换到控制模式",
-                "到控制模式"
-            ]
-        },
-        {
-            "action": "changToEnglish",
-            "text": [
-                "切换到英语翻译"
-            ]
-        },
-        {
-            "action": "changTojapanese",
-            "text": [
-                "切换到日语翻译"
-            ]
-        },
-        {
-            "action": "changToRussian",
-            "text": [
-                "切换到俄语翻译"
-            ]
-        },
-        {
-            "action": "changToKorean",
-            "text": [
-                "切换到韩语翻译"
-            ]
-        }
-    ],
-```
+### 配置
+
+请根据开启时的WEBUI在浏览器配置参数
+
+
 ### 配置文件参数详解
 
 ```json
