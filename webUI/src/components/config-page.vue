@@ -40,6 +40,176 @@
                                 <el-option label="文字发送" value="text"></el-option>
                                 </el-select>
                             </el-form-item>
+                            <el-form-item label="语音识别语言">
+                                <el-tooltip
+                                    class="box-item"
+                                    effect="dark"
+                                    content="可说中文输出日语"
+                                    placement="right"
+                                >
+                                <el-select v-model="data.config.sourceLanguage">
+                                    <el-option label="阿非利堪斯语(Afrikaans)" value="af"></el-option>
+                                    <el-option label="阿姆哈拉语(Amharic)" value="am"></el-option>
+                                    <el-option label="阿拉伯语(Arabic)" value="ar"></el-option>
+                                    <el-option label="阿萨姆语(Assamese)" value="as"></el-option>
+                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option>
+                                    <el-option label="巴什基尔语(Bashkir)" value="ba"></el-option>
+                                    <el-option label="白俄罗斯语(Belarusian)" value="be"></el-option>
+                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option>
+                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option>
+                                    <el-option label="藏语(Tibetan)" value="bo"></el-option>
+                                    <el-option label="布雷顿语(Breton)" value="br"></el-option>
+                                    <el-option label="波斯尼亚语(Bosnian)" value="bs"></el-option>
+                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option>
+                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
+                                    <el-option label="威尔士语(Welsh)" value="cy"></el-option>
+                                    <el-option label="丹麦语(Danish)" value="da"></el-option>
+                                    <el-option label="德语(German)" value="de"></el-option>
+                                    <el-option label="希腊语(Greek)" value="el"></el-option>
+                                    <el-option label="英语(English)" value="en"></el-option>
+                                    <el-option label="西班牙语(Spanish)" value="es"></el-option>
+                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
+                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
+                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
+                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option>
+                                    <el-option label="法罗语(Faroese)" value="fo"></el-option>
+                                    <el-option label="法语(French)" value="fr"></el-option>
+                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
+                                    <el-option label="古吉拉特语(Gujarati)" value="gu"></el-option>
+                                    <el-option label="豪萨语(Hausa)" value="ha"></el-option>
+                                    <el-option label="夏威夷语(Hawaiian)" value="haw"></el-option>
+                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option>
+                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
+                                    <el-option label="克罗地亚语(Croatian)" value="hr"></el-option>
+                                    <el-option label="海地克里奥尔语(Haitian Creole)" value="ht"></el-option>
+                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
+                                    <el-option label="亚美尼亚语(Armenian)" value="hy"></el-option>
+                                    <el-option label="印尼语(Indonesian)" value="id"></el-option>
+                                    <el-option label="冰岛语(Icelandic)" value="is"></el-option>
+                                    <el-option label="意大利语(Italian)" value="it"></el-option>
+                                    <el-option label="日语(Japanese)" value="ja"></el-option>
+                                    <el-option label="爪哇语(Javanese)" value="jw"></el-option>
+                                    <el-option label="格鲁吉亚语(Georgian)" value="ka"></el-option>
+                                    <el-option label="哈萨克语(Kazakh)" value="kk"></el-option>
+                                    <el-option label="高棉语(Khmer)" value="km"></el-option>
+                                    <el-option label="卡纳达语(Kannada)" value="kn"></el-option>
+                                    <el-option label="韩语(Korean)" value="ko"></el-option>
+                                    <el-option label="拉丁语(Latin)" value="la"></el-option>
+                                    <el-option label="卢森堡语(Luxembourgish)" value="lb"></el-option>
+                                    <el-option label="林加拉语(Lingala)" value="ln"></el-option>
+                                    <el-option label="老挝语(Lao)" value="lo"></el-option>
+                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
+                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option>
+                                    <el-option label="马达加斯加语(Malagasy)" value="mg"></el-option>
+                                    <el-option label="毛利语(Maori)" value="mi"></el-option>
+                                    <el-option label="马其顿语(Macedonian)" value="mk"></el-option>
+                                    <el-option label="马拉雅拉姆语(Malayalam)" value="ml"></el-option>
+                                    <el-option label="蒙古语(Mongolian)" value="mn"></el-option>
+                                    <el-option label="马拉提语(Marathi)" value="mr"></el-option>
+                                    <el-option label="马来语(Malay)" value="ms"></el-option>
+                                    <el-option label="马耳他语(Maltese)" value="mt"></el-option>
+                                    <el-option label="缅甸语(Burmese)" value="my"></el-option>
+                                    <el-option label="尼泊尔语(Nepali)" value="ne"></el-option>
+                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
+                                    <el-option label="尼诺尔斯克语(Nynorsk)" value="nn"></el-option>
+                                    <el-option label="挪威语(Norwegian)" value="no"></el-option>
+                                    <el-option label="奥克语(Occitan)" value="oc"></el-option>
+                                    <el-option label="旁遮普语(Punjabi)" value="pa"></el-option>
+                                    <el-option label="波兰语(Polish)" value="pl"></el-option>
+                                    <el-option label="普什图语(Pashto)" value="ps"></el-option>
+                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option>
+                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option>
+                                    <el-option label="俄语(Russian)" value="ru"></el-option>
+                                    <el-option label="梵语(Sanskrit)" value="sa"></el-option>
+                                    <el-option label="信德语(Sindhi)" value="sd"></el-option>
+                                    <el-option label="僧伽罗语(Sinhala)" value="si"></el-option>
+                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option>
+                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
+                                    <el-option label="修纳语(Shona)" value="sn"></el-option>
+                                    <el-option label="索马里语(Somali)" value="so"></el-option>
+                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
+                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option>
+                                    <el-option label="巽他语(Sundanese)" value="su"></el-option>
+                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option>
+                                    <el-option label="斯瓦希里语(Swahili)" value="sw"></el-option>
+                                    <el-option label="泰米尔语(Tamil)" value="ta"></el-option>
+                                    <el-option label="泰卢固语(Telugu)" value="te"></el-option>
+                                    <el-option label="塔吉克语(Tajik)" value="tg"></el-option>
+                                    <el-option label="泰语(Thai)" value="th"></el-option>
+                                    <el-option label="土库曼语(Turkmen)" value="tk"></el-option>
+                                    <el-option label="他加禄语(Tagalog)" value="tl"></el-option>
+                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option>
+                                    <el-option label="鞑靼语(Tatar)" value="tt"></el-option>
+                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option>
+                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option>
+                                    <el-option label="乌兹别克语 (Uzbek)" value="uz"></el-option>
+                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option>
+                                    <el-option label="依地语(Yiddish)" value="yi"></el-option>
+                                    <el-option label="约鲁巴语(Yoruba)" value="yo"></el-option>
+                                    <el-option label="粤语(Cantonese)" value="yue"></el-option>
+                                    <el-option label="中文(Chinese)" value="zh"></el-option>
+                                </el-select>
+                                </el-tooltip>
+                            </el-form-item>
+                            <el-form-item label="默认翻译语言">
+                                <el-tooltip
+                                    class="box-item"
+                                    effect="dark"
+                                    content="如果翻译时报错请检查服务端是否支持"
+                                    placement="right"
+                                >
+                                <el-select v-model="data.config.targetTranslationLanguage">
+                                   <el-option label="阿拉伯语(Arabic)" value="ar"></el-option> 
+                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option> 
+                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option> 
+                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option> 
+                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option> 
+                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
+                                    <el-option label="丹麦语(Danish)" value="da"></el-option> 
+                                    <el-option label="德语(German)" value="de"></el-option> 
+                                    <el-option label="希腊语(Greek)" value="el"></el-option> 
+                                    <el-option label="英语(English)" value="en"></el-option> 
+                                    <el-option label="世界语(Esperanto)" value="eo"></el-option> 
+                                    <el-option label="西班牙语(Spanish)" value="es"></el-option> 
+                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
+                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
+                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
+                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option> 
+                                    <el-option label="法语(French)" value="fr"></el-option>
+                                    <el-option label="爱尔兰语(Irish)" value="ga"></el-option> 
+                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
+                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option> 
+                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
+                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
+                                    <el-option label="印尼语(Indonesian)" value="id"></el-option> 
+                                    <el-option label="意大利语(Italian)" value="it"></el-option> 
+                                    <el-option label="日语(Japanese)" value="ja"></el-option> 
+                                    <el-option label="韩语(Korean)" value="ko"></el-option> 
+                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
+                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option> 
+                                    <el-option label="马来语(Malay)" value="ms"></el-option> 
+                                    <el-option label="挪威语(Bokmål)" value="nb"></el-option> 
+                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
+                                    <el-option label="波兰语(Polish)" value="pl"></el-option> 
+                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option> 
+                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option> 
+                                    <el-option label="俄语(Russian)" value="ru"></el-option> 
+                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option> 
+                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
+                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
+                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option> 
+                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option> 
+                                    <el-option label="泰语(Thai)" value="th"></el-option> 
+                                    <el-option label="塔加洛语(Tagalog)" value="tl"></el-option> 
+                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option> 
+                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option> 
+                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option> 
+                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option> 
+                                    <el-option label="中文(Chinese)" value="zh"></el-option>
+                                    <el-option label="繁体中文(Chinese)" value="zt"></el-option>
+                                </el-select>
+                                </el-tooltip>
+                            </el-form-item>
                             <el-form-item label="程序退出文本">
                                 <el-input v-model="data.config.exitText"></el-input>
                             </el-form-item>
