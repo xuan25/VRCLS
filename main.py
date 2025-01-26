@@ -23,6 +23,8 @@ def rebootJob():
     listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue))
     listener_thread.start()
     params["running"] = True
+    params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
+    params["sourceLanguage"]=startUp.config.get("sourceLanguage")
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
