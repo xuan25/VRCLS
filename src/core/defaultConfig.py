@@ -12,6 +12,7 @@ defaultConfig={
     "exitText": "关闭语音助手",
     "activateText": "",
     "stopText": "",
+    "micIndex":-1,
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
     "translationServer":"libre",# "whisper","libre"

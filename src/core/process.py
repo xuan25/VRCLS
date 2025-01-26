@@ -57,7 +57,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
 def threaded_listen(baseurl,sendClient,config,headers,params,logger):
     # logger=MyLogger().logger
     r = sr.Recognizer()
-    m = sr.Microphone()
+    m = sr.Microphone(device_index=None if config.get("micIndex")== -1 else config.get("micIndex"))
     logger.put({"text":"开始音量测试","level":"info"})
     with m as source:
         r.adjust_for_ambient_noise(source)  # we only need to calibrate once, before we start listening

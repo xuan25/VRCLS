@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 400px;">
+                    <el-card style="height: 500px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -33,11 +33,17 @@
                             <el-form-item label="OSC IP 地址">
                                 <el-input v-model="data.config['osc-ip']"></el-input>
                             </el-form-item>
+                            <el-form-item label="麦克风">
+                                <el-select v-model="data.config.micIndex">
+                                    <el-option label="系统默认麦克风" :value="-1"></el-option>
+                                    <el-option v-for="(item,index) in data.local.micName" :key="index" :label="item" :value="index"></el-option>
+                                </el-select>
+                            </el-form-item>
                             <el-form-item label="默认模式">
                                 <el-select v-model="data.config.defaultMode">
-                                <el-option label="控制" value="control"></el-option>
-                                <el-option label="翻译" value="translation"></el-option>
-                                <el-option label="文字发送" value="text"></el-option>
+                                    <el-option label="控制" value="control"></el-option>
+                                    <el-option label="翻译" value="translation"></el-option>
+                                    <el-option label="文字发送" value="text"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item label="语音识别语言">
@@ -217,7 +223,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 400px;">
+                    <el-card style="height: 500px;">
                         <template #header>
                             <div class="card-header">
                             <span>用户信息配置</span>
@@ -235,7 +241,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 400px;">
+                    <el-card style="height: 500px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>
@@ -448,7 +454,8 @@ let data=reactive({
     local:{
                 defaultScriptsAction:'sendText',
                 item1:'',
-                scriptClick:0
+                scriptClick:0,
+                micName:[]
             },
     config:{
                 userInfo: {
@@ -571,6 +578,13 @@ function getconfig() {
         data.config = response.data;
         ElMessage({
         message: '配置信息获取成功',
+        type: 'success',
+    })
+    });
+    axios.get('/api/getMics').then(response => {
+        data.local.micName = response.data;
+        ElMessage({
+        message: '麦克风名称获取成功',
         type: 'success',
     })
     });
