@@ -13,6 +13,10 @@ defaultConfig={
     "activateText": "",
     "stopText": "",
     "micIndex":-1,
+    "voiceMode":0,
+    "dynamicThreshold":False,
+    "customThreshold":0.02,
+    "voiceHotKey":"alt+q",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
     "translationServer":"libre",# "whisper","libre"

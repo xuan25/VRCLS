@@ -7,6 +7,7 @@ import speech_recognition as sr
 import requests
 from multiprocessing import Process
 import winsound
+import keyboard
 
 def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
@@ -54,24 +55,45 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     except Exception as e:
         logger.put({"text":e,"level":"warning"})
         return
+def change_run(params,logger):
+    params["voiceKeyRun"]=not params["voiceKeyRun"]
+    logger.put({"text":f"麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+
+
 def threaded_listen(baseurl,sendClient,config,headers,params,logger):
-    # logger=MyLogger().logger
     r = sr.Recognizer()
     m = sr.Microphone(device_index=None if config.get("micIndex")== -1 else config.get("micIndex"))
+    params["voiceKeyRun"]=False
     logger.put({"text":"开始音量测试","level":"info"})
-    with m as source:
-        r.adjust_for_ambient_noise(source)  # we only need to calibrate once, before we start listening
-    logger.put({"text":"结束音量测试","level":"info"})
+    voiceMode=config.get("voiceMode")
+    dynamicVoice=config.get("dynamicThreshold")
+    r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
+    customthreshold=config.get("customThreshold")
+    voiceHotKey=config.get("voiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+    
+    if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
+        with m as source:
+            r.adjust_for_ambient_noise(source)  # we only need to calibrate once, before we start listening
+        logger.put({"text":"结束音量测试","level":"info"})
+    else:
+        r.energy_threshold=32768.0*customthreshold
+
     logger.put({"text":"sound process started complete||音频进程启动完毕","level":"info"})
     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
     with m as s:
         while params["running"]:
+            if not params["voiceKeyRun"]:continue
             try:  # listen for 1 second, then check again if the stop function has been called
                 audio = r.listen(s, 10)
             except sr.WaitTimeoutError:  # listening timed out, just try again
                 pass
             else:
-                if params["running"]:
+                if params["running"] and params["voiceKeyRun"]:
                     p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger))
                     p.start()
 

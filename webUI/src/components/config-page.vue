@@ -223,7 +223,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 500px;">
+                    <el-card style="height: 180px;margin-bottom: 20px;">
                         <template #header>
                             <div class="card-header">
                             <span>用户信息配置</span>
@@ -236,6 +236,35 @@
                             </el-form-item>
                             <el-form-item label="密码">
                                 <el-input type="password" v-model="data.config.userInfo.password" show-password></el-input>
+                            </el-form-item>
+                        </el-form>
+                    </el-card>
+                    <el-card style="height: 300px;">
+                        <template #header>
+                            <div class="card-header">
+                            <span>语音控制配置</span>
+                            </div>
+                            
+                        </template>
+                        <el-form :model="data.config" label-width="auto">
+
+                            <el-form-item label="语音模式">
+                                <el-select v-model="data.config.voiceMode">
+                                    <el-option label="持续开启" :value="0"></el-option>
+                                    <el-option label="按键说话" :value="1"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="动态音量阈值">
+                                <el-radio-group v-model="data.config.dynamicThreshold" >
+                                    <el-radio :value="true" size="large">开启</el-radio>
+                                    <el-radio :value="false" size="large">关闭</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="自定义阈值">
+                                <el-slider v-model="data.config.customThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold"/>
+                            </el-form-item>
+                            <el-form-item label="按键说话">
+                                <el-input v-model="data.config.voiceHotKey"></el-input>
                             </el-form-item>
                         </el-form>
                     </el-card>
