@@ -5,3 +5,4 @@ Flask
 waitress
 zeroconf==0.39.1
 requests
+keyboard
