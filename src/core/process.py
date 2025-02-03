@@ -8,6 +8,7 @@ import requests
 from multiprocessing import Process
 import winsound
 import keyboard
+from hanziconv import HanziConv
 
 def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
@@ -34,7 +35,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
             url = baseurl+"/whisper/multitranscription"
         logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
         files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
-        data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': sourceLanguage}
+        data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
         response = requests.post(url, files=files, data=data, headers=headers)
         # 检查响应状态码
         if response.status_code != 200:
@@ -45,6 +46,8 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
         if res["text"] =="":
             logger.put({"text":"返回值过滤","level":"debug"})
             return
+        if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
+        elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         logger.put({"text":"你说的是: " + res["text"],"level":"info"})
         if defaultCommand.handle(res["text"],params=params):return
         if params["runmode"] == "text" or params["runmode"] == "translation": chatbox.handle(res,runMode=params["runmode"])
@@ -59,12 +62,22 @@ def change_run(params,logger):
     params["voiceKeyRun"]=not params["voiceKeyRun"]
     logger.put({"text":f"麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
 
+# def getMicIndex
 
-def threaded_listen(baseurl,sendClient,config,headers,params,logger):
+def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex):
+    if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
+        logger.put({"text":"使用系统默认麦克风","level":"info"})
+        micIndex=defautMicIndex
+    else:
+        try:
+            micIndex=micList.index(config.get("micName"))
+        except ValueError:
+            logger.put({"text":"无法找到指定麦克风，使用系统默认麦克风","level":"info"})
+            micIndex=defautMicIndex
+    logger.put({"text":f"当前麦克风：{micList[micIndex]}","level":"info"})
     r = sr.Recognizer()
-    m = sr.Microphone(device_index=None if config.get("micIndex")== -1 else config.get("micIndex"))
+    m = sr.Microphone(device_index=micIndex)
     params["voiceKeyRun"]=True 
-    logger.put({"text":"开始音量测试","level":"info"})
     voiceMode=config.get("voiceMode")
     dynamicVoice=config.get("dynamicThreshold")
     r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
@@ -78,6 +91,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger):
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
+        logger.put({"text":"开始音量测试","level":"info"})
         with m as source:
             r.adjust_for_ambient_noise(source)  # we only need to calibrate once, before we start listening
         logger.put({"text":"结束音量测试","level":"info"})

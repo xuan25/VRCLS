@@ -12,7 +12,7 @@ defaultConfig={
     "exitText": "关闭语音助手",
     "activateText": "",
     "stopText": "",
-    "micIndex":-1,
+    "micName":"default",
     "voiceMode":0,
     "dynamicThreshold":False,
     "customThreshold":0.02,

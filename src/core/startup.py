@@ -3,11 +3,13 @@ from .defaultConfig import defaultConfig
 from .osc_client import OSCClient
 import requests
 import time
-
+import pyaudio
 class StartUp:
     def __init__(self,logger):
         self.logger=logger
         self.tragetTranslateLanguage="en"
+        self.micList=[]
+        self.defautMicIndex=0
         try:
             with open('client.json', 'r',encoding='utf-8') as file:
                 self.config:dict = json.load(file)
@@ -24,6 +26,7 @@ class StartUp:
         self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=self.config.get("osc-port"))
         return self.oscClient.client
     def run(self):
+        self.getMics()
         self.configCheck()
         res= self.checkAccount()
         return res
@@ -55,7 +58,7 @@ class StartUp:
                                     ,"et","eu","fa","fi","fo","fr","gl","gu","ha","haw","he","hi","hr","ht","hu","hy","id","is","it",
                                     "ja","jw","ka","kk","km","kn","ko","la","lb","ln","lo","lt","lv","mg","mi","mk","ml","mn","mr","ms",
                                     "mt","my","ne","nl","nn","no","oc","pa","pl","ps","pt","ro","ru","sa","sd","si","sk","sl","sn","so","sq",
-                                    "sr", "su", "sv","sw","ta", "te","tg","th","tk","tl","tr","tt","uk","ur","uz","vi","yi","yo","yue","zh"]
+                                    "sr", "su", "sv","sw","ta", "te","tg","th","tk","tl","tr","tt","uk","ur","uz","vi","yi","yo","yue","zh","zt"]
         self.sourceLanguage="zh" if self.config["sourceLanguage"] =="" else self.config["sourceLanguage"]
         if  self.sourceLanguage not in whisperSupportedLanguageList:
             self.logger.put({'text':'please check your sourceLanguage in config,please choose one in following list\n 请检查sourceLanguage配置是否正确 请从下方语言列表中选择一个(中文是 zh)\n list:'+str(whisperSupportedLanguageList),"level":"warning"})
@@ -85,3 +88,24 @@ class StartUp:
 
         res=response.json()
         return {'Authorization': 'Bearer '+res["access_token"]}
+    def getMics(self):
+        # 创建 PyAudio 实例
+        p = pyaudio.PyAudio()
+        host_api_count=p.get_host_api_count()
+        
+        # 获取设备数量
+        device_count = p.get_device_count()
+    
+        hostapis=[]
+        for j in range(host_api_count):
+            hostapi=p.get_host_api_info_by_index(j)
+            hostapis.append(hostapi["name"])
+        for i in range(device_count):
+            # 获取每个设备的详细信息
+            dev_info = p.get_device_info_by_index(i)
+            # 检查设备是否是输入设备（麦克风）
+            if dev_info['maxInputChannels'] > 0:
+                self.micList.append( f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}")
+        self.defautMicIndex=p.get_default_input_device_info()['index']
+        # 关闭 PyAudio 实例
+        p.terminate()

@@ -34,9 +34,9 @@
                                 <el-input v-model="data.config['osc-ip']"></el-input>
                             </el-form-item>
                             <el-form-item label="麦克风">
-                                <el-select v-model="data.config.micIndex">
-                                    <el-option label="系统默认麦克风" :value="-1"></el-option>
-                                    <el-option v-for="(item,index) in data.local.micName" :key="index" :label="item" :value="index"></el-option>
+                                <el-select v-model="data.config.micName">
+                                    <el-option label="系统默认麦克风" value="default"></el-option>
+                                    <el-option v-for="(item,index) in data.local.micName" :key="index" :label="item" :value="item"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item label="默认模式">
@@ -153,7 +153,8 @@
                                     <el-option label="依地语(Yiddish)" value="yi"></el-option>
                                     <el-option label="约鲁巴语(Yoruba)" value="yo"></el-option>
                                     <el-option label="粤语(Cantonese)" value="yue"></el-option>
-                                    <el-option label="中文(Chinese)" value="zh"></el-option>
+                                    <el-option label="简体中文(Chinese Simplified)" value="zh"></el-option>
+                                    <el-option label="繁體中文(Chinese Traditional)" value="zt"></el-option>
                                 </el-select>
                                 </el-tooltip>
                             </el-form-item>

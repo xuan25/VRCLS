@@ -7,7 +7,6 @@ from src.core.process import logger_process,threaded_listen
 import time
 import json,os
 import webbrowser
-import pyaudio
 
 queue=Queue(-1)
 processList=[]
@@ -20,7 +19,8 @@ def rebootJob():
     queue.put({"text":"sound process start to complete wait for 20s|| 程序开始重启 请等待20秒 ","level":"info"})
     params["running"] = False
     time.sleep(20)
-    listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue))
+    startUp.getMics()
+    listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex))
     listener_thread.start()
     params["running"] = True
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
@@ -101,31 +101,10 @@ def getAvatarParameters():
 
 @app.route('/api/getMics', methods=['get'])
 def getMics():
-    global queue
+    global queue,startUp
     queue.put({"text":"/getMics","level":"debug"})
-    # 创建 PyAudio 实例
-    p = pyaudio.PyAudio()
-    host_api_count=p.get_host_api_count()
-    
-    # 获取设备数量
-    device_count = p.get_device_count()
  
-    microphones = []
-    hostapis=[]
-    for j in range(host_api_count):
-        hostapi=p.get_host_api_info_by_index(j)
-        hostapis.append(hostapi["name"])
-    for i in range(device_count):
-        # 获取每个设备的详细信息
-        dev_info = p.get_device_info_by_index(i)
-        # 检查设备是否是输入设备（麦克风）
-        if dev_info['maxInputChannels'] > 0:
-            microphones.append( f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}")
-    
-    # 关闭 PyAudio 实例
-    p.terminate()
- 
-    return jsonify(microphones),200
+    return jsonify(startUp.micList),200
 
 
 def find_avatar_json( avatar_id):
@@ -230,7 +209,7 @@ if __name__ == '__main__':
         # this is called from the background thread
 
 
-        listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue))
+        listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex))
         listener_thread.start()
         
         # time.sleep(10)
