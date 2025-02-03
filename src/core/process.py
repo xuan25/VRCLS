@@ -63,7 +63,7 @@ def change_run(params,logger):
 def threaded_listen(baseurl,sendClient,config,headers,params,logger):
     r = sr.Recognizer()
     m = sr.Microphone(device_index=None if config.get("micIndex")== -1 else config.get("micIndex"))
-    params["voiceKeyRun"]=False
+    params["voiceKeyRun"]=True 
     logger.put({"text":"开始音量测试","level":"info"})
     voiceMode=config.get("voiceMode")
     dynamicVoice=config.get("dynamicThreshold")
@@ -73,6 +73,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger):
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["voiceKeyRun"]=False 
         keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     
