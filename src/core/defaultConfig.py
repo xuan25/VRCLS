@@ -20,6 +20,8 @@ defaultConfig={
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
     "translationServer":"libre",# "whisper","libre"
+    "VRCBitmapLed_row":8,
+    "VRCBitmapLed_col":16,
     "defaultScripts": [
         {
             "action": "sendText",
@@ -41,6 +43,12 @@ defaultConfig={
             "text": [
                 "切换到控制模式",
                 "到控制模式"
+            ]
+        },
+        {
+            "action": "changTobitMapLed",
+            "text": [
+                "切换到屏幕"
             ]
         },
         {

@@ -3,6 +3,7 @@ from .startup import StartUp
 from ..handler.DefaultCommand import DefaultCommand
 from ..handler.ChatBox import ChatboxHandler
 from ..handler.Avatar import AvatarHandler
+from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
 import speech_recognition as sr
 import requests
 from multiprocessing import Process
@@ -16,11 +17,11 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
-    defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
+    bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     try:
 
         logger.put({"text":"音频输出完毕","level":"info"})
-        if params["runmode"] == "control" or params["runmode"] == "text":
+        if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
             url=baseurl+"/whisper/multitranscription"
         elif params["runmode"] == "translation":
             if config["translationServer"] == "libre":
@@ -52,6 +53,8 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
         if defaultCommand.handle(res["text"],params=params):return
         if params["runmode"] == "text" or params["runmode"] == "translation": chatbox.handle(res,runMode=params["runmode"])
         if params["runmode"] == "control":avatar.handle(res)
+        if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
+
     except requests.JSONDecodeError:
         logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
         return

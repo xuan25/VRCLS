@@ -14,11 +14,12 @@ app = Flask(__name__,static_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key' 
 
 def rebootJob():
-    global queue,params,listener_thread,startUp,sendClient,baseurl,headers
+    global queue,params,listener_thread,startUp,sendClient,baseurl,headers,manager
     queue.put({"text":"/reboot","level":"debug"})
     queue.put({"text":"sound process start to complete wait for 20s|| 程序开始重启 请等待20秒 ","level":"info"})
     params["running"] = False
     time.sleep(20)
+    params["VRCBitmapLed_taskList"]=manager.list()
     startUp.getMics()
     listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex))
     listener_thread.start()
@@ -198,7 +199,9 @@ if __name__ == '__main__':
         headers=startUp.run()
         sendClient= startUp.setOSCClient(queue)
         baseurl=startUp.config.get("baseurl")
-
+        params["VRCBitmapLed_taskList"]= manager.list()
+        tmp=" "*(8 if startUp.config.get("VRCBitmapLed_row") is None else startUp.config.get("VRCBitmapLed_row") )*(16 if startUp.config.get("VRCBitmapLed_col") is None else startUp.config.get("VRCBitmapLed_col"))
+        params["VRCBitmapLed_Line_old"]= tmp
         params["tragetTranslateLanguage"]=startUp.tragetTranslateLanguage
         params["sourceLanguage"]=startUp.sourceLanguage
 

@@ -44,6 +44,7 @@
                                     <el-option label="控制" value="control"></el-option>
                                     <el-option label="翻译" value="translation"></el-option>
                                     <el-option label="文字发送" value="text"></el-option>
+                                    <el-option label="点阵屏" value="bitMapLed"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item label="语音识别语言">

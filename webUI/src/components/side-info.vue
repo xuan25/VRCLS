@@ -5,6 +5,8 @@
             <el-link type="primary" href="https://github.com/VoiceLinkVR/VRCLS" target="_blank">VRCLS Github Page</el-link>
             <br/>
             <el-link type="primary" href="https://github.com/VoiceLinkVR/VoiceLinkServer" target="_blank">server Github Page</el-link>
+            <br/>
+            <el-link type="primary" href="https://github.com/lolosiax/VRCBitmapLed" target="_blank">VRCBitmapLed Github Page(点阵屏)</el-link>
 </template>
 <script setup>
 </script>
