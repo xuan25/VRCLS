@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 500px;">
+                    <el-card style="height: 600px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -221,11 +221,34 @@
                             <el-form-item label="程序退出文本">
                                 <el-input v-model="data.config.exitText"></el-input>
                             </el-form-item>
+                            <el-form-item label="点阵屏行列数">
+                                <el-row>
+                                    <el-col :span="11">
+                                        <el-input v-model="data.config.VRCBitmapLed_row" placeholder="行数"></el-input>
+                                    </el-col>
+                                    <el-col  :span="2">
+                                        x
+                                    </el-col>
+                                    <el-col :span="11">
+                                        <el-input v-model="data.config.VRCBitmapLed_col" placeholder="列数"></el-input>
+                                    </el-col>
+                                </el-row>
+                                
+                                
+                            </el-form-item>
+
+                                
+                            <el-form-item label="点阵屏彩色模式">
+                                <el-radio-group v-model="data.config.VRCBitmapLed_COLOR" >
+                                    <el-radio :value="true" size="large">开启</el-radio>
+                                    <el-radio :value="false" size="large">关闭</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
                         </el-form>
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 180px;margin-bottom: 20px;">
+                    <el-card style="height: 230px;margin-bottom: 20px;">
                         <template #header>
                             <div class="card-header">
                             <span>用户信息配置</span>
@@ -241,7 +264,7 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
-                    <el-card style="height: 300px;">
+                    <el-card style="height: 350px;">
                         <template #header>
                             <div class="card-header">
                             <span>语音控制配置</span>
@@ -272,7 +295,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 500px;">
+                    <el-card style="height: 600px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>

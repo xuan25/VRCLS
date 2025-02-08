@@ -33,6 +33,14 @@ class DefaultCommand(BaseHandler):
                     params["runmode"]="control"
                     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
                     return True
+                if dafaultcommand["action"]=="changTobitMapLed":
+                    if params["runmode"] =="bitMapLed":
+                        self.logger.put({"text":"No need to change mode. Currently in control mode ||无需修改模式 当前处于点阵屏模式","level":"info"})
+                        return False
+                    self.logger.put({"text":"change to control mode ||切换至点阵屏模式","level":"info"})
+                    params["runmode"]="bitMapLed"
+                    winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+                    return True
                 if dafaultcommand["action"]=="changToEnglish":
                     if params["tragetTranslateLanguage"] == "en":
                         self.logger.put({"text":"No need to change mode. Currently in english translation||无需修改模式 当前翻译输出语言为 英语","level":"info"})
@@ -65,4 +73,5 @@ class DefaultCommand(BaseHandler):
                     params["tragetTranslateLanguage"]="ko"
                     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
                     return True
+
         return False

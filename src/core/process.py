@@ -10,7 +10,7 @@ from multiprocessing import Process
 import winsound
 import keyboard
 from hanziconv import HanziConv
-
+import time,uuid
 def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
     sourceLanguage=params["sourceLanguage"]
@@ -65,7 +65,30 @@ def change_run(params,logger):
     params["voiceKeyRun"]=not params["voiceKeyRun"]
     logger.put({"text":f"麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
 
-# def getMicIndex
+def clearVRCBitmapLed(client,config,params,logger):
+    logger.put({"text":f"开始清空点阵屏","level":"info"})
+
+    if "clear" not in params["VRCBitmapLed_taskList"]:params["VRCBitmapLed_taskList"].append("clear")
+    else:return
+    while params["VRCBitmapLed_taskList"][0]!="clear":
+        if "clear" not in params["VRCBitmapLed_taskList"]:return
+        time.sleep(0.1)
+    num=(8 if config.get("VRCBitmapLed_row") is None else config.get("VRCBitmapLed_row") )*(16 if config.get("VRCBitmapLed_col") is None else config.get("VRCBitmapLed_col"))
+    if num==128:
+        for i in range(num):
+
+            if params["VRCBitmapLed_taskList"][0]!="clear":return
+            client.send_message("/avatar/parameters/BitmapLed/Pointer", i)
+            client.send_message(f"/avatar/parameters/BitmapLed/Data", 0)
+            client.send_message(f"/avatar/parameters/BitmapLed/DataX16", 0)
+            params["VRCBitmapLed_Line_old"]=params["VRCBitmapLed_Line_old"][:i+1]+" "+params["VRCBitmapLed_Line_old"][i+2:]
+            time.sleep(0.2)
+    elif num==256:
+        client.send_message("/avatar/parameters/BitmapLed/Pointer", 255)
+        client.send_message(f"/avatar/parameters/BitmapLed/Data", 4)
+        client.send_message(f"/avatar/parameters/BitmapLed/DataX16", 0)
+    params["VRCBitmapLed_taskList"].pop(0)
+    logger.put({"text":f"清空点阵屏完成","level":"info"})
 
 def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
@@ -103,13 +126,19 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list
 
     logger.put({"text":"sound process started complete||音频进程启动完毕","level":"info"})
     winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+    count=0
     with m as s:
         while params["running"]:
             if not params["voiceKeyRun"]:continue
             try:  # listen for 1 second, then check again if the stop function has been called
                 audio = r.listen(s, 10)
+                count=0
             except sr.WaitTimeoutError:  # listening timed out, just try again
-                pass
+                if params["runmode"] == "bitMapLed":
+                    if count>=2:
+                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                        pt.start()
+                    else:count+=1
             else:
                 if params["running"] and params["voiceKeyRun"]:
                     p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger))

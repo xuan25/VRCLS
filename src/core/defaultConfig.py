@@ -22,6 +22,7 @@ defaultConfig={
     "translationServer":"libre",# "whisper","libre"
     "VRCBitmapLed_row":8,
     "VRCBitmapLed_col":16,
+    "VRCBitmapLed_COLOR":True,
     "defaultScripts": [
         {
             "action": "sendText",
