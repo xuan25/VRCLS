@@ -104,7 +104,7 @@ class StartUp:
             # 获取每个设备的详细信息
             dev_info = p.get_device_info_by_index(i)
             # 检查设备是否是输入设备（麦克风）
-            if dev_info['maxInputChannels'] > 0:
+            if dev_info['maxInputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
                 self.micList.append( f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}")
         self.defautMicIndex=p.get_default_input_device_info()['index']
         # 关闭 PyAudio 实例

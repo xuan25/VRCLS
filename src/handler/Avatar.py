@@ -2,6 +2,7 @@ from typing import Optional
 from .base_handler import BaseHandler
 import winsound
 import time
+import pyttsx3
 class AvatarHandler(BaseHandler):
     def __init__(self,logger, osc_client,config):
         super().__init__(osc_client)
@@ -34,7 +35,7 @@ class AvatarHandler(BaseHandler):
                             value=bool(vrcaction.get("vrcValue"))
                         self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                         time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
-                    winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+                    pyttsx3.speak(f"触发命令 {script["action"]}")
         elif config["activateText"] in text:
             commandlist=text.split(config["activateText"])
             command=commandlist[-1]
@@ -57,4 +58,4 @@ class AvatarHandler(BaseHandler):
                                 value=bool(vrcaction.get("vrcValue"))
                             self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                             time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None else 0.1)
-                        winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+                        pyttsx3.speak(f"触发命令 {script["action"]}")

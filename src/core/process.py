@@ -7,10 +7,10 @@ from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
 import speech_recognition as sr
 import requests
 from multiprocessing import Process
-import winsound
 import keyboard
 from hanziconv import HanziConv
 import time,uuid
+import pyttsx3
 def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
     sourceLanguage=params["sourceLanguage"]
@@ -125,7 +125,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list
         r.energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||音频进程启动完毕","level":"info"})
-    winsound.PlaySound('SystemAsterisk', winsound.SND_ALIAS)
+    pyttsx3.speak("音频进程启动完毕")
     count=0
     with m as s:
         while params["running"]:
