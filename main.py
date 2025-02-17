@@ -22,7 +22,7 @@ def rebootJob():
     time.sleep(20)
     params["VRCBitmapLed_taskList"]=manager.list()
     startUp.getMics()
-    listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex))
+    listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
     listener_thread.start()
     params["running"] = True
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
@@ -126,7 +126,8 @@ def find_avatar_json( avatar_id):
  
 # 示例函数
 def open_web(host,port):
-    
+    global startUp
+
     # 定义要打开的URL
     url = f"http://{host}:{port}"
     
@@ -143,10 +144,12 @@ def open_web(host,port):
         # Linux上Edge的路径也可能需要用户手动指定
         # 例如：edge_path = '/opt/microsoft/edge/microsoft-edge'
         pass  # 这里不做处理，因为路径需要用户指定
-    
+
     # 如果找到了Edge的路径，则使用它打开网页
     try:
-        if edge_path:
+        if startUp.config.get("webBrowserPath") is not None and startUp.config.get("webBrowserPath") != "":
+            webbrowser.get(using=startUp.config.get("webBrowserPath")).open(url)
+        elif edge_path:
             # 创建一个新的Edge控制器
             edge = webbrowser.get(using=edge_path)
             # 使用Edge控制器打开网页
@@ -213,7 +216,7 @@ if __name__ == '__main__':
         # this is called from the background thread
 
 
-        listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex))
+        listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
         listener_thread.start()
         
         # time.sleep(10)

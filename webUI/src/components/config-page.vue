@@ -33,6 +33,16 @@
                             <el-form-item label="OSC IP 地址">
                                 <el-input v-model="data.config['osc-ip']"></el-input>
                             </el-form-item>
+                            <!-- <el-form-item label="浏览器exe路径">
+                                <el-tooltip
+                                    class="box-item"
+                                    effect="dark"
+                                    content="选填，需要指定到指定浏览器的exe绝对路径"
+                                    placement="right"
+                                >
+                                <el-input v-model="data.config['webBrowserPath']" placeholder="如需指定浏览器再填写"></el-input>
+                                </el-tooltip>
+                            </el-form-item> -->
                             <el-form-item label="麦克风">
                                 <el-select v-model="data.config.micName">
                                     <el-option label="系统默认麦克风" value="default"></el-option>
@@ -217,9 +227,6 @@
                                     <el-option label="繁体中文(Chinese)" value="zt"></el-option>
                                 </el-select>
                                 </el-tooltip>
-                            </el-form-item>
-                            <el-form-item label="程序退出文本">
-                                <el-input v-model="data.config.exitText"></el-input>
                             </el-form-item>
                             <el-form-item label="点阵屏行列数">
                                 <el-row>

@@ -14,9 +14,11 @@ VRCLS 全称 VRChat LinguaSync， 是一个用于在VRCHAT中使用语音来控�
 ## 启动方法
 
 ### 构筑包
+
 如没有python环境可以访问通过[下载链接](https://github.com/VoiceLinkVR/VRCLS/releases)下载打包后的程序
 
 解压压缩包后双击VRCLS.exe 
+
 
 ---
 ### 本地python运行
@@ -28,6 +30,8 @@ python main.py
 ```
 
 ## 使用方法
+
+B站使用教程：[[VRCLS]VRCHAT语音控制与翻译软件基础使用教程（翻译相关）](https://www.bilibili.com/video/BV14hNae6Ext/?share_source=copy_web&vd_source=ffd2f3e2acd107095c2208f7864e9582)
 
 ### 登录
 
@@ -87,6 +91,20 @@ python main.py
     "targetTranslationLanguage": "en",
     //"whisper","libre" 使用libreTranslte翻译或者whisper翻译
     "translationServer":"libre",
+    //浏览器exe绝对路径，
+    "webBrowserPath":"",
+    //动态音量阈值
+    "dynamicThreshold":false,
+    //自定义阈值
+    "customThreshold":0.02,
+    //麦克风开关快捷键
+    "voiceHotKey":"alt+q",
+    //VRCBitmapLed行数
+    "VRCBitmapLed_row":8,
+    //VRCBitmapLed列数
+    "VRCBitmapLed_col":16,
+    //VRCBitmapLed是否开启颜色
+    "VRCBitmapLed_COLOR":true,
     //官方语音触发脚本,每次更新会检查新增，可以修改text中的触发词
     "defaultScripts": [
         {
@@ -121,6 +139,7 @@ python main.py
                     //请注意在vrc中，中文路径为Unicode
                     // 如：模型参数为 “衣服” 其osc路径为 "/avatar/parameters/\\u8863\\u670d”
                     //转码网站：https://www.gseen.com/online_tools/code_change/unicode_ascii
+                    //现在推荐使用UI
                     "vrcPath": "/avatar/parameters/TailCloud",
                     //osc 设置参数值
                     "vrcValue": 1,

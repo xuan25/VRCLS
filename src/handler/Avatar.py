@@ -19,9 +19,6 @@ class AvatarHandler(BaseHandler):
         global running
         if config["activateText"] == "":
             logger.put({"text":"无头命令:"+text,"level":"info"})
-            if text == config["exitText"]:
-                running = False
-                exit(0)
             for script in config.get("scripts"):
                 if any( command in text  for command in script.get("text")):
                     logger.put({"text":"执行命令:"+script["action"],"level":"info"})
@@ -42,9 +39,6 @@ class AvatarHandler(BaseHandler):
             if (config["stopText"] in command) or config["stopText"] == "":
                 if config["stopText"] != "":command=command.split(config["stopText"])[0]
                 logger.put({"text":"有头命令:"+command,"level":"info"})
-                if command == config["exitText"]:
-                    running = False
-                    exit(0)
                 for script in config.get("scripts"):
                     if command in script.get("text"):
                         logger.put({"text":"执行命令:"+script.get("action"),"level":"info"})

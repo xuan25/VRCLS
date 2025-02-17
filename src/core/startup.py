@@ -1,9 +1,10 @@
 import json
-from .defaultConfig import defaultConfig
+from .defaultConfig import defaultConfig,defaultFilter
 from .osc_client import OSCClient
 import requests
 import time
 import pyaudio
+import traceback
 class StartUp:
     def __init__(self,logger):
         self.logger=logger
@@ -18,7 +19,19 @@ class StartUp:
                 f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
                 self.config=defaultConfig
         except requests.exceptions.JSONDecodeError as e:
-            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"error"})
+            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"exception"})
+            time.sleep(10)
+            exit(0)
+        
+        try:
+            with open('filter.json', 'r',encoding='utf-8') as file:
+                self.filter:list = json.load(file)
+        except FileNotFoundError:
+            with open('filter.json', 'w', encoding="utf8") as f:
+                f.write(json.dumps(defaultFilter,ensure_ascii=False, indent=4))
+                self.filter=defaultFilter
+        except requests.exceptions.JSONDecodeError as e:
+            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"exception"})
             time.sleep(10)
             exit(0)
 

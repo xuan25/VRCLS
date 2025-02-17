@@ -11,7 +11,8 @@ import keyboard
 from hanziconv import HanziConv
 import time,uuid
 import pyttsx3
-def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
+# TODO 增加服务端过滤列表
+def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter):
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
     sourceLanguage=params["sourceLanguage"]
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
@@ -45,7 +46,10 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
         # 解析JSON响应
         res = response.json()
         if res["text"] =="":
-            logger.put({"text":"返回值过滤","level":"debug"})
+            logger.put({"text":"返回值过滤-服务端规则","level":"info"})
+            return
+        if res["text"] in filter:
+            logger.put({"text":"返回值过滤-自定义规则","level":"info"})
             return
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
@@ -59,7 +63,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger):
         logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
         return
     except Exception as e:
-        logger.put({"text":e,"level":"warning"})
+        logger.put({"text":e,"level":"exception"})
         return
 def change_run(params,logger):
     params["voiceKeyRun"]=not params["voiceKeyRun"]
@@ -90,7 +94,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex):
+def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -141,7 +145,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list
                     else:count+=1
             else:
                 if params["running"] and params["voiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger))
+                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter))
                     p.start()
 
     logger.put({"text":"sound process exited complete||音频进程退出完毕","level":"info"})
@@ -153,4 +157,5 @@ def logger_process(queue):
         elif text['level']=="info":logger.info(text['text'])
         elif text['level']=="warning":logger.warning(text['text'])
         elif text['level']=="error":logger.error(text['text'])
-        else :logger.warning(text)
+        elif text['level']=="exception":logger.exception(text['text'])
+        else :logger.error(text)

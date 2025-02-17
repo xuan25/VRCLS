@@ -9,11 +9,11 @@ defaultConfig={
     "osc-port": 9000,
     "osc-ip": "127.0.0.1",
     "defaultMode": "control",
-    "exitText": "关闭语音助手",
     "activateText": "",
     "stopText": "",
     "micName":"default",
     "voiceMode":0,
+    "webBrowserPath":"",
     "dynamicThreshold":False,
     "customThreshold":0.02,
     "voiceHotKey":"alt+q",
@@ -183,3 +183,9 @@ defaultConfig={
         }
     ]
 }
+
+defaultFilter=[
+    "谢谢大家",
+    "謝謝大家",
+    "感谢观看"
+]
