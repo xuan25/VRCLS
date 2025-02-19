@@ -1,18 +1,18 @@
-from .logger import MyLogger
-from .startup import StartUp
-from ..handler.DefaultCommand import DefaultCommand
-from ..handler.ChatBox import ChatboxHandler
-from ..handler.Avatar import AvatarHandler
-from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
 import speech_recognition as sr
 import requests
 from multiprocessing import Process
 import keyboard
-from hanziconv import HanziConv
-import time,uuid
+import time
 import pyttsx3
-# TODO 增加服务端过滤列表
-def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter):
+
+def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter,mode):
+    from ..handler.DefaultCommand import DefaultCommand
+    from ..handler.ChatBox import ChatboxHandler
+    from ..handler.Avatar import AvatarHandler
+    from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
+    from hanziconv import HanziConv
+
+    
     tragetTranslateLanguage=params["tragetTranslateLanguage"]
     sourceLanguage=params["sourceLanguage"]
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
@@ -21,7 +21,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     try:
 
-        logger.put({"text":"音频输出完毕","level":"info"})
+        logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}音频输出完毕","level":"info"})
         if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
             url=baseurl+"/whisper/multitranscription"
         elif params["runmode"] == "translation":
@@ -94,7 +94,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -129,7 +129,7 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list
         r.energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||音频进程启动完毕","level":"info"})
-    pyttsx3.speak("音频进程启动完毕")
+    pyttsx3.speak("麦克风音频进程启动完毕")
     count=0
     with m as s:
         while params["running"]:
@@ -145,11 +145,130 @@ def threaded_listen(baseurl,sendClient,config,headers,params,logger,micList:list
                     else:count+=1
             else:
                 if params["running"] and params["voiceKeyRun"]:
+                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"mic"))
+                    p.start()
+
+    logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
+
+
+def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
+        logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
+        return
+    else:
+        try:
+            micIndex=micList.index(config.get("micName"))
+        except ValueError:
+            logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
+            micIndex=defautMicIndex
+    logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
+    r = sr.Recognizer()
+    m = sr.Microphone(device_index=micIndex)
+    params["gameVoiceKeyRun"]=True 
+    voiceMode=config.get("voiceMode")
+    dynamicVoice=config.get("dynamicThreshold")
+    r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
+    customthreshold=config.get("gameCustomThreshold")
+    voiceHotKey=config.get("gameVoiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["gameVoiceKeyRun"]=False 
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        logger.put({"text":f"当前游戏麦克风状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+    
+    if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
+        logger.put({"text":"开始音量测试","level":"info"})
+        with m as source:
+            r.adjust_for_ambient_noise(source)  # we only need to calibrate once, before we start listening
+        logger.put({"text":"结束音量测试","level":"info"})
+    else:
+        r.energy_threshold=32768.0*customthreshold
+
+    logger.put({"text":"sound process started complete||游戏音频进程启动完毕","level":"info"})
+    pyttsx3.speak("游戏音频进程启动完毕")
+    count=0
+    with m as s:
+        while params["running"]:
+            if not params["gameVoiceKeyRun"]:continue
+            try:  # listen for 1 second, then check again if the stop function has been called
+                audio = r.listen(s, 10)
+                count=0
+            except sr.WaitTimeoutError:  # listening timed out, just try again
+                if params["runmode"] == "bitMapLed":
+                    if count>=2:
+                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger,"vm"))
+                        pt.start()
+                    else:count+=1
+            else:
+                if params["running"] and params["gameVoiceKeyRun"]:
                     p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter))
                     p.start()
 
-    logger.put({"text":"sound process exited complete||音频进程退出完毕","level":"info"})
+    logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
+
+def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+    from .recordLocal import voice_activation_stream
+    if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
+        logger.put({"text":"使用系统默认桌面音频","level":"info"})
+        micIndex=None
+    else:
+        device_index=False
+        for i in micList:
+            if config.get("gameMicName")==i.get("name"):
+                device_index=True
+                micIndex=i.get('index')
+                logger.put({"text":f"当前桌面音频：{config.get("gameMicName")}","level":"info"})
+                break
+        
+            
+        if not device_index:
+            logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
+            micIndex=None
+    # r = sr.Recognizer()
+    # m = sr.Microphone(device_index=micIndex)
+    params["gameVoiceKeyRun"]=True 
+    voiceMode=config.get("gameVoiceMode")
+    customthreshold=config.get("gameCustomThreshold")
+    voiceHotKey=config.get("gameVoiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["gameVoiceKeyRun"]=False 
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+
+    energy_threshold=32768.0*customthreshold
+
+    logger.put({"text":"sound process started complete||桌面音频进程启动完毕","level":"info"})
+    pyttsx3.speak("桌面音频进程启动完毕")
+    count=0
+    while params["running"]:
+        if not params["gameVoiceKeyRun"]:continue
+        try:  # listen for 1 second, then check again if the stop function has been called
+            audio = voice_activation_stream(
+                logger=logger,
+                micIndex=micIndex,
+                params=params,
+                silence_threshold=int(energy_threshold)
+            )
+            count=0
+        except sr.WaitTimeoutError:  # listening timed out, just try again
+            if params["runmode"] == "bitMapLed":
+                if count>=2:
+                    pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                    pt.start()
+                else:count+=1
+        else:
+            if params["running"] and params["gameVoiceKeyRun"]:
+                p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap"))
+                p.start()
+
+    logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
+
+
 def logger_process(queue):
+    from .logger import MyLogger
     logger=MyLogger().logger
     while True:
         text=queue.get()

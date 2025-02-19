@@ -3,7 +3,7 @@ import waitress
 from src.core.startup import StartUp
 from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
-from src.core.process import logger_process,threaded_listen
+from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter
 
 import time
 import json,os
@@ -15,15 +15,22 @@ app = Flask(__name__,static_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key' 
 
 def rebootJob():
-    global queue,params,listener_thread,startUp,sendClient,baseurl,headers,manager
+    global queue,params,listener_thread,listener_thread,startUp,sendClient,baseurl,headers,manager
     queue.put({"text":"/reboot","level":"debug"})
     queue.put({"text":"sound process start to complete wait for 20s|| 程序开始重启 请等待20秒 ","level":"info"})
     params["running"] = False
     time.sleep(20)
     params["VRCBitmapLed_taskList"]=manager.list()
     startUp.getMics()
-    listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
+    listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
     listener_thread.start()
+    if startUp.config.get("Separate_Self_Game_Mic")==1:
+        listener_thread1 = Process(target=gameMic_listen_capture,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter))
+        listener_thread1.start()
+    elif startUp.config.get("Separate_Self_Game_Mic")==2:
+        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
+        listener_thread1.start()
+    
     params["running"] = True
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
     params["sourceLanguage"]=startUp.config.get("sourceLanguage")
@@ -105,10 +112,41 @@ def getAvatarParameters():
 def getMics():
     global queue,startUp
     queue.put({"text":"/getMics","level":"debug"})
- 
     return jsonify(startUp.micList),200
+@app.route('/api/getcapture', methods=['get'])
+def getCapture():
+    global queue,startUp
+    queue.put({"text":"/getcapture","level":"debug"})
+
+    Separate_Self_Game_Mic = int(request.args.get('Separate_Self_Game_Mic', 0))
+
+    if Separate_Self_Game_Mic==2:return jsonify(startUp.micList),200
+    elif Separate_Self_Game_Mic==1:return jsonify(startUp.loopbackList),200
+    else :return jsonify([]),200
 
 
+# 示例用法
+# if __name__ == "__main__":
+#     devices = list_loopback_devices()
+#     print("可用环路设备列表：")
+#     for d in devices:
+#         print(f'索引 {d["index"]}: {d["name"]} (采样率 {d["defaultSampleRate"]}Hz)')
+# def get_wasapi_device_index():
+
+#     import pyaudiowpatch
+#     p = pyaudiowpatch.PyAudio()
+#     try:
+#         wasapi_info = p.get_host_api_info_by_type(pyaudiowpatch.paWASAPI)
+#         deviceList=[]
+#         # 列出所有WASAPI设备
+#         for i in range(p.get_device_count()):
+#             dev = p.get_device_info_by_index(i)
+#             if dev["hostApi"] == wasapi_info["index"] and dev["maxInputChannels"] > 0:
+#                 deviceList.append(dev['name'])
+#         return jsonify(deviceList),200
+#     finally:
+#         p.terminate()
+    
 def find_avatar_json( avatar_id):
     base_path=r'~\AppData\LocalLow\VRChat\VRChat\OSC'
     # 拼接基础路径
@@ -126,7 +164,7 @@ def find_avatar_json( avatar_id):
  
 # 示例函数
 def open_web(host,port):
-    global startUp
+    global startUp,queue
 
     # 定义要打开的URL
     url = f"http://{host}:{port}"
@@ -156,11 +194,14 @@ def open_web(host,port):
             edge.open(url)
         else:
             # 如果没有找到Edge的路径，则使用默认浏览器打开网页
+            
             webbrowser.open(url)
     except Exception:
+        queue.put({"text":"没有找到指定的路径,使用默认浏览器打开网页","level":"debug"})
         webbrowser.open(url)
  
-
+# TODO steamvr显示界面
+# TODO 修正各个模式下两个播放线程的行为
 if __name__ == '__main__':
     freeze_support()
     try:
@@ -211,18 +252,19 @@ if __name__ == '__main__':
 
         queue.put({'text':"vrc udpClient ok||发送准备就绪",'level':'info'})
         params["runmode"]= startUp.config["defaultMode"]
-
         # start listening in the background (note that we don't have to do this inside a `with` statement)
         # this is called from the background thread
 
-
-        listener_thread = Process(target=threaded_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
+        listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
         listener_thread.start()
+        if startUp.config.get("Separate_Self_Game_Mic")==1:
+            listener_thread1 = Process(target=gameMic_listen_capture,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter))
+            listener_thread1.start()
+        elif startUp.config.get("Separate_Self_Game_Mic")==2:
+            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
+            listener_thread1.start()
+            
         
-        # time.sleep(10)
-
-        # while True:time.sleep(1)
-        # app.run(debug=True,)
         queue.put({'text':"api ok||api就绪",'level':'info'})
         open_web(startUp.config['api-ip'],startUp.config['api-port'])
         waitress.serve(app=app, host=startUp.config['api-ip'], port=startUp.config['api-port'])
@@ -231,3 +273,5 @@ if __name__ == '__main__':
     finally:
         # 设置退出事件来通知所有子线程
         listener_thread.kill()
+        if startUp.config.get("Separate_Self_Game_Mic")!=0: listener_thread1.kill()
+    

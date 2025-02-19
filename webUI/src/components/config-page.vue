@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 600px;">
+                    <el-card style="height: 700px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -43,12 +43,6 @@
                                 <el-input v-model="data.config['webBrowserPath']" placeholder="如需指定浏览器再填写"></el-input>
                                 </el-tooltip>
                             </el-form-item> -->
-                            <el-form-item label="麦克风">
-                                <el-select v-model="data.config.micName">
-                                    <el-option label="系统默认麦克风" value="default"></el-option>
-                                    <el-option v-for="(item,index) in data.local.micName" :key="index" :label="item" :value="item"></el-option>
-                                </el-select>
-                            </el-form-item>
                             <el-form-item label="默认模式">
                                 <el-select v-model="data.config.defaultMode">
                                     <el-option label="控制" value="control"></el-option>
@@ -258,7 +252,7 @@
                     <el-card style="height: 230px;margin-bottom: 20px;">
                         <template #header>
                             <div class="card-header">
-                            <span>用户信息配置</span>
+                            <span>api账户配置</span>
                             </div>
                             
                         </template>
@@ -271,38 +265,7 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
-                    <el-card style="height: 350px;">
-                        <template #header>
-                            <div class="card-header">
-                            <span>语音控制配置</span>
-                            </div>
-                            
-                        </template>
-                        <el-form :model="data.config" label-width="auto">
-
-                            <el-form-item label="语音模式">
-                                <el-select v-model="data.config.voiceMode">
-                                    <el-option label="持续开启" :value="0"></el-option>
-                                    <el-option label="按键说话" :value="1"></el-option>
-                                </el-select>
-                            </el-form-item>
-                            <el-form-item label="动态音量阈值">
-                                <el-radio-group v-model="data.config.dynamicThreshold" >
-                                    <el-radio :value="true" size="large">开启</el-radio>
-                                    <el-radio :value="false" size="large">关闭</el-radio>
-                                </el-radio-group>
-                            </el-form-item>
-                            <el-form-item label="自定义阈值">
-                                <el-slider v-model="data.config.customThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold"/>
-                            </el-form-item>
-                            <el-form-item label="按键说话">
-                                <el-input v-model="data.config.voiceHotKey"></el-input>
-                            </el-form-item>
-                        </el-form>
-                    </el-card>
-                </el-col>
-                <el-col :span="8">
-                    <el-card style="height: 600px;">
+                    <el-card style="height: 450px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>
@@ -330,6 +293,81 @@
                                 </el-form-item>
 
                             </el-scrollbar>
+                        </el-form>
+                        
+                    </el-card>
+                </el-col>
+                <el-col :span="8">
+                    <el-card style="height: 700px;">
+                        <template #header>
+                            <div class="card-header">
+                            <span>语音控制配置</span>
+                            </div>
+                        </template>
+
+                        <el-form :model="data.config" label-width="auto">
+                            <el-form-item label="麦克风">
+                                <el-select v-model="data.config.micName">
+                                    <el-option label="系统默认麦克风" value="default"></el-option>
+                                    <el-option v-for="(item,index) in micName" :key="index" :label="item" :value="item"></el-option>
+                                </el-select>
+                            </el-form-item>
+                           
+                           
+                            <el-form-item label="麦克风语音模式">
+                                <el-select v-model="data.config.voiceMode">
+                                    <el-option label="持续开启" :value="0"></el-option>
+                                    <el-option label="按键切换" :value="1"></el-option>
+                                </el-select>
+                            </el-form-item>
+ 
+
+                            <el-form-item label="麦克风自定义阈值">
+                                <el-slider v-model="data.config.customThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold"/>
+                            </el-form-item>
+                            <el-form-item label="麦克风按键切换快捷键">
+                                <el-input v-model="data.config.voiceHotKey"></el-input>
+                            </el-form-item>
+                            <el-form-item label="独立桌面音频捕捉">
+                                <!-- <el-select v-model="data.config.Separate_Self_Game_Mic" @change="getCapture"> -->
+                                    <el-select v-model="data.config.Separate_Self_Game_Mic">
+                                        <el-option label="关闭" :value="0"></el-option>
+                                    <el-option label="使用桌面音频" :value="1"></el-option>
+                                    <el-option label="使用虚拟声卡麦克风" :value="2"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="桌面音频源/麦克风">
+                                <el-select v-model="data.config.gameMicName" :disabled="data.config.Separate_Self_Game_Mic==0">
+                                    <el-option label="系统默认" value="default"></el-option>
+                                    <el-option v-for="(item,index) in captureName" :key="index" :label="item" :value="item" ></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="桌面音频语音模式">
+                                <el-select v-model="data.config.gameVoiceMode" :disabled="data.config.Separate_Self_Game_Mic==0">
+                                    <el-option label="持续开启" :value="0"></el-option>
+                                    <el-option label="按键切换" :value="1"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="桌面音频自定义阈值">
+                                <el-slider v-model="data.config.gameCustomThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold || data.config.Separate_Self_Game_Mic==0"/>
+                            </el-form-item>
+                            <el-form-item label="桌面音频按键切换快捷键">
+                                <el-input v-model="data.config.gameVoiceHotKey" :disabled="data.config.Separate_Self_Game_Mic==0"></el-input>
+                            </el-form-item>
+
+                            <el-form-item label="动态音量阈值">
+                                <el-tooltip
+                                    class="box-item"
+                                    effect="dark"
+                                    content="不建议开启"
+                                    placement="right"
+                                >
+                                <el-radio-group v-model="data.config.dynamicThreshold" >
+                                    <el-radio :value="true" size="large">开启</el-radio>
+                                    <el-radio :value="false" size="large">关闭</el-radio>
+                                </el-radio-group>
+                                </el-tooltip>
+                            </el-form-item>
                         </el-form>
                     </el-card>
                 </el-col>
@@ -509,14 +547,16 @@ import { ElMessage ,ElMessageBox} from 'element-plus'
 import {
   Delete,Plus
 } from '@element-plus/icons-vue'
-import { onMounted, reactive } from 'vue';
+import { onMounted, reactive,ref,watch } from 'vue';
+const captureName=ref([]);
 
+const micName=ref([]);
 let data=reactive({
     local:{
                 defaultScriptsAction:'sendText',
                 item1:'',
                 scriptClick:0,
-                micName:[]
+                micName:[],
             },
     config:{
                 userInfo: {
@@ -532,6 +572,7 @@ let data=reactive({
                 stopText: "",
                 sourceLanguage: "zh",
                 targetTranslationLanguage: "en",
+                Separate_Self_Game_Mic:0,
                 translationServer: "whisper",
                 defaultScripts: [
                     {
@@ -630,10 +671,23 @@ let data=reactive({
 
 
 
+    
 
 onMounted(()=>{
     getconfig()
 })
+
+const getCapture=()=>{
+    axios.get('/api/getcapture',{params:{'Separate_Self_Game_Mic':data.config.Separate_Self_Game_Mic}}).then(response => {
+        captureName.value = response.data;
+        ElMessage({
+        message: '桌面音频名称获取成功',
+        type: 'success',
+        })
+    });
+
+}
+watch(()=>data.config.Separate_Self_Game_Mic,()=>{getCapture()})
 function getconfig() {
     axios.get('/api/getConfig').then(response => {
         data.config = response.data;
@@ -643,12 +697,13 @@ function getconfig() {
     })
     });
     axios.get('/api/getMics').then(response => {
-        data.local.micName = response.data;
+        micName.value = response.data;
         ElMessage({
         message: '麦克风名称获取成功',
         type: 'success',
     })
     });
+    getCapture()
 }
 function saveconfig(){
     axios.post('/api/saveConfig',{'config':data.config},{headers: {
@@ -751,6 +806,7 @@ function getAvatarParameters(){
         data.avatarInfo=response.data.avatarInfo
     });
 }
+
 </script>
 
 <style scoped>

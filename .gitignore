@@ -3,6 +3,7 @@
 *.log.*
 *.spec
 main.bat
+ffmpeg/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

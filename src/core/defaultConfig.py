@@ -23,6 +23,11 @@ defaultConfig={
     "VRCBitmapLed_row":8,
     "VRCBitmapLed_col":16,
     "VRCBitmapLed_COLOR":True,
+    "Separate_Self_Game_Mic":0,
+    "gameMicName":"default",
+    "gameVoiceMode":0,
+    "gameCustomThreshold":0.02,
+    "gameVoiceHotKey":"alt+e",
     "defaultScripts": [
         {
             "action": "sendText",

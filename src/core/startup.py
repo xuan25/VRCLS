@@ -4,12 +4,15 @@ from .osc_client import OSCClient
 import requests
 import time
 import pyaudio
-import traceback
+# import os,sys
+# from pydub import AudioSegment
 class StartUp:
     def __init__(self,logger):
         self.logger=logger
         self.tragetTranslateLanguage="en"
         self.micList=[]
+        self.loopbackList=[]
+        self.loopbackIndexList=[]
         self.defautMicIndex=0
         try:
             with open('client.json', 'r',encoding='utf-8') as file:
@@ -34,13 +37,17 @@ class StartUp:
             self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"exception"})
             time.sleep(10)
             exit(0)
+        
 
     def setOSCClient(self,logger):
         self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=self.config.get("osc-port"))
         return self.oscClient.client
     def run(self):
+        # self.set_ffmpeg_path()
         self.getMics()
+        self.list_loopback_devices()
         self.configCheck()
+        # self.initffmpeg()
         res= self.checkAccount()
         return res
     def configCheck(self):
@@ -122,3 +129,46 @@ class StartUp:
         self.defautMicIndex=p.get_default_input_device_info()['index']
         # 关闭 PyAudio 实例
         p.terminate()
+    def list_loopback_devices(self):
+        """列出所有可用环路录音设备"""
+        import pyaudiowpatch    
+        p1 = pyaudiowpatch.PyAudio()
+        try:
+            self.loopbackList=[]
+            self.loopbackIndexList=[]
+            for device in p1.get_loopback_device_info_generator():
+                # # 提取关键信息
+                # info = {
+                #     "index": device["index"],
+                #     "name": device["name"],
+                #     "defaultSampleRate": device["defaultSampleRate"],
+                #     "maxInputChannels": device["maxInputChannels"]
+                # }
+                self.loopbackList.append(device["name"])
+                self.loopbackIndexList.append({"index": device["index"],"name": device["name"]})
+            
+        finally:
+            p1.terminate()
+    # # 设置ffmpeg路径（必须在所有pydub操作之前）
+    # def set_ffmpeg_path(self):
+    #     # 动态获取项目根目录
+    #     if getattr(sys, 'frozen', False):
+    #         base_path = sys._MEIPASS  # 打包后的临时资源目录
+    #     else:
+    #         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+    #     # 构造ffmpeg绝对路径
+    #     ffmpeg_path = os.path.join(
+    #         base_path, 
+    #         "ffmpeg", 
+    #         "bin", 
+    #         "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg"
+    #     )
+        
+    #     # 验证路径有效性
+    #     if not os.path.isfile(ffmpeg_path):
+    #         raise FileNotFoundError(f"FFmpeg未找到于：{ffmpeg_path}")
+        
+    #     # 设置路径（关键！必须同时设置converter和ffprobe）
+    #     AudioSegment.converter = ffmpeg_path
+    #     AudioSegment.ffprobe = os.path.join(os.path.dirname(ffmpeg_path), "ffprobe.exe")

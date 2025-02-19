@@ -8,3 +8,5 @@ requests
 keyboard
 hanziconv
 pyttsx3
+pydub
+pyaudiowpatch
