@@ -10,3 +10,4 @@ hanziconv
 pyttsx3
 pydub
 pyaudiowpatch
+numpy
