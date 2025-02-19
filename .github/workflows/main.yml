@@ -18,15 +18,24 @@ jobs:
       with:
         python-version: '3.12'  
 
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
         pip install -r requirements.txt 
 
+    # 新增FFmpeg下载步骤
+    - name: Download FFmpeg binaries
+      run: |
+        mkdir -p ffmpeg/bin
+        curl -L https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-02-18-12-38/ffmpeg-N-113550-g697b9a8ef8-win64-gpl.zip -o ffmpeg.zip
+        tar -xf ffmpeg.zip --strip-components=1 -C ffmpeg/bin "ffmpeg.exe" "ffprobe.exe"
+        rm ffmpeg.zip
+    
     - name: Package application with PyInstaller
       run: |
-        pyinstaller --upx-dir=.\upx pyaudiowpatch .\main.spec -y
+        pyinstaller --upx-dir=.\upx .\main.spec -y
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
