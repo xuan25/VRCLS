@@ -210,7 +210,7 @@ class VRTextOverlay:
             stroke_fill=(0,0,0,255)
         )
         
-        path=sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
+        path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
         img.save(path)  # 添加在tobytes()之前
 
         openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
