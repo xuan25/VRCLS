@@ -11,3 +11,6 @@ pyttsx3
 pydub
 pyaudiowpatch
 numpy
+openvr
+Pillow
+psutil

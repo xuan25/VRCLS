@@ -27,7 +27,11 @@ defaultConfig={
     "gameMicName":"default",
     "gameVoiceMode":0,
     "gameCustomThreshold":0.02,
-    "gameVoiceHotKey":"alt+e",
+    "gameVoiceHotKey":"alt+q",
+    "textInSteamVR":False,
+    "SteamVRHad":0,
+    "SteamVRSize":0.15,
+
     "defaultScripts": [
         {
             "action": "sendText",

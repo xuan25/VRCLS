@@ -1,15 +1,16 @@
 import speech_recognition as sr
 import requests
-from multiprocessing import Process
+from multiprocessing import Process,Queue
 import keyboard
 import time
 import pyttsx3
 
-def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter,mode):
+def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter,mode,steamvrQueue):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
     from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
+    from ..handler.SelfRead import SelfReadHandler
     from hanziconv import HanziConv
 
     
@@ -19,13 +20,19 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
+    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
     try:
 
-        logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}音频输出完毕","level":"info"})
+        logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
         if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
             url=baseurl+"/whisper/multitranscription"
         elif params["runmode"] == "translation":
+            if mode =="cap":
+                tmp=sourceLanguage
+                sourceLanguage=tragetTranslateLanguage
+                tragetTranslateLanguage=tmp
             if config["translationServer"] == "libre":
+
                 if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
                 elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
                 else:url=baseurl+"/func/translateToOtherLanguage"
@@ -37,6 +44,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
             url = baseurl+"/whisper/multitranscription"
         logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
         files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
+        
         data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
         response = requests.post(url, files=files, data=data, headers=headers)
         # 检查响应状态码
@@ -53,11 +61,15 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
             return
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
-        logger.put({"text":"你说的是: " + res["text"],"level":"info"})
+        logger.put({"text":"识别结果: " + res["text"],"level":"info"})
         if defaultCommand.handle(res["text"],params=params):return
-        if params["runmode"] == "text" or params["runmode"] == "translation": chatbox.handle(res,runMode=params["runmode"])
-        if params["runmode"] == "control":avatar.handle(res)
-        if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
+        if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
+        else:
+            if params["runmode"] == "text" or params["runmode"] == "translation": 
+                if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
+                chatbox.handle(res,runMode=params["runmode"])
+            if params["runmode"] == "control":avatar.handle(res)
+            if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
 
     except requests.JSONDecodeError:
         logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
@@ -65,9 +77,10 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
     except Exception as e:
         logger.put({"text":e,"level":"exception"})
         return
-def change_run(params,logger):
-    params["voiceKeyRun"]=not params["voiceKeyRun"]
-    logger.put({"text":f"麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+def change_run(params,logger,mode):
+    key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
+    params[key]=not params[key]
+    logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}状态：{"打开" if params[key] else "关闭"}","level":"info"})
 
 def clearVRCBitmapLed(client,config,params,logger):
     logger.put({"text":f"开始清空点阵屏","level":"info"})
@@ -94,7 +107,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -117,7 +130,7 @@ def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["voiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"mic"))
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
@@ -145,13 +158,13 @@ def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,
                     else:count+=1
             else:
                 if params["running"] and params["voiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"mic"))
+                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"mic",steamvrQueue))
                     p.start()
 
     logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
 
 
-def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
@@ -174,7 +187,7 @@ def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,m
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"cap"))
         logger.put({"text":f"当前游戏麦克风状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
     
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
@@ -202,12 +215,12 @@ def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,m
                     else:count+=1
             else:
                 if params["running"] and params["gameVoiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter))
+                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap",steamvrQueue))
                     p.start()
 
     logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
 
-def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter):
+def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     from .recordLocal import voice_activation_stream
     if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
@@ -235,7 +248,7 @@ def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micLi
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger))
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"cap"))
         logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
 
     energy_threshold=32768.0*customthreshold
@@ -261,7 +274,7 @@ def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micLi
                 else:count+=1
         else:
             if params["running"] and params["gameVoiceKeyRun"]:
-                p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap"))
+                p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap",steamvrQueue))
                 p.start()
 
     logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
@@ -278,3 +291,31 @@ def logger_process(queue):
         elif text['level']=="error":logger.error(text['text'])
         elif text['level']=="exception":logger.exception(text['text'])
         else :logger.error(text)
+
+def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
+    import openvr
+    from..module.steamvr import VRTextOverlay
+    textOverlay=VRTextOverlay()
+    try:
+        if not textOverlay.initialize(logger,params,hand):return
+        textOverlay._create_text_texture()
+        textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size)
+        textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
+        logger.put({"text":f"掌心显示启动完毕","level":"info"})
+        pyttsx3.speak("SteamVR掌心显示启动完毕")
+        while params['running']:
+            if queue.empty():
+                time.sleep(0.5)
+                continue
+            text=queue.get() 
+            logger.put({"text":f"开始执行一次掌心输出","level":"debug"})
+            textOverlay.update_text(text)
+            time.sleep(1)
+    except Exception as e:
+        logger.put({"text":f"发生错误: {str(e)}","level":"error"})
+    finally:  # 确保始终执行清理
+        if textOverlay.overlay_handle:
+            textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
+            textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
+        openvr.shutdown()
+        time.sleep(1)

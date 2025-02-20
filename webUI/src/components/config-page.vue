@@ -221,6 +221,29 @@
                                     <el-option label="繁体中文(Chinese)" value="zt"></el-option>
                                 </el-select>
                                 </el-tooltip>
+                            </el-form-item>                            
+                            <el-form-item label="独立桌面音频捕捉">
+                                <!-- <el-select v-model="data.config.Separate_Self_Game_Mic" @change="getCapture"> -->
+                                    <el-select v-model="data.config.Separate_Self_Game_Mic">
+                                        <el-option label="关闭" :value="0"></el-option>
+                                    <el-option label="使用桌面音频" :value="1"></el-option>
+                                    <el-option label="使用虚拟声卡麦克风" :value="2"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="SteamVR掌心输出显示">
+                                <el-select v-model="data.config.textInSteamVR">
+                                    <el-option label="开启" :value="true"></el-option>
+                                    <el-option label="关闭" :value="false"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="SteamVR显示位置">
+                                <el-select v-model="data.config.SteamVRHad" :disabled="!data.config.textInSteamVR">
+                                    <el-option label="右手" :value="0"></el-option>
+                                    <el-option label="左手" :value="1"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="SteamVR显示大小">
+                                <el-slider v-model="data.config.SteamVRSize" show-input :max="0.5" :step="0.01" :disabled="!data.config.textInSteamVR"/>
                             </el-form-item>
                             <el-form-item label="点阵屏行列数">
                                 <el-row>
@@ -238,13 +261,14 @@
                                 
                             </el-form-item>
 
-                                
+
                             <el-form-item label="点阵屏彩色模式">
                                 <el-radio-group v-model="data.config.VRCBitmapLed_COLOR" >
                                     <el-radio :value="true" size="large">开启</el-radio>
                                     <el-radio :value="false" size="large">关闭</el-radio>
                                 </el-radio-group>
                             </el-form-item>
+
                         </el-form>
                     </el-card>
                 </el-col>
@@ -328,14 +352,7 @@
                             <el-form-item label="麦克风按键切换快捷键">
                                 <el-input v-model="data.config.voiceHotKey"></el-input>
                             </el-form-item>
-                            <el-form-item label="独立桌面音频捕捉">
-                                <!-- <el-select v-model="data.config.Separate_Self_Game_Mic" @change="getCapture"> -->
-                                    <el-select v-model="data.config.Separate_Self_Game_Mic">
-                                        <el-option label="关闭" :value="0"></el-option>
-                                    <el-option label="使用桌面音频" :value="1"></el-option>
-                                    <el-option label="使用虚拟声卡麦克风" :value="2"></el-option>
-                                </el-select>
-                            </el-form-item>
+
                             <el-form-item label="桌面音频源/麦克风">
                                 <el-select v-model="data.config.gameMicName" :disabled="data.config.Separate_Self_Game_Mic==0">
                                     <el-option label="系统默认" value="default"></el-option>
