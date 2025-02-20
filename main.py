@@ -25,7 +25,7 @@ def rebootJob():
     if startUp.config.get("textInSteamVR"):
         steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
         steamvrThread.start()
-    listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter))
+    listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
     listener_thread.start()
     if startUp.config.get("Separate_Self_Game_Mic")==1:
         listener_thread1 = Process(target=gameMic_listen_capture,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
