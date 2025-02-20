@@ -15,27 +15,30 @@ app = Flask(__name__,static_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key' 
 
 def rebootJob():
-    global queue,params,listener_thread,listener_thread,startUp,sendClient,baseurl,headers,manager,steamvrQueue
+    global queue,params,listener_thread,listener_thread,startUp,sendClient,manager,steamvrQueue
     queue.put({"text":"/reboot","level":"debug"})
     queue.put({"text":"sound process start to complete wait for 20s|| 程序开始重启 请等待20秒 ","level":"info"})
     params["running"] = False
-    time.sleep(20)
+    while params["micStopped"] and params["gameStopped"]:time.sleep(1)
+    params['headers']=startUp.run()
+    time.sleep(3)
     params["VRCBitmapLed_taskList"]=manager.list()
-    startUp.getMics()
     if startUp.config.get("textInSteamVR"):
         steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
         steamvrThread.start()
-    listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+    listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
     listener_thread.start()
     if startUp.config.get("Separate_Self_Game_Mic")==1:
-        listener_thread1 = Process(target=gameMic_listen_capture,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
         listener_thread1.start()
     elif startUp.config.get("Separate_Self_Game_Mic")==2:
-        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
         listener_thread1.start()
 
     
     params["running"] = True
+    params["micStopped"] = False
+    params["gameStopped"] = False
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
     params["sourceLanguage"]=startUp.config.get("sourceLanguage")
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
@@ -128,28 +131,6 @@ def getCapture():
     elif Separate_Self_Game_Mic==1:return jsonify(startUp.loopbackList),200
     else :return jsonify([]),200
 
-
-# 示例用法
-# if __name__ == "__main__":
-#     devices = list_loopback_devices()
-#     print("可用环路设备列表：")
-#     for d in devices:
-#         print(f'索引 {d["index"]}: {d["name"]} (采样率 {d["defaultSampleRate"]}Hz)')
-# def get_wasapi_device_index():
-
-#     import pyaudiowpatch
-#     p = pyaudiowpatch.PyAudio()
-#     try:
-#         wasapi_info = p.get_host_api_info_by_type(pyaudiowpatch.paWASAPI)
-#         deviceList=[]
-#         # 列出所有WASAPI设备
-#         for i in range(p.get_device_count()):
-#             dev = p.get_device_info_by_index(i)
-#             if dev["hostApi"] == wasapi_info["index"] and dev["maxInputChannels"] > 0:
-#                 deviceList.append(dev['name'])
-#         return jsonify(deviceList),200
-#     finally:
-#         p.terminate()
     
 def find_avatar_json( avatar_id):
     base_path=r'~\AppData\LocalLow\VRChat\VRChat\OSC'
@@ -216,6 +197,8 @@ if __name__ == '__main__':
         params=manager.dict()
 
         params["running"] = True
+        params["micStopped"] = False
+        params["gameStopped"] = False
         startUp=StartUp(queue)
         queue.put({'text':r'''
 ------------------------------------------------------------------------
@@ -245,9 +228,9 @@ if __name__ == '__main__':
 ------------------------------------------------------------------------
                     ''','level':'info'}
                     )
-        headers=startUp.run()
+        params['headers']=startUp.run()
+        time.sleep(3)
         sendClient= startUp.setOSCClient(queue)
-        baseurl=startUp.config.get("baseurl")
         params["VRCBitmapLed_taskList"]= manager.list()
         tmp=" "*(8 if startUp.config.get("VRCBitmapLed_row") is None else startUp.config.get("VRCBitmapLed_row") )*(16 if startUp.config.get("VRCBitmapLed_col") is None else startUp.config.get("VRCBitmapLed_col"))
         params["VRCBitmapLed_Line_old"]= tmp
@@ -266,13 +249,13 @@ if __name__ == '__main__':
         if startUp.config.get("textInSteamVR"):
             steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
             steamvrThread.start()
-        listener_thread = Process(target=selfMic_listen,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
         listener_thread.start()
         if startUp.config.get("Separate_Self_Game_Mic")==1:
-            listener_thread1 = Process(target=gameMic_listen_capture,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+            listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
             listener_thread1.start()
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
-            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(baseurl,sendClient,startUp.config,headers,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
             listener_thread1.start()
 
             

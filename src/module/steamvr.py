@@ -2,10 +2,31 @@ import openvr
 import time,os,math,sys
 from PIL import Image, ImageDraw, ImageFont
 import psutil
-
+from collections import deque
+class BoundedQueue:
+    def __init__(self, max_size=3):
+        self.queue = deque(maxlen=max_size)
+    
+    def enqueue(self, item):
+        if not isinstance(item, str):
+            raise ValueError("Only strings can be enqueued")
+        self.queue.append(item)
+    
+    def dequeue(self):
+        if not self.is_empty():
+            return self.queue.popleft()
+        else:
+            raise IndexError("Dequeue from an empty queue")
+    
+    def is_empty(self):
+        return len(self.queue) == 0
+    
+    def __repr__(self):
+        return f"BoundedQueue({list(self.queue)})"
 class VRTextOverlay:
     def __init__(self, text="          欢迎使用VRCLS           \n    桌面音频捕捉的文字将显示在此处", font_size=40):
         self.overlay = None
+        self.textList=BoundedQueue()
         self.text = text
         self.font_size = font_size
         self.vr_system = None
@@ -150,8 +171,8 @@ class VRTextOverlay:
             # 处理最后一行（左对齐）
             if current_line:
                 result.append(''.join(current_line))
-        
-        self.text = '\n'.join(result)
+        self.textList.enqueue('\n'.join(result))
+        self.text = '\n----------------------------------\n'.join(list(self.textList.queue))
 
     def _justify_line(self, line, line_width, target_width, font, result):
         if not line:

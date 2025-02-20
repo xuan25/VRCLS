@@ -5,7 +5,7 @@ import keyboard
 import time
 import pyttsx3
 
-def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filter,mode,steamvrQueue):
+def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQueue):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -21,6 +21,7 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
+    baseurl=config.get('baseurl')
     try:
 
         logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
@@ -46,11 +47,19 @@ def once(audio:sr.AudioData,baseurl,sendClient,config,headers,params,logger,filt
         files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
         
         data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
-        response = requests.post(url, files=files, data=data, headers=headers)
+        response = requests.post(url, files=files, data=data, headers=params['headers'])
         # 检查响应状态码
-        if response.status_code != 200:
-            logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
-            return
+        counter=0
+        while response.status_code != 200:
+            if response.status_code == 429:
+                
+                logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                counter+=1
+                time.sleep(2)
+                response = requests.post(url, files=files, data=data, headers=params['headers'])
+            else:    
+                logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                return
         # 解析JSON响应
         res = response.json()
         if res["text"] =="":
@@ -107,7 +116,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
+def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -158,13 +167,14 @@ def selfMic_listen(baseurl,sendClient,config,headers,params,logger,micList:list,
                     else:count+=1
             else:
                 if params["running"] and params["voiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"mic",steamvrQueue))
+                    p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"mic",steamvrQueue))
                     p.start()
 
     logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
+    params["micStopped"]=True
 
 
-def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
+def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
@@ -215,12 +225,13 @@ def gameMic_listen_VoiceMeeter(baseurl,sendClient,config,headers,params,logger,m
                     else:count+=1
             else:
                 if params["running"] and params["gameVoiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap",steamvrQueue))
+                    p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"cap",steamvrQueue))
                     p.start()
 
     logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
+    params["gameStopped"] = True
 
-def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
+def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue):
     from .recordLocal import voice_activation_stream
     if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
@@ -238,8 +249,6 @@ def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micLi
         if not device_index:
             logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
             micIndex=None
-    # r = sr.Recognizer()
-    # m = sr.Microphone(device_index=micIndex)
     params["gameVoiceKeyRun"]=True 
     voiceMode=config.get("gameVoiceMode")
     customthreshold=config.get("gameCustomThreshold")
@@ -274,7 +283,7 @@ def gameMic_listen_capture(baseurl,sendClient,config,headers,params,logger,micLi
                 else:count+=1
         else:
             if params["running"] and params["gameVoiceKeyRun"]:
-                p = Process(target=once,daemon=True, args=(audio,baseurl,sendClient,config,headers,params,logger,filter,"cap",steamvrQueue))
+                p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"cap",steamvrQueue))
                 p.start()
 
     logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
