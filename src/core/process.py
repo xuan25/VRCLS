@@ -311,8 +311,6 @@ def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
             logger.put({"text":f"开始执行一次掌心输出","level":"debug"})
             textOverlay.update_text(text)
             time.sleep(1)
-    except Exception as e:
-        logger.put({"text":f"发生错误: {str(e)}","level":"error"})
     finally:  # 确保始终执行清理
         if textOverlay.overlay_handle:
             textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
