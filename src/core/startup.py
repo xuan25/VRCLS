@@ -4,6 +4,7 @@ from .osc_client import OSCClient
 import requests
 import time
 import pyaudio
+import traceback
 # import os,sys
 # from pydub import AudioSegment
 class StartUp:
@@ -21,10 +22,9 @@ class StartUp:
             with open('client.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
                 self.config=defaultConfig
-        except requests.exceptions.JSONDecodeError as e:
-            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"exception"})
-            time.sleep(10)
-            exit(0)
+        except json.JSONDecodeError as e:
+            self.logger.put({'text':"client.json配置文件解析异常,详情："+str(e),"level":"error"})
+            raise e
         
         try:
             with open('filter.json', 'r',encoding='utf-8') as file:
@@ -33,10 +33,9 @@ class StartUp:
             with open('filter.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(defaultFilter,ensure_ascii=False, indent=4))
                 self.filter=defaultFilter
-        except requests.exceptions.JSONDecodeError as e:
-            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"exception"})
-            time.sleep(10)
-            exit(0)
+        except json.JSONDecodeError as e:
+            self.logger.put({'text':"filter.json配置文件解析异常,详情："+str(e),"level":"error"})
+            raise e
         
 
     def setOSCClient(self,logger):
@@ -69,10 +68,9 @@ class StartUp:
                     self.config["defaultScripts"].append(newConfig)
                 with open('client.json', 'w', encoding="utf8") as file:
                     file.write(json.dumps(self.config,ensure_ascii=False, indent=4))
-        except requests.exceptions.JSONDecodeError as e:
-            self.logger.put({'text':"配置文件异常,详情："+str(e.strerror),"level":"warning"})
-            time.sleep(10)
-            exit(0)
+        except json.JSONDecodeError as e:
+            self.logger.put({'text':"client.json配置文件解析异常,详情："+str(e),"level":"error"})
+            raise e
         self.tragetTranslateLanguage="en" if self.config["targetTranslationLanguage"] is None or  self.config["targetTranslationLanguage"] == "" else self.config["targetTranslationLanguage"]
         whisperSupportedLanguageList=["af","am","ar","as","az","ba","be","bg","bn","bo","br","bs","ca","cs","cy","da","de","el","en","es"
                                     ,"et","eu","fa","fi","fo","fr","gl","gu","ha","haw","he","hi","hr","ht","hu","hy","id","is","it",

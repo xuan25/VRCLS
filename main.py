@@ -6,7 +6,7 @@ from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process
 
 import time
-import json,os
+import json,os,traceback
 import webbrowser
 
 queue=Queue(-1)
@@ -190,7 +190,8 @@ def open_web(host,port):
 if __name__ == '__main__':
     freeze_support()
     try:
-
+        listener_thread=None
+        startUp=None
         logger_thread = Process(target=logger_process,daemon=True,args=(queue,))
         logger_thread.start()
         manager = Manager()
@@ -264,10 +265,14 @@ if __name__ == '__main__':
         open_web(startUp.config['api-ip'],startUp.config['api-port'])
         waitress.serve(app=app, host=startUp.config['api-ip'], port=startUp.config['api-port'])
     except Exception as e:
-        print(f"Main thread encountered an error: {e}")
+        traceback.print_exc()
+
     finally:
         # 设置退出事件来通知所有子线程
-        listener_thread.kill()
-        if startUp.config.get("Separate_Self_Game_Mic")!=0: listener_thread1.kill()
-        if startUp.config.get("textInSteamVR"):steamvrThread.kill()
+        logger_thread.kill()
+        if listener_thread:listener_thread.kill()
+        if startUp:
+            if startUp.config.get("Separate_Self_Game_Mic")!=0: listener_thread1.kill()
+            if startUp.config.get("textInSteamVR"):steamvrThread.kill()
+        input("press any key to exit||任意键退出...")
     
