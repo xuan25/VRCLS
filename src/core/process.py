@@ -84,7 +84,7 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
         logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
         return
     except Exception as e:
-        logger.put({"text":e,"level":"exception"})
+        logger.put({"text":"once未知异常"+str(e),"level":"error"})
         return
 def change_run(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
@@ -292,13 +292,17 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
 def logger_process(queue):
     from .logger import MyLogger
     logger=MyLogger().logger
+
     while True:
         text=queue.get()
-        if text['level']=="debug":logger.debug(text['text'])
-        elif text['level']=="info":logger.info(text['text'])
-        elif text['level']=="warning":logger.warning(text['text'])
-        elif text['level']=="error":logger.error(text['text'])
-        elif text['level']=="exception":logger.exception(text['text'])
+        if text['level']=="debug":
+            logger.debug(text['text'])
+        elif text['level']=="info":
+            logger.info(text['text'])
+        elif text['level']=="warning":
+            logger.warning(text['text'])
+        elif text['level']=="error":
+            logger.error(text['text'])
         else :logger.error(text)
 
 def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):

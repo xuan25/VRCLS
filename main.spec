@@ -13,6 +13,7 @@ tmp_ret = collect_all('openvr')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 datas.append(('templates','templates'))
 datas.append(('ffmpeg/bin/*', 'ffmpeg/bin'))
+datas.append(('font/*', 'font'))
 a = Analysis(
     ['main.py'],
     pathex=[],

@@ -1,6 +1,6 @@
 from typing import Optional
 from .base_handler import BaseHandler
-
+from .Color import Colors
 class ChatboxHandler(BaseHandler):
     def __init__(self,logger, osc_client,config):
         super().__init__(osc_client)
@@ -13,11 +13,11 @@ class ChatboxHandler(BaseHandler):
         if runMode == "translation":self.translateFunction(message)
     def translateFunction(self,res:str):
         text=res['text']
-        transtext=res['translatedText']
-        self.logger.put({"text":f"输出文字: {transtext}({text})","level":"info"})
+        transtext=res.get('translatedText')
+        self.logger.put({"text":f"{Colors.CYAN}输出文字: {transtext}({text}){Colors.END}","level":"info"})
         self.osc_client.send_message("/chatbox/input",[ f'{transtext}({text})', True, False])
 
     def sendTextFunction(self,res:str):
         text=res['text']
-        self.logger.put({"text":f"输出文字: {text}","level":"info"})
+        self.logger.put({"text":f"{Colors.CYAN}输出文字: {text}{Colors.END}","level":"info"})
         self.osc_client.send_message("/chatbox/input",[ f'{text}', True, False])   

@@ -1,5 +1,6 @@
+import unicodedata
 import openvr
-import time,os,math,sys
+import time,os,math,sys,ctypes
 from PIL import Image, ImageDraw, ImageFont
 import psutil
 from collections import deque
@@ -23,6 +24,8 @@ class BoundedQueue:
     
     def __repr__(self):
         return f"BoundedQueue({list(self.queue)})"
+    
+
 class VRTextOverlay:
     def __init__(self, text="          欢迎使用VRCLS           \n    桌面音频捕捉的文字将显示在此处", font_size=40):
         self.overlay = None
@@ -32,6 +35,8 @@ class VRTextOverlay:
         self.vr_system = None
         self.overlay_handle = None
         self.texture_handle = None
+        # self.font_manger=FontManager()
+        self.fontPath=os.path.join(sys._MEIPASS,"font","gnuunifontfull-pm9p.ttf") if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),"font","gnuunifontfull-pm9p.ttf")
     def is_steamvr_running(self):
         # 遍历所有正在运行的进程
         for proc in psutil.process_iter(['pid', 'name']):
@@ -120,8 +125,9 @@ class VRTextOverlay:
     def format_string(self, s, max_chinese_chars=20):
         from PIL import ImageFont
         import re
-        
-        font = ImageFont.truetype("simhei.ttf", self.font_size)
+
+
+        font = ImageFont.truetype(self.fontPath, self.font_size)
         
         # 计算目标行宽（20个中文的像素宽度）
         sample_text = "中" * max_chinese_chars
@@ -204,9 +210,13 @@ class VRTextOverlay:
                 justified.append(char)
         
         result.append(''.join(justified))
+
     def _create_text_texture(self):
         # 使用PIL创建文字图像
-        font = ImageFont.truetype("simhei.ttf", self.font_size)
+            # 自动检测文字系统
+        # font=self.get_font()
+        font = ImageFont.truetype(self.fontPath, self.font_size)
+        # font = ImageFont.truetype("simhei.ttf", self.font_size)
         
         # 创建临时ImageDraw对象用于计算文本尺寸
         temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
@@ -218,7 +228,7 @@ class VRTextOverlay:
         text_height = bbox[3] - bbox[1]
         
         # 创建带边距的实际图像
-        img = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
+        img = Image.new("RGBA", (text_width + 20, text_height + 20), (0,0,0,0))
         draw = ImageDraw.Draw(img)
         
         # 绘制文字（考虑新的坐标系）
@@ -230,11 +240,13 @@ class VRTextOverlay:
             stroke_width=2,
             stroke_fill=(0,0,0,255)
         )
-        
+        _img_data = img.tobytes()
+        _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)
         path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
         img.save(path)  # 添加在tobytes()之前
 
-        openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
+        # openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
+        openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, text_width + 20, text_height + 60, 4)
         
 
     def set_overlay_to_hand(self, hand=0):

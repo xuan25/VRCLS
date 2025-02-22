@@ -1,8 +1,7 @@
 from typing import Optional
 from .base_handler import BaseHandler
-import winsound
-import time
-import pyttsx3
+from .Color import Colors
+
 class SelfReadHandler(BaseHandler):
     def __init__(self,logger, osc_client,steamvrQueue,config):
         super().__init__(osc_client)
@@ -17,7 +16,7 @@ class SelfReadHandler(BaseHandler):
         if transtext:message=f"{transtext}({text})"
         else:message=text
         logger=self.logger
-        logger.put({"text":f"{source}识别结果：{message}","level":"info"})
+        logger.put({"text":f"{Colors.YELLOW if source=="麦克风" else Colors.GREEN}{source}识别结果：{message}{Colors.END}","level":"info"})
         if self.steamvrOpen and steamready:
             self.steamvrQueue.put(f"{source}识别结果：\n{message}")
 
