@@ -157,7 +157,7 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
         while params["running"]:
             if not params["voiceKeyRun"]:continue
             try:  # listen for 1 second, then check again if the stop function has been called
-                audio = r.listen(s, 10)
+                audio = r.listen(s, 10,30)
                 count=0
             except sr.WaitTimeoutError:  # listening timed out, just try again
                 if params["runmode"] == "bitMapLed":
@@ -215,7 +215,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
         while params["running"]:
             if not params["gameVoiceKeyRun"]:continue
             try:  # listen for 1 second, then check again if the stop function has been called
-                audio = r.listen(s, 10)
+                audio = r.listen(s, 10,30)
                 count=0
             except sr.WaitTimeoutError:  # listening timed out, just try again
                 if params["runmode"] == "bitMapLed":

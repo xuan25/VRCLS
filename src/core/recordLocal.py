@@ -82,6 +82,7 @@ def voice_activation_stream(
     format=pyaudio.paInt16,
     output="audio",  # audio,text
     timeout=5.0,
+    maxAudioLen=30.0,
     **kwargs
 ) -> str | sr.AudioData:
     """语音激活识别（直接返回文本）"""
@@ -112,15 +113,22 @@ def voice_activation_stream(
                 is_recording = False
                 silence_count = 0
                 timeout_event = threading.Event()  # 超时事件标志
+                tooLong_event = threading.Event()  # 超时事件标志
 
                 try:
                     # 创建超时定时器
                     def on_timeout():
                         timeout_event.set()
                         printText({"text": f"桌面音频{timeout}秒内未检测到有效声音", "level": "debug"})
+                    def on_tooLong():
+                        tooLong_event.set()
+                        printText({"text": f"桌面音频长度超过{maxAudioLen}s,截断", "level": "info"})
 
                     timer = threading.Timer(timeout, on_timeout)
                     timer.start()
+
+                    timer2 = threading.Timer(maxAudioLen, on_tooLong)
+                    
 
                     while True:
                         # 检查超时事件
@@ -135,13 +143,18 @@ def voice_activation_stream(
 
                         if rms > silence_threshold:
                             if not is_recording:
+                                timer2.start()
                                 # 检测到声音时取消定时器
                                 timer.cancel()
                                 printText({"text": "桌面音频检测到声音，开始录制...", "level": "info"})
                                 is_recording = True
                                 audio_buffer.extend(pre_record)
                                 pre_record.clear()
-                            
+                            else:
+                                if tooLong_event.is_set():
+                                    audio_buffer.extend(data)
+                                    silence_count += 1
+                                    break
                             silence_count = 0
                             audio_buffer.extend(data)
                         else:
@@ -149,6 +162,7 @@ def voice_activation_stream(
                                 audio_buffer.extend(data)
                                 silence_count += 1
                                 if silence_count >= silence_limit:
+                                    timer2.cancel()
                                     printText({"text": f"桌面音频静音持续{silence_duration}秒，停止识别", "level": "debug"})
                                     break
                             else:
@@ -161,6 +175,7 @@ def voice_activation_stream(
                 
                 finally:
                     timer.cancel()  # 确保定时器总是被取消
+                    timer2.cancel()
                     if len(audio_buffer) > 0:
                         if output == "audio":
                             return stream_to_audioData(

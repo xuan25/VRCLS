@@ -17,7 +17,7 @@ app.config['SECRET_KEY'] = 'your_secret_key'
 def rebootJob():
     global queue,params,listener_thread,listener_thread,startUp,sendClient,manager,steamvrQueue
     queue.put({"text":"/reboot","level":"debug"})
-    queue.put({"text":"sound process start to complete wait for 20s|| 程序开始重启 请等待20秒 ","level":"info"})
+    queue.put({"text":"sound process start to complete|| 程序开始重启 ","level":"info"})
     params["running"] = False
     while params["micStopped"] and params["gameStopped"]:time.sleep(1)
     params['headers']=startUp.run()
@@ -44,7 +44,7 @@ def rebootJob():
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
-    global queue,params,listener_thread,startUp,sendClient,baseurl,headers
+    global queue,params,listener_thread,startUp,sendClient
     data=request.get_json()
     queue.put({"text":"/saveandreboot","level":"debug"})
     try:
