@@ -84,7 +84,7 @@ class StartUp:
             exit(0)
     def checkAccount(self):
 
-
+        accont_wrong=False
         while True:
             time.sleep(0.1)
             if self.config["userInfo"]["username"] == "" or self.config["userInfo"]["password"] == "" or self.config["userInfo"]["username"] is None or self.config["userInfo"]["password"] is None:
@@ -94,15 +94,26 @@ class StartUp:
                 continue
             baseurl=self.config["baseurl"]
             response = requests.post(baseurl+"/login",json=self.config["userInfo"])
-            if response.status_code != 200: 
+            if response.status_code==200:
+                if accont_wrong:
+                    with open('client.json', 'w', encoding="utf8") as f:
+                        f.write(json.dumps(self.config,ensure_ascii=False, indent=4))
+                break
+            if response.status_code == 504:
+                self.logger.put({'text':"server Time out||服务器连接超时,5秒后重试,请联系服主","level":"warning"})
+                time.sleep(5)
+                continue
+            if response.status_code == 401: 
+                accont_wrong=True
                 self.logger.put({'text':response.text,"level":"debug"})
                 self.logger.put({'text':"password or account error , please enter again||账户或密码错误,请重新输入","level":"warning"})
+                time.sleep(3)
                 self.config["userInfo"]["username"] = input("请输入用户名: ")
                 self.config["userInfo"]["password"] = input("请输入密码: ")
                 continue
-            with open('client.json', 'w', encoding="utf8") as f:
-                f.write(json.dumps(self.config,ensure_ascii=False, indent=4))
-            break
+            
+
+        
 
         res=response.json()
         return {'Authorization': 'Bearer '+res["access_token"]}
