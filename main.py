@@ -6,8 +6,36 @@ from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process
 
 import time
-import json,os,traceback,sys,subprocess
+import json,os,traceback,sys
 import webbrowser
+import ctypes
+from ctypes import wintypes
+
+def enable_vt_mode():
+    if sys.platform != 'win32':
+        return  # 仅Windows需要处理
+
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    STD_OUTPUT_HANDLE = -11
+
+    # 获取标准输出句柄
+    hConsole = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+    if hConsole == -1 or hConsole is None:
+        return  # 非控制台环境（如重定向到文件）
+
+    # 获取当前控制台模式
+    mode = wintypes.DWORD()
+    if not kernel32.GetConsoleMode(hConsole, ctypes.byref(mode)):
+        return  # 获取模式失败
+
+    # 检查是否已启用虚拟终端
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x4
+    if (mode.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING) == 0:
+        # 设置新模式（原模式 + 虚拟终端标志）
+        kernel32.SetConsoleMode(hConsole, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
+
+
 
 queue=Queue(-1)
 processList=[]
@@ -190,23 +218,7 @@ def open_web(host,port):
 # TODO 修正各个模式下两个播放线程的行为
 if __name__ == '__main__':
     freeze_support()
-        # 检测Windows环境且未通过PowerShell启动
-    if os.name == 'nt' and not os.environ.get("PSLAUNCH"):
-        # 设置环境变量标记避免循环
-        os.environ["PSLAUNCH"] = "1"
-        # 获取当前exe路径
-        exe_path = sys.argv[0]
-        # 构建PowerShell命令
-        ps_command = f'''
-        Start-Process -FilePath "{exe_path}" -ArgumentList @('-PSLaunch') -Wait -NoNewWindow
-        '''
-        # 通过PowerShell重新启动
-        subprocess.run([
-            "powershell.exe",
-            "-Command",
-            ps_command
-        ])
-        sys.exit()
+    enable_vt_mode()# 在程序启动时立即调用
     try:
         listener_thread=None
         startUp=None
