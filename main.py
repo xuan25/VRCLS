@@ -6,7 +6,7 @@ from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process
 
 import time
-import json,os,traceback
+import json,os,traceback,sys,subprocess
 import webbrowser
 
 queue=Queue(-1)
@@ -190,6 +190,23 @@ def open_web(host,port):
 # TODO 修正各个模式下两个播放线程的行为
 if __name__ == '__main__':
     freeze_support()
+        # 检测Windows环境且未通过PowerShell启动
+    if os.name == 'nt' and not os.environ.get("PSLAUNCH"):
+        # 设置环境变量标记避免循环
+        os.environ["PSLAUNCH"] = "1"
+        # 获取当前exe路径
+        exe_path = sys.argv[0]
+        # 构建PowerShell命令
+        ps_command = f'''
+        Start-Process -FilePath "{exe_path}" -ArgumentList @('-PSLaunch') -Wait -NoNewWindow
+        '''
+        # 通过PowerShell重新启动
+        subprocess.run([
+            "powershell.exe",
+            "-Command",
+            ps_command
+        ])
+        sys.exit()
     try:
         listener_thread=None
         startUp=None

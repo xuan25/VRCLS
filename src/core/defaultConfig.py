@@ -8,7 +8,7 @@ defaultConfig={
     "api-port":8980,
     "osc-port": 9000,
     "osc-ip": "127.0.0.1",
-    "defaultMode": "control",
+    "defaultMode": "translation",
     "activateText": "",
     "stopText": "",
     "micName":"default",
