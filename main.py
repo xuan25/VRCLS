@@ -21,6 +21,7 @@ def rebootJob():
     params["running"] = False
     while params["micStopped"] and params["gameStopped"]:time.sleep(1)
     params['headers']=startUp.run()
+    params["runmode"]= startUp.config["defaultMode"]
     time.sleep(3)
     params["VRCBitmapLed_taskList"]=manager.list()
     if startUp.config.get("textInSteamVR"):

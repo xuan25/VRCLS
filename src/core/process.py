@@ -25,6 +25,7 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
     try:
 
         logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
+        st=time.time()
         if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
             url=baseurl+"/whisper/multitranscription"
         elif params["runmode"] == "translation":
@@ -51,17 +52,18 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
         # 检查响应状态码
         counter=0
         while response.status_code != 200:
-            if response.status_code == 429:
+            # if response.status_code == 429 and counter < 3:
                 
-                logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
-                counter+=1
-                time.sleep(2)
-                response = requests.post(url, files=files, data=data, headers=params['headers'])
-            else:    
+            #     logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+            #     counter+=1
+            #     time.sleep(2)
+            #     response = requests.post(url, files=files, data=data, headers=params['headers'])
+            # else:    
                 logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
                 return
         # 解析JSON响应
         res = response.json()
+        et=time.time()
         if res["text"] =="":
             logger.put({"text":"返回值过滤-服务端规则","level":"info"})
             return
@@ -70,7 +72,7 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
             return
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
-        logger.put({"text":"识别结果: " + res["text"],"level":"info"})
+        logger.put({"text":f"用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
         if defaultCommand.handle(res["text"],params=params):return
         if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
         else:

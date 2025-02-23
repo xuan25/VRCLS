@@ -228,7 +228,7 @@ class VRTextOverlay:
         text_height = bbox[3] - bbox[1]
         
         # 创建带边距的实际图像
-        img = Image.new("RGBA", (text_width + 20, text_height + 20), (0,0,0,0))
+        img = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
         draw = ImageDraw.Draw(img)
         
         # 绘制文字（考虑新的坐标系）

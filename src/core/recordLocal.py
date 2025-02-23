@@ -82,7 +82,7 @@ def voice_activation_stream(
     format=pyaudio.paInt16,
     output="audio",  # audio,text
     timeout=5.0,
-    maxAudioLen=30.0,
+    maxAudioLen=20.0,
     **kwargs
 ) -> str | sr.AudioData:
     """语音激活识别（直接返回文本）"""
