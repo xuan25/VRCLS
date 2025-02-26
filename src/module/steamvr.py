@@ -35,6 +35,7 @@ class VRTextOverlay:
         self.vr_system = None
         self.overlay_handle = None
         self.texture_handle = None
+        self.logger=None
         # self.font_manger=FontManager()
         self.fontPath=os.path.join(sys._MEIPASS,"font","gnuunifontfull-pm9p.ttf") if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),"font","gnuunifontfull-pm9p.ttf")
     def is_steamvr_running(self):
@@ -52,7 +53,7 @@ class VRTextOverlay:
         # 等待SteamVR启动
         ready=False
         once=True
-        
+        self.logger=logger
         while True:
             if self.is_steamvr_running():
                 # 尝试初始化OpenVR
@@ -212,42 +213,46 @@ class VRTextOverlay:
         result.append(''.join(justified))
 
     def _create_text_texture(self):
-        # 使用PIL创建文字图像
-            # 自动检测文字系统
-        # font=self.get_font()
-        font = ImageFont.truetype(self.fontPath, self.font_size)
-        # font = ImageFont.truetype("simhei.ttf", self.font_size)
-        
-        # 创建临时ImageDraw对象用于计算文本尺寸
-        temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
-        draw = ImageDraw.Draw(temp_img)
-        
-        # 使用新的textbbox方法代替getsize
-        bbox = draw.textbbox((0, 0), self.text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        
-        # 创建带边距的实际图像
-        img = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
-        draw = ImageDraw.Draw(img)
-        
-        # 绘制文字（考虑新的坐标系）
-        draw.text(
-            (10 - bbox[0], 10 - bbox[1]),  # 补偿文本起始偏移
-            self.text,
-            font=font,
-            fill=(255,255,255,255),
-            stroke_width=2,
-            stroke_fill=(0,0,0,255)
-        )
-        _img_data = img.tobytes()
-        _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)
-        path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
-        img.save(path)  # 添加在tobytes()之前
+        try:
+            # 使用PIL创建文字图像
+                # 自动检测文字系统
+            # font=self.get_font()
+            font = ImageFont.truetype(self.fontPath, self.font_size)
+            # font = ImageFont.truetype("simhei.ttf", self.font_size)
+            
+            # 创建临时ImageDraw对象用于计算文本尺寸
+            temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
+            draw = ImageDraw.Draw(temp_img)
+            
+            # 使用新的textbbox方法代替getsize
+            bbox = draw.textbbox((0, 0), self.text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # 创建带边距的实际图像
+            img = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
+            draw = ImageDraw.Draw(img)
+            
+            # 绘制文字（考虑新的坐标系）
+            draw.text(
+                (10 - bbox[0], 10 - bbox[1]),  # 补偿文本起始偏移
+                self.text,
+                font=font,
+                fill=(255,255,255,255),
+                stroke_width=2,
+                stroke_fill=(0,0,0,255)
+            )
+            _img_data = img.tobytes()
+            _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)
+            path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
+            img.save(path)  # 添加在tobytes()之前
 
-        # openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
-        openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, text_width + 20, text_height + 60, 4)
-        
+            # openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
+            openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, text_width + 20, text_height + 60, 4)
+
+        except Exception as e:
+            self.logger.put({"text":f"Error setting overlay text {str(e)}","level":"error"})
+            return False
 
     def set_overlay_to_hand(self, hand=0):
         """设置Overlay到手上

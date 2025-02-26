@@ -50,7 +50,7 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
         data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
         response = requests.post(url, files=files, data=data, headers=params['headers'])
         # 检查响应状态码
-        counter=0
+        counter=0  
         while response.status_code != 200:
             # if response.status_code == 429 and counter < 3:
                 
