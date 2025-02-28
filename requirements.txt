@@ -14,3 +14,5 @@ numpy
 openvr
 Pillow
 psutil
+sherpa_onnx
+baidu_translate

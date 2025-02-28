@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 700px;">
+                    <el-card style="height: 800px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -230,6 +230,18 @@
                                     <el-option label="使用虚拟声卡麦克风" :value="2"></el-option>
                                 </el-select>
                             </el-form-item>
+                            <el-form-item label="麦克风使用本地识别模型">
+                                <el-select v-model="data.config.localizedSpeech">
+                                    <el-option label="开启" :value="true"></el-option>
+                                    <el-option label="关闭" :value="false"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <!-- <el-form-item label="桌面音频使用本地识别模型">
+                                <el-select v-model="data.config.localizedCapture" :disabled="!data.config.textInSteamVR">
+                                    <el-option label="开启" :value="true"></el-option>
+                                    <el-option label="关闭" :value="false"></el-option>
+                                </el-select>
+                            </el-form-item> -->
                             <el-form-item label="SteamVR掌心输出显示">
                                 <el-select v-model="data.config.textInSteamVR">
                                     <el-option label="开启" :value="true"></el-option>
@@ -289,7 +301,7 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
-                    <el-card style="height: 450px;">
+                    <el-card style="height: 550px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>
@@ -322,7 +334,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 700px;">
+                    <el-card style="height: 800px;">
                         <template #header>
                             <div class="card-header">
                             <span>语音控制配置</span>

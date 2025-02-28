@@ -37,9 +37,20 @@ class StartUp:
             self.logger.put({'text':"filter.json配置文件解析异常,详情："+str(e),"level":"error"})
             raise e
         
-
+        try:
+            with open('customEmoji.json', 'r',encoding='utf-8') as file:
+                self.customEmoji:list = json.load(file)
+        except FileNotFoundError:
+            with open('customEmoji.json', 'w', encoding="utf8") as f:
+                defaultCustomEmoji={"测试惊讶":"・ࡇ・","测试心碎":"💔"}
+                f.write(json.dumps(defaultCustomEmoji,ensure_ascii=False, indent=4))
+                self.customEmoji=defaultCustomEmoji
+        except json.JSONDecodeError as e:
+            self.logger.put({'text':"customEmoji.json配置文件解析异常,详情："+str(e),"level":"error"})
+            raise e
+        
     def setOSCClient(self,logger):
-        self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=self.config.get("osc-port"))
+        self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=int(self.config.get("osc-port")))
         return self.oscClient.client
     def run(self):
         # self.set_ffmpeg_path()

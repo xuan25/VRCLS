@@ -4,7 +4,7 @@ from src.core.startup import StartUp
 from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process
-
+from src.module.sherpaOnnx import sherpa_onnx_run
 import time
 import json,os,traceback,sys
 import webbrowser
@@ -55,13 +55,16 @@ def rebootJob():
     if startUp.config.get("textInSteamVR"):
         steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
         steamvrThread.start()
-    listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+    if startUp.config.get("localizedSpeech"):
+        listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
+    else:
+        listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
     listener_thread.start()
     if startUp.config.get("Separate_Self_Game_Mic")==1:
-        listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
         listener_thread1.start()
     elif startUp.config.get("Separate_Self_Game_Mic")==2:
-        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
         listener_thread1.start()
 
     
@@ -280,13 +283,16 @@ if __name__ == '__main__':
         if startUp.config.get("textInSteamVR"):
             steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
             steamvrThread.start()
-        listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+        if startUp.config.get("localizedSpeech"):
+            listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
+        else:
+            listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
         listener_thread.start()
         if startUp.config.get("Separate_Self_Game_Mic")==1:
-            listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+            listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
             listener_thread1.start()
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
-            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue))
+            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
             listener_thread1.start()
 
             
