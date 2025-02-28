@@ -4,7 +4,7 @@
 *.spec
 main.bat
 src/module/*.png
-
+sherpa-onnx-models/
 packaging-env/
 # Byte-compiled / optimized / DLL files
 __pycache__/
