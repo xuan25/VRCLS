@@ -15,4 +15,4 @@ openvr
 Pillow
 psutil
 sherpa_onnx
-baidu_translate
+baidu-translate-api
