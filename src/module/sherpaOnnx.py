@@ -6,6 +6,7 @@ import baidu_translate as fanyi
 import os,sys,time
 import pyttsx3
 def create_recognizer(logger,source,transaltion):
+
         # 2. 动态路径注入（核心防护）
     if getattr(sys, 'frozen', False):
         base_dir = sys._MEIPASS
@@ -15,11 +16,14 @@ def create_recognizer(logger,source,transaltion):
     if source in ["zh","en","zt"] and transaltion in ["zh","en","zt"]:
         #中英
         onnx_bin = os.path.join(base_dir,"sherpa-onnx-models", "sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20")
-        logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
     elif source in ["zh","zt","ja","jp",'vi','th',"id",'ar',"ru","en"] and transaltion in ["zh","zt","ja","jp",'vi','th',"id",'ar',"ru","en"]:
         #中日
         onnx_bin = os.path.join(base_dir,"sherpa-onnx-models", "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10")
     else:return None
+    # 新增路径检查
+    if not os.path.exists(onnx_bin):
+        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554获取下载链接并解压至VRCLS文件夹中的_internal文件夹内", "level": "error"})
+        return None
     # Please replace the model files if needed.
     # See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
     # for download links.

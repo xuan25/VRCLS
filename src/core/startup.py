@@ -169,6 +169,7 @@ class StartUp:
             
         finally:
             p1.terminate()
+
     # # 设置ffmpeg路径（必须在所有pydub操作之前）
     # def set_ffmpeg_path(self):
     #     # 动态获取项目根目录

@@ -1,3 +1,1 @@
 ffmpeg/bin/* filter=lfs diff=lfs merge=lfs -text
-sherpa-onnx-models/* filter=lfs diff=lfs merge=lfs -text
-sherpa-onnx-models/**/*.onnx filter=lfs diff=lfs merge=lfs -text
