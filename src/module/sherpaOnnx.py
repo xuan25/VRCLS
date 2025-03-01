@@ -116,9 +116,9 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         audio_stream.close()
         pa.terminate()
 def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
-        logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
-        return
+    if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
+        logger.put({"text":"使用系统默认麦克风","level":"info"})
+        micIndex=defautMicIndex
     else:
         try:
             micIndex=micList.index(config.get("micName"))

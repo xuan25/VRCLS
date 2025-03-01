@@ -67,7 +67,7 @@ def rebootJob():
     queue.put({"text":"/reboot","level":"debug"})
     queue.put({"text":"sound process start to complete|| 程序开始重启 ","level":"info"})
     params["running"] = False
-    while not params["micStopped"] and not params["gameStopped"]:time.sleep(1)
+    while not params["micStopped"] and ( startUp.config.get("Separate_Self_Game_Mic") == 0 or not params["gameStopped"]):time.sleep(1)
     params['headers']=startUp.run()
     params["runmode"]= startUp.config["defaultMode"]
     time.sleep(3)
@@ -102,6 +102,9 @@ def saveConfig():
     try:
         with open('client.json', 'r',encoding='utf8') as file, open('client-back.json', 'w', encoding="utf8") as f:
             f.write(file.read())
+        if startUp.config.get("Separate_Self_Game_Mic") != data["config"].get("Separate_Self_Game_Mic"):
+            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+            return startUp.config
         startUp.config=data["config"]
         with open('client.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(startUp.config,ensure_ascii=False, indent=4))
