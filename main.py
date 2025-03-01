@@ -3,7 +3,7 @@ import waitress
 from src.core.startup import StartUp
 from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
-from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process
+from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process,copyBox_process
 from src.module.sherpaOnnx import sherpa_onnx_run,sherpa_onnx_run_local
 import time
 import json,os,traceback,sys
@@ -58,6 +58,7 @@ def enable_vt_mode():
 
 
 queue=Queue(-1)
+copyQueue=Queue(-1)
 processList=[]
 app = Flask(__name__,static_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key' 
@@ -105,6 +106,9 @@ def saveConfig():
         with open('client.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
         if startUp.config.get("Separate_Self_Game_Mic") != data["config"].get("Separate_Self_Game_Mic"):
+            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+            return startUp.config
+        if startUp.config.get("CopyBox") != data["config"].get("CopyBox"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
             return startUp.config
         startUp.config=data["config"]
@@ -248,15 +252,17 @@ if __name__ == '__main__':
     try:
         listener_thread=None
         startUp=None
-        logger_thread = Process(target=logger_process,daemon=True,args=(queue,))
-        logger_thread.start()
         manager = Manager()
         params=manager.dict()
-
+        params["opencopybox"] = False
         params["running"] = True
         params["micStopped"] = False
         params["gameStopped"] = False
-        startUp=StartUp(queue)
+
+        logger_thread = Process(target=logger_process,daemon=True,args=(queue,copyQueue,params))
+        logger_thread.start()
+
+        startUp=StartUp(queue,params)
         queue.put({'text':r'''
 ------------------------------------------------------------------------
      __     __  _______    ______   __         ______  
@@ -303,7 +309,9 @@ if __name__ == '__main__':
 
         steamvrQueue=Queue(-1)
 
-
+        if startUp.config.get("CopyBox"):
+            copybox_thread = Process(target=copyBox_process,daemon=True,args=(copyQueue,))
+            copybox_thread.start()
         # start listening in the background (note that we don't have to do this inside a `with` statement)
         # this is called from the background thread
         if startUp.config.get("textInSteamVR"):

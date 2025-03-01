@@ -33,6 +33,7 @@ defaultConfig={
     "SteamVRSize":0.15,
     "localizedSpeech":False,
     "localizedCapture":False,
+    "CopyBox":False,
     "defaultScripts": [
         {
             "action": "sendText",

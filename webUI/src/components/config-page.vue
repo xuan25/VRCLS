@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 800px;">
+                    <el-card style="height: 850px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -257,6 +257,12 @@
                             <el-form-item label="SteamVR显示大小">
                                 <el-slider v-model="data.config.SteamVRSize" show-input :max="0.5" :step="0.01" :disabled="!data.config.textInSteamVR"/>
                             </el-form-item>
+                            <el-form-item label="输出文本复制窗口">
+                                <el-select v-model="data.config.CopyBox">
+                                    <el-option label="开启" :value="true"></el-option>
+                                    <el-option label="关闭" :value="false"></el-option>
+                                </el-select>
+                            </el-form-item>
                             <el-form-item label="点阵屏行列数">
                                 <el-row>
                                     <el-col :span="11">
@@ -301,7 +307,7 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
-                    <el-card style="height: 550px;">
+                    <el-card style="height: 600px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>
@@ -334,7 +340,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 800px;">
+                    <el-card style="height: 850px;">
                         <template #header>
                             <div class="card-header">
                             <span>语音控制配置</span>

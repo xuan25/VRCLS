@@ -18,5 +18,5 @@ class SelfReadHandler(BaseHandler):
         logger=self.logger
         logger.put({"text":f"{Colors.YELLOW if source=="麦克风" else Colors.GREEN}{source}识别结果：{message}{Colors.END}","level":"info"})
         if self.steamvrOpen and steamready:
-            self.steamvrQueue.put(f"{source}识别结果：\n{message}")
+            self.steamvrQueue.put(f"{source}识别结果：{message}")
 

@@ -8,8 +8,9 @@ import traceback
 # import os,sys
 # from pydub import AudioSegment
 class StartUp:
-    def __init__(self,logger):
+    def __init__(self,logger,params):
         self.logger=logger
+        self.params=params
         self.tragetTranslateLanguage="en"
         self.micList=[]
         self.loopbackList=[]
@@ -57,6 +58,7 @@ class StartUp:
         self.getMics()
         self.list_loopback_devices()
         self.configCheck()
+        if self.config.get("CopyBox"):self.params["opencopybox"]=True
         # self.initffmpeg()
         if not self.config.get('localizedSpeech') or self.config.get("Separate_Self_Game_Mic") !=0:
            return self.checkAccount()

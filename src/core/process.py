@@ -5,6 +5,8 @@ import keyboard
 import time
 import pyttsx3
 
+
+
 def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
@@ -291,12 +293,17 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
     logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
     params["gameStopped"] = True
 
-def logger_process(queue):
+def logger_process(queue,copyqueue,params):
     from .logger import MyLogger
     logger=MyLogger().logger
 
     while True:
         text=queue.get()
+        if params.get('opencopybox'):
+            for txt in ["输出文字: ","桌面音频识别结果："]:
+                if txt in text['text']:
+                    copyqueue.put(text['text'].split(txt, 1)[1].strip())
+
         if text['level']=="debug":
             logger.debug(text['text'])
         elif text['level']=="info":
@@ -334,3 +341,14 @@ def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
             textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
         openvr.shutdown()
         time.sleep(1)
+def copyBox_process(queue:Queue):
+    import tkinter as tk
+    from ..module.copybox import ScrollableListApp
+    # 启动GUI
+    root = tk.Tk()
+    app = ScrollableListApp(root, queue)
+    root.geometry("500x400")
+    
+    # 绑定关闭事件
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
+    root.mainloop()
