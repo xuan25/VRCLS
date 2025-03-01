@@ -236,12 +236,12 @@
                                     <el-option label="关闭" :value="false"></el-option>
                                 </el-select>
                             </el-form-item>
-                            <!-- <el-form-item label="桌面音频使用本地识别模型">
-                                <el-select v-model="data.config.localizedCapture" :disabled="!data.config.textInSteamVR">
+                            <el-form-item label="桌面音频使用本地识别模型">
+                                <el-select v-model="data.config.localizedCapture" :disabled="!data.config.Separate_Self_Game_Mic">
                                     <el-option label="开启" :value="true"></el-option>
                                     <el-option label="关闭" :value="false"></el-option>
                                 </el-select>
-                            </el-form-item> -->
+                            </el-form-item>
                             <el-form-item label="SteamVR掌心输出显示">
                                 <el-select v-model="data.config.textInSteamVR">
                                     <el-option label="开启" :value="true"></el-option>

@@ -47,28 +47,30 @@ def create_recognizer(logger,source):
     )
     return recognizer
 def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
-        logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
-        return
+    if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
+        logger.put({"text":"使用系统默认桌面音频","level":"info"})
+        micIndex=None
     else:
-        try:
-            micIndex=micList.index(config.get("micName"))
-        except ValueError:
-            logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
-            micIndex=defautMicIndex
-    logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
+        device_index=False
+        for i in micList:
+            if config.get("gameMicName")==i.get("name"):
+                device_index=True
+                micIndex=i.get('index')
+                logger.put({"text":f"当前桌面音频：{config.get("gameMicName")}","level":"info"})
+                break
+        
+        
+        if not device_index:
+            logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
+            micIndex=None
     pa = pyaudiowpatch.PyAudio()
-    
-    # 获取输入设备信息
-    default_input_device = pa.get_default_input_device_info()
-    input_device_index = default_input_device["index"]
-    
-    print(f'\nUsing default device: {default_input_device["name"]}')
+    # 获取输入设备信息  
+    device_info = pa.get_default_wasapi_loopback() if micIndex is None else pa.get_device_info_by_index(micIndex)
+   
 
-    recognizer = create_recognizer()
-    print("Started! Please speak")
+    recognizer = create_recognizer(logger,config.get("targetTranslationLanguage"))
 
-    sample_rate = int(default_input_device["defaultSampleRate"])
+    sample_rate = int(device_info["defaultSampleRate"])
     samples_per_read = int(0.1 * sample_rate)  # 0.1秒 = 4800个样本
 
     stream = recognizer.create_stream()
@@ -79,14 +81,13 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         channels=1,
         format=pyaudiowpatch.paFloat32,
         input=True,
-        input_device_index=micIndex,
+        input_device_index=device_info["index"],
         frames_per_buffer=samples_per_read,
     )
 
     last_result = ""
-    segment_id = 0
-    logger.put({"text":"sound process started complete||桌面音频进程启动完毕","level":"info"})
-    pyttsx3.speak("桌面音频进程启动完毕")
+    logger.put({"text":"sound process started complete||本地桌面音频进程启动完毕","level":"info"})
+    pyttsx3.speak("本地桌面音频进程启动完毕")
     try:
         while params["running"]:
             # 读取音频数据
@@ -105,7 +106,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
                 
             if is_endpoint:
                 if result:
-                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"mic",steamvrQueue))
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji))
                     p.start()
                 recognizer.reset(stream)
                 
@@ -115,6 +116,8 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         audio_stream.stop_stream()
         audio_stream.close()
         pa.terminate()
+        logger.put({"text":"sound process exited complete||本地桌面音频进程退出完毕","level":"info"})
+        params["gameStopped"] = True
 def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
@@ -154,8 +157,6 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     logger.put({"text":"sound process started complete||本地音频进程启动完毕","level":"info"})
     pyttsx3.speak("本地音频进程启动完毕")
     last_result = ""
-    count=0
-    send=False
     try:
         while params["running"]:
             # 读取音频数据
@@ -171,15 +172,12 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
 
             if result and (last_result != result):
                 last_result = result
-                count+=1
-                if count % 5==0:send=True
                 
-            if is_endpoint or send:
+            if is_endpoint or len(result)>30:
                 if result:
-                    if send:send=False
-                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"mic",steamvrQueue))
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji))
                     p.start()
-                if is_endpoint: recognizer.reset(stream)
+                recognizer.reset(stream)
 
                 
     except KeyboardInterrupt:
@@ -188,8 +186,79 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
         audio_stream.stop_stream()
         audio_stream.close()
         pa.terminate()
+        logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
+        params["micStopped"]=True
+def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
+    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
+        logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
+        return
+    else:
+        try:
+            micIndex=micList.index(config.get("micName"))
+        except ValueError:
+            logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
+            micIndex=defautMicIndex
+    logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
+    pa = pyaudiowpatch.PyAudio()
+    
+    # 获取输入设备信息
+    input_device = pa.get_device_info_by_index(micIndex)
+    
 
-def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue):
+    recognizer = create_recognizer(logger,config.get("targetTranslationLanguage"))
+    if recognizer is None:
+        logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
+        return
+
+    sample_rate = int(input_device["defaultSampleRate"])
+    samples_per_read = int(0.1 * sample_rate)  # 0.1秒 = 4800个样本
+
+    stream = recognizer.create_stream()
+
+    # 创建PyAudio音频流
+    audio_stream = pa.open(
+        rate=sample_rate,
+        channels=1,
+        format=pyaudiowpatch.paFloat32,
+        input=True,
+        input_device_index=micIndex,
+        frames_per_buffer=samples_per_read,
+    )
+    logger.put({"text":"sound process started complete||本地桌面音频进程启动完毕","level":"info"})
+    pyttsx3.speak("本地桌面音频进程启动完毕")
+    last_result = ""
+    try:
+        while params["running"]:
+            # 读取音频数据
+            data = audio_stream.read(samples_per_read)
+            samples = np.frombuffer(data, dtype=np.float32)
+            
+            stream.accept_waveform(sample_rate, samples)
+            while recognizer.is_ready(stream):
+                recognizer.decode_stream(stream)
+
+            is_endpoint = recognizer.is_endpoint(stream)
+            result = recognizer.get_result(stream)
+
+            if result and (last_result != result):
+                last_result = result
+                
+            if is_endpoint or len(result)>30:
+                if result:
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji))
+                    p.start()
+                recognizer.reset(stream)
+
+                
+    except KeyboardInterrupt:
+        print("\nCaught Ctrl + C. Exiting")
+    finally:
+        audio_stream.stop_stream()
+        audio_stream.close()
+        pa.terminate()
+        logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
+        params["gameStopped"] = True
+def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -211,8 +280,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue)
         if params["runmode"] == "translation":
             res['translatedText']=fanyi.translate_text(
                 result,
-                # from_=whisper_to_baidu[sourceLanguage],
-                to= libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN)
+                to= whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.EN)
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         et=time.time()
@@ -222,6 +290,8 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue)
         else:
             if params["runmode"] == "text" or params["runmode"] == "translation": 
                 if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
+                if params["runmode"] == "translation" : 
+                    for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
                 chatbox.handle(res,runMode=params["runmode"])
             if params["runmode"] == "control":avatar.handle(res)
             if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
