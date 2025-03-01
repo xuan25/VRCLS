@@ -58,8 +58,14 @@ class StartUp:
         self.list_loopback_devices()
         self.configCheck()
         # self.initffmpeg()
-        res= self.checkAccount()
-        return res
+        if not self.config.get('localizedSpeech') or self.config.get("Separate_Self_Game_Mic") !=0:
+           return self.checkAccount()
+        else:
+            try:
+                requests.post(self.config["baseurl"]+"/login",json=self.config["userInfo"],timeout=20)
+            except Exception:
+                pass
+        return None
     def configCheck(self):
         try:
             with open('client.json', 'r',encoding='utf-8') as file:

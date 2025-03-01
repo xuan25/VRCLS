@@ -5,7 +5,7 @@ from multiprocessing import Process
 import baidu_translate as fanyi
 import os,sys,time
 import pyttsx3
-def create_recognizer(logger,source,transaltion):
+def create_recognizer(logger,source):
 
         # 2. 动态路径注入（核心防护）
     if getattr(sys, 'frozen', False):
@@ -13,16 +13,16 @@ def create_recognizer(logger,source,transaltion):
     else:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         base_dir = os.path.dirname(os.path.dirname(current_dir))  # 适配 src/core 的层级
-    if source in ["zh","en","zt"] and transaltion in ["zh","en","zt"]:
+    if source in ["zh","en","zt"] :
         #中英
         onnx_bin = os.path.join(base_dir,"sherpa-onnx-models", "sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20")
-    elif source in ["zh","zt","ja","jp",'vi','th',"id",'ar',"ru","en"] and transaltion in ["zh","zt","ja","jp",'vi','th',"id",'ar',"ru","en"]:
+    elif source in ["zh","zt","ja","jp",'vi','th',"id",'ar',"ru","en"] :
         #中日
         onnx_bin = os.path.join(base_dir,"sherpa-onnx-models", "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10")
     else:return None
     # 新增路径检查
     if not os.path.exists(onnx_bin):
-        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554获取下载链接并解压至VRCLS文件夹中的_internal文件夹内", "level": "error"})
+        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554获取帮助", "level": "error"})
         return None
     # Please replace the model files if needed.
     # See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
@@ -132,7 +132,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     input_device = pa.get_device_info_by_index(micIndex)
     
 
-    recognizer = create_recognizer(logger,config.get("sourceLanguage"),config.get("targetTranslationLanguage"))
+    recognizer = create_recognizer(logger,config.get("sourceLanguage"))
     if recognizer is None:
         logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
         return

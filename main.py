@@ -34,7 +34,27 @@ def enable_vt_mode():
         # 设置新模式（原模式 + 虚拟终端标志）
         kernel32.SetConsoleMode(hConsole, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
 
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    ENABLE_QUICK_EDIT = 0x0040
 
+    # 获取标准输入句柄
+    h_input = kernel32.GetStdHandle(-10)  # -10对应STD_INPUT_HANDLE
+    if h_input == -1:
+        print("获取句柄失败")
+        exit(1)
+
+    # 获取当前控制台模式
+    prev_mode = wintypes.DWORD()
+    if not kernel32.GetConsoleMode(h_input, ctypes.byref(prev_mode)):
+        print("获取模式失败")
+        exit(1)
+
+    # 禁用快速编辑模式
+    new_mode = prev_mode.value & ~ENABLE_QUICK_EDIT
+    if not kernel32.SetConsoleMode(h_input, new_mode):
+        print("设置模式失败")
+        exit(1)
+    
 
 
 queue=Queue(-1)
@@ -47,7 +67,7 @@ def rebootJob():
     queue.put({"text":"/reboot","level":"debug"})
     queue.put({"text":"sound process start to complete|| 程序开始重启 ","level":"info"})
     params["running"] = False
-    while params["micStopped"] and params["gameStopped"]:time.sleep(1)
+    while not params["micStopped"] and not params["gameStopped"]:time.sleep(1)
     params['headers']=startUp.run()
     params["runmode"]= startUp.config["defaultMode"]
     time.sleep(3)
@@ -247,6 +267,7 @@ if __name__ == '__main__':
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
 
+               当前版本: V0.4.0
                    
         '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
@@ -257,7 +278,9 @@ if __name__ == '__main__':
         欢迎使用由VoiceLinkVR开发的VRCLS 
         本程序的开发这为boyqiu-001(boyqiu玻璃球)
         欢迎大家加入qq群1011986554获取最新资讯
-        目前您使用的时公测账户,限制每日2000次请求
+        默认使用开发者云服务器免费测试账户,
+        云服务器限制每日800次请求.每分钟4次请求,
+        可以使用本地模型，无限制,延迟较低,但准确度较差
         如需获取更多资源请加群
 ------------------------------------------------------------------------
                     ''','level':'info'}

@@ -289,7 +289,7 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
                 p.start()
 
     logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
-
+    params["gameStopped"] = True
 
 def logger_process(queue):
     from .logger import MyLogger
