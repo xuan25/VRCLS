@@ -15,7 +15,7 @@ VRCLS 全称 VRChat LinguaSync， 是一个用于在VRCHAT中使用语音来控�
 
 ### 构筑包
 
-如没有python环境可以访问通过[下载链接](https://github.com/VoiceLinkVR/VRCLS/releases)下载打包后的程序
+如没有python环境可以访问通过[百度网盘链接](https://pan.baidu.com/s/11orFzXGRVjv3vMuadvq0LQ?pwd=78xa)下载打包后的程序
 
 解压压缩包后双击VRCLS.exe 
 
