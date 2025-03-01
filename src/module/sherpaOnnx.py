@@ -275,12 +275,16 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
     try:
+        if mode=="cap":
+            lan=whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.ZH
+        else:
+            lan=libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN
         res={}
         res['text']=result
         if params["runmode"] == "translation":
             res['translatedText']=fanyi.translate_text(
                 result,
-                to= whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.EN)
+                to=lan)
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         et=time.time()
