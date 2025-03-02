@@ -32,7 +32,8 @@ class AvatarHandler(BaseHandler):
                             value=bool(vrcaction.get("vrcValue"))
                         self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                         time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
-                    pyttsx3.speak(f"触发命令 {script["action"]}")
+                    try:pyttsx3.speak(f"触发命令 {script["action"]}")
+                    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
         elif config["activateText"] in text:
             commandlist=text.split(config["activateText"])
             command=commandlist[-1]
@@ -52,4 +53,5 @@ class AvatarHandler(BaseHandler):
                                 value=bool(vrcaction.get("vrcValue"))
                             self.osc_client.send_message(vrcaction.get("vrcPath"),value)
                             time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None else 0.1)
-                        pyttsx3.speak(f"触发命令 {script["action"]}")
+                        try:pyttsx3.speak(f"触发命令 {script["action"]}")
+                        except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})

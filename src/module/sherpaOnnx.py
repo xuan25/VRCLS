@@ -87,7 +87,8 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
 
     last_result = ""
     logger.put({"text":"sound process started complete||本地桌面音频进程启动完毕","level":"info"})
-    pyttsx3.speak("本地桌面音频进程启动完毕")
+    try:pyttsx3.speak("本地桌面音频进程启动完毕")
+    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     try:
         while params["running"]:
             # 读取音频数据
@@ -155,7 +156,8 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
         frames_per_buffer=samples_per_read,
     )
     logger.put({"text":"sound process started complete||本地音频进程启动完毕","level":"info"})
-    pyttsx3.speak("本地音频进程启动完毕")
+    try:pyttsx3.speak("本地音频进程启动完毕")
+    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     try:
         while params["running"]:
@@ -225,7 +227,8 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
         frames_per_buffer=samples_per_read,
     )
     logger.put({"text":"sound process started complete||本地桌面音频进程启动完毕","level":"info"})
-    pyttsx3.speak("本地桌面音频进程启动完毕")
+    try:pyttsx3.speak("本地桌面音频进程启动完毕")
+    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     try:
         while params["running"]:

@@ -155,7 +155,8 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
         r.energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||音频进程启动完毕","level":"info"})
-    pyttsx3.speak("麦克风音频进程启动完毕")
+    try:pyttsx3.speak("麦克风音频进程启动完毕")
+    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     with m as s:
         while params["running"]:
@@ -213,7 +214,8 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
         r.energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||游戏音频进程启动完毕","level":"info"})
-    pyttsx3.speak("游戏音频进程启动完毕")
+    try:pyttsx3.speak("游戏音频进程启动完毕")
+    except:pass
     count=0
     with m as s:
         while params["running"]:
@@ -267,7 +269,8 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
     energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||桌面音频进程启动完毕","level":"info"})
-    pyttsx3.speak("桌面音频进程启动完毕")
+    try:pyttsx3.speak("桌面音频进程启动完毕")
+    except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     while params["running"]:
         if not params["gameVoiceKeyRun"]:continue
@@ -324,7 +327,8 @@ def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
         textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size)
         textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
         logger.put({"text":f"掌心显示启动完毕","level":"info"})
-        pyttsx3.speak("SteamVR掌心显示启动完毕")
+        try:pyttsx3.speak("SteamVR掌心显示启动完毕")
+        except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
         while params['running']:
             if queue.empty():
                 time.sleep(0.5)
