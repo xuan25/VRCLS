@@ -1,4 +1,3 @@
-import unicodedata
 import openvr
 import time,os,math,sys,ctypes
 from PIL import Image, ImageDraw, ImageFont
@@ -50,8 +49,10 @@ class VRTextOverlay:
         if not processes or len(processes)==0 : return False
         else : return True
 
-    def initialize(self,logger,params, hand=0):
+    def initialize(self,logger,params, config):
         # 等待SteamVR启动
+        self.config=config
+        hand=config.get("SteamVRHad")
         ready=False
         once=True
         self.logger=logger
@@ -214,25 +215,58 @@ class VRTextOverlay:
         
         result.append(''.join(justified))
 
-    def _create_text_texture(self,alignment='center'):
+    def _create_text_texture(self,alignment='top'):
+            onlyMic = self.config.get("Separate_Self_Game_Mic")==0
         # try:
             # 使用PIL创建文字图像
-                # 自动检测文字系统
+            # 自动检测文字系统
             # font=self.get_font()
             font = ImageFont.truetype(self.fontPath, self.font_size)
             # font = ImageFont.truetype("simhei.ttf", self.font_size)
+
+                        # 创建临时ImageDraw对象用于计算文本尺寸
+            temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
+            draw_R = ImageDraw.Draw(temp_img)
+            
+            # 使用新的textbbox方法代替getsize
+            bbox = draw_R.textbbox((0, 0), self.text_R, font=font,stroke_width=2)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # 创建带边距的实际图像
+            img_R = Image.new("RGBA", (text_width + 20, text_height + 20), (0,0,0,0))
+            draw_R = ImageDraw.Draw(img_R)
+            
+            # 绘制文字（考虑新的坐标系）
+            draw_R.text(
+                (10-bbox[0], 10-bbox[1]),  # 补偿文本起始偏移
+                self.text_R,
+                font=font,
+                fill=(255,255,255,255),
+                stroke_width=2,
+                stroke_fill=(0,0,0,255)
+            )
+
+            if onlyMic:
+                _img_data = img_R.tobytes()
+                _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)
+                path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
+                img_R.save(path)
+                width, height = img_R.size
+                openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, width, height, 4)
+                return
             
             # 创建临时ImageDraw对象用于计算文本尺寸
             temp_img_L = Image.new("RGBA", (1, 1), (0,0,0,0))
             draw_L = ImageDraw.Draw(temp_img_L)
             
             # 使用新的textbbox方法代替getsize
-            bbox = draw_L.textbbox((0, 0), self.text_L, font=font)
+            bbox = draw_L.textbbox((0, 0), self.text_L, font=font,stroke_width=2)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             
             # 创建带边距的实际图像
-            img_L = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
+            img_L = Image.new("RGBA", (text_width + 20, text_height + 20), (0,0,0,0))
             draw_L = ImageDraw.Draw(img_L)
             
             # 绘制文字（考虑新的坐标系）
@@ -244,31 +278,6 @@ class VRTextOverlay:
                 stroke_width=2,
                 stroke_fill=(0,0,0,255)
             )
-                        # 创建临时ImageDraw对象用于计算文本尺寸
-            temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
-            draw_R = ImageDraw.Draw(temp_img)
-            
-            # 使用新的textbbox方法代替getsize
-            bbox = draw_R.textbbox((0, 0), self.text_R, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-            
-            # 创建带边距的实际图像
-            img_R = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
-            draw_R = ImageDraw.Draw(img_R)
-            
-            # 绘制文字（考虑新的坐标系）
-            draw_R.text(
-                (10 - bbox[0], 10 - bbox[1]),  # 补偿文本起始偏移
-                self.text_R,
-                font=font,
-                fill=(255,255,255,255),
-                stroke_width=2,
-                stroke_fill=(0,0,0,255)
-            )
-
-
-
 
              # 获取图片尺寸
             w1, h1 = img_L.size

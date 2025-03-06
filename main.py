@@ -74,7 +74,7 @@ def rebootJob():
     time.sleep(3)
     params["VRCBitmapLed_taskList"]=manager.list()
     if startUp.config.get("textInSteamVR"):
-        steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
+        steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config))
         steamvrThread.start()
     if startUp.config.get("localizedSpeech"):
         listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
@@ -276,7 +276,7 @@ if __name__ == '__main__':
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
 
-               当前版本: V0.4.2
+               当前版本: V0.4.3
                    
         '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
@@ -322,7 +322,7 @@ if __name__ == '__main__':
         # start listening in the background (note that we don't have to do this inside a `with` statement)
         # this is called from the background thread
         if startUp.config.get("textInSteamVR"):
-            steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config.get("SteamVRHad"),startUp.config.get("SteamVRSize")))
+            steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config))
             steamvrThread.start()
         if startUp.config.get("localizedSpeech"):
             listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))

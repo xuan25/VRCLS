@@ -346,7 +346,7 @@ def logger_process(queue,copyqueue,params):
 #         openvr.shutdown()
 #         time.sleep(1)
 
-def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
+def steamvr_process(logger, queue: Queue, params,config):
     import openvr
     from ..module.steamvr import VRTextOverlay
     textOverlay = VRTextOverlay()
@@ -369,7 +369,7 @@ def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
         # 带重试的初始化
         while retry_count < MAX_RETRIES and params['running']:
             try:
-                if not textOverlay.initialize(logger, params, hand):
+                if not textOverlay.initialize(logger, params, config):
                     raise RuntimeError("SteamVR初始化失败")
                 # logger.put({"text":"SteamVR初始化成功","level":"info"})
                 last_success = time.time()
@@ -377,7 +377,7 @@ def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
                 error_count = 0
                 MAX_ERRORS = 5  # 最大连续错误次数
                 textOverlay._create_text_texture()
-                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size*1.5)
+                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))
                 textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
                 logger.put({"text":f"掌心显示启动完毕","level":"info"})
                 try:pyttsx3.speak("SteamVR掌心显示启动完毕")
@@ -387,13 +387,13 @@ def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
                     try:
                         # 定期设备检查
                         if time.time() - last_success > check_interval:
-                            current_status = textOverlay.set_overlay_to_hand(hand)
+                            current_status = textOverlay.set_overlay_to_hand(config.get("SteamVRHad"))
                             if not current_status:
                                 logger.put({"text":"控制器连接状态异常，尝试恢复...","level":"warning"})
                                 textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
                                 time.sleep(1)
                                 textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
-                                if textOverlay.set_overlay_to_hand(hand):
+                                if textOverlay.set_overlay_to_hand(config.get("SteamVRHad")):
                                     last_success = time.time()
                                     logger.put({"text":"控制器连接恢复成功","level":"info"})
                                     error_count = 0
@@ -417,7 +417,7 @@ def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
                                     time.sleep(1)
                             
                             # 强制更新Overlay属性
-                            textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, size*1.5)
+                            textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))
                             textOverlay.overlay.setOverlayAlpha(textOverlay.overlay_handle, 1.0)
                             
                         time.sleep(0.1)
