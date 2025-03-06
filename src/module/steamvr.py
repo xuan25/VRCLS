@@ -2,8 +2,8 @@ import unicodedata
 import openvr
 import time,os,math,sys,ctypes
 from PIL import Image, ImageDraw, ImageFont
-import psutil
 from collections import deque
+import win32com.client
 class BoundedQueue:
     def __init__(self, max_size=3):
         self.queue = deque(maxlen=max_size)
@@ -28,9 +28,13 @@ class BoundedQueue:
 
 class VRTextOverlay:
     def __init__(self, text="          欢迎使用VRCLS           \n    桌面音频捕捉的文字将显示在此处", font_size=40):
+        self.wmi=win32com.client.GetObject('winmgmts:')
         self.overlay = None
-        self.textList=BoundedQueue()
+        self.textList_L=BoundedQueue()
+        self.textList_R=BoundedQueue()
         self.text = text
+        self.text_L = "           桌面音频\n----------------------------------------------\n"
+        self.text_R = "            麦克风\n----------------------------------------------\n"
         self.font_size = font_size
         self.vr_system = None
         self.overlay_handle = None
@@ -39,16 +43,13 @@ class VRTextOverlay:
         # self.font_manger=FontManager()
         self.fontPath=os.path.join(sys._MEIPASS,"font","gnuunifontfull-pm9p.ttf") if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),"font","gnuunifontfull-pm9p.ttf")
     def is_steamvr_running(self):
-        # 遍历所有正在运行的进程
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                # 检查进程名称是否为 'vrserver.exe'
-                if proc.info['name'] == 'vrserver.exe':
-                    return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        return False
-    
+
+        # 构建精确查询（比遍历进程快10倍以上）
+        query = "SELECT * FROM Win32_Process WHERE Name = 'vrserver.exe'"
+        processes = self.wmi.ExecQuery(query)
+        if not processes or len(processes)==0 : return False
+        else : return True
+
     def initialize(self,logger,params, hand=0):
         # 等待SteamVR启动
         ready=False
@@ -116,13 +117,7 @@ class VRTextOverlay:
     def update_text(self, new_text):
         self.format_string(new_text)
         self._create_text_texture()
-    # def format_string(self,s, max_length=20):
-    #     paragraphs = s.split('\n')
-    #     result = []
-    #     for para in paragraphs:
-    #         for i in range(0, len(para), max_length):
-    #             result.append(para[i:i+max_length])
-    #     self.text= '\n'.join(result)
+
     def format_string(self, s, max_chinese_chars=20):
         from PIL import ImageFont
         import re
@@ -178,8 +173,15 @@ class VRTextOverlay:
             # 处理最后一行（左对齐）
             if current_line:
                 result.append(''.join(current_line))
-        self.textList.enqueue('\n'.join(result))
-        self.text = '\n----------------------------------\n'.join(list(self.textList.queue))
+            # self.textList.enqueue('\n'.join(result))
+            if s.startswith("麦克风"):
+                self.textList_R.enqueue('\n'.join(result))
+                self.text_R =  f'                 麦克风\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_R.queue))
+            else : 
+                self.textList_L.enqueue('\n'.join(result))
+                self.text_L =  f'                桌面音频\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_L.queue))
+
+            
 
     def _justify_line(self, line, line_width, target_width, font, result):
         if not line:
@@ -212,8 +214,8 @@ class VRTextOverlay:
         
         result.append(''.join(justified))
 
-    def _create_text_texture(self):
-        try:
+    def _create_text_texture(self,alignment='center'):
+        # try:
             # 使用PIL创建文字图像
                 # 自动检测文字系统
             # font=self.get_font()
@@ -221,53 +223,113 @@ class VRTextOverlay:
             # font = ImageFont.truetype("simhei.ttf", self.font_size)
             
             # 创建临时ImageDraw对象用于计算文本尺寸
-            temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
-            draw = ImageDraw.Draw(temp_img)
+            temp_img_L = Image.new("RGBA", (1, 1), (0,0,0,0))
+            draw_L = ImageDraw.Draw(temp_img_L)
             
             # 使用新的textbbox方法代替getsize
-            bbox = draw.textbbox((0, 0), self.text, font=font)
+            bbox = draw_L.textbbox((0, 0), self.text_L, font=font)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             
             # 创建带边距的实际图像
-            img = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
-            draw = ImageDraw.Draw(img)
+            img_L = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
+            draw_L = ImageDraw.Draw(img_L)
             
             # 绘制文字（考虑新的坐标系）
-            draw.text(
+            draw_L.text(
                 (10 - bbox[0], 10 - bbox[1]),  # 补偿文本起始偏移
-                self.text,
+                self.text_L,
                 font=font,
                 fill=(255,255,255,255),
                 stroke_width=2,
                 stroke_fill=(0,0,0,255)
             )
-            _img_data = img.tobytes()
+                        # 创建临时ImageDraw对象用于计算文本尺寸
+            temp_img = Image.new("RGBA", (1, 1), (0,0,0,0))
+            draw_R = ImageDraw.Draw(temp_img)
+            
+            # 使用新的textbbox方法代替getsize
+            bbox = draw_R.textbbox((0, 0), self.text_R, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # 创建带边距的实际图像
+            img_R = Image.new("RGBA", (text_width + 20, text_height + 60), (0,0,0,0))
+            draw_R = ImageDraw.Draw(img_R)
+            
+            # 绘制文字（考虑新的坐标系）
+            draw_R.text(
+                (10 - bbox[0], 10 - bbox[1]),  # 补偿文本起始偏移
+                self.text_R,
+                font=font,
+                fill=(255,255,255,255),
+                stroke_width=2,
+                stroke_fill=(0,0,0,255)
+            )
+
+
+
+
+             # 获取图片尺寸
+            w1, h1 = img_L.size
+            w2, h2 = img_R.size
+
+            # 计算新图片尺寸
+            total_width = w1 + w2
+            max_height = max(h1, h2)
+
+            # 创建新画布（白色背景）
+            combined = Image.new('RGBA', (total_width, max_height), (0,0,0,0))
+
+            # 粘贴第一张图片（左侧固定）
+            combined.paste(img_R, (0, 0))
+
+            # 计算第二张图片垂直位置
+            if alignment == 'top':
+                y = 0
+            elif alignment == 'bottom':
+                y = max_height - h2
+            else:  # 默认居中
+                y = (max_height - h2) // 2
+
+            # 粘贴第二张图片（右侧）
+            combined.paste(img_L, (w1, y))
+
+            _img_data = combined.tobytes()
             _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)
             path=os.path.join(sys._MEIPASS, 'tmp_texture.png') if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(__file__), 'tmp_texture.png')
-            img.save(path)  # 添加在tobytes()之前
+            combined.save(path)  # 添加在tobytes()之前
 
             # openvr.VROverlay().setOverlayFromFile(self.overlay_handle,path)
-            openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, text_width + 20, text_height + 60, 4)
+            openvr.VROverlay().setOverlayRaw(self.overlay_handle, _buffer, total_width, max_height, 4)
 
-        except Exception as e:
-            self.logger.put({"text":f"Error setting overlay text {str(e)}","level":"error"})
-            return False
+        # except Exception as e:
+        #     self.logger.put({"text":f"Error setting overlay text {str(e)}","level":"error"})
+        #     return False
+    
 
+    def get_controller_index(self):
+        """更可靠的控制器索引获取方法"""
+        try:
+            system = openvr.VRSystem()
+            for i in range(openvr.k_unMaxTrackedDeviceCount):
+                if system.getTrackedDeviceClass(i) == openvr.TrackedDeviceClass_Controller:
+                    role = system.getControllerRoleForTrackedDeviceIndex(i)
+                    if (self.hand == 0 and role == openvr.TrackedControllerRole_RightHand) or \
+                       (self.hand == 1 and role == openvr.TrackedControllerRole_LeftHand):
+                        return i
+            return openvr.k_unTrackedDeviceIndexInvalid
+        except:
+            return openvr.k_unTrackedDeviceIndexInvalid
     def set_overlay_to_hand(self, hand=0):
         """设置Overlay到手上
         hand: 0-右手，1-左手"""
-        device_index = openvr.k_unTrackedDeviceIndex_Hmd
-        # 查找控制器设备
-        for i in range(openvr.k_unMaxTrackedDeviceCount):
-            device_class = self.vr_system.getTrackedDeviceClass(i)
-            if device_class == openvr.TrackedDeviceClass_Controller:
-                role = self.vr_system.getControllerRoleForTrackedDeviceIndex(i)
-                if (hand == 0 and role == openvr.TrackedControllerRole_RightHand) or \
-                (hand == 1 and role == openvr.TrackedControllerRole_LeftHand):
-                    device_index = i
-                    break
-                # 创建3D变换矩阵
+        self.hand = hand  # 记录当前手柄类型
+        device_index = self.get_controller_index()
+        
+        if device_index == openvr.k_unTrackedDeviceIndexInvalid:
+            return False  # 明确返回状态
+
         transform = openvr.HmdMatrix34_t()
         # ===== 位置调整 =====
         # 单位：米（相对于控制器坐标系）
@@ -305,11 +367,20 @@ class VRTextOverlay:
         transform[2][0] = -sinY
         transform[2][1] = cosY * sinX
         transform[2][2] = cosY * cosX
-        openvr.VROverlay().setOverlayTransformTrackedDeviceRelative(
-            self.overlay_handle,
-            device_index,
-            transform
-        )
+        # openvr.VROverlay().setOverlayTransformTrackedDeviceRelative(
+        #     self.overlay_handle,
+        #     device_index,
+        #     transform
+        # )
+        try:
+            self.overlay.setOverlayTransformTrackedDeviceRelative(
+                self.overlay_handle,
+                device_index,
+                transform
+            )
+            return True
+        except:
+            return False
     def run(self):
         try:
             self.initialize(0)
@@ -331,7 +402,25 @@ class VRTextOverlay:
                 self.overlay.destroyOverlay(self.overlay_handle)
             openvr.shutdown()
             time.sleep(5)
-
+    # 在现有代码基础上添加
+    def refresh_overlay(self):
+        """强制刷新Overlay属性"""
+        if self.overlay_handle:
+            self.overlay.setOverlayWidthInMeters(self.overlay_handle, 0.15)
+            self.overlay.setOverlayAlpha(self.overlay_handle, 1.0)
+            self.overlay.setOverlayColor(self.overlay_handle, 1.0, 1.0, 1.0)
+            
+    def health_check(self):
+        """系统健康检查"""
+        try:
+            return self.vr_system.isTrackedDeviceConnected(
+                self.vr_system.getTrackedDeviceIndexForControllerRole(
+                    openvr.TrackedControllerRole_LeftHand if self.hand == 1 
+                    else openvr.TrackedControllerRole_RightHand
+                )
+            )
+        except:
+            return False
 
 if __name__ == "__main__":
 

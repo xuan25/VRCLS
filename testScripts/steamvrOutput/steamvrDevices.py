@@ -60,16 +60,27 @@ def main():
     for i in range(openvr.k_unMaxTrackedDeviceCount):
         device = get_device_info(vr, i)
         if device and device["type"] != "Invalid":
-            print(f"设备 #{device['index']}")
-            print(f"类型: {device['type']}")
-            print(f"型号: {device['model']}")
-            print(f"序列号: {device['serial']}")
-            if device["type"] == "Controller":
-                print(f"角色: {device['role']}")
-                print(f"电量: {device['battery']}")
+            try:
+                print(f"设备 #{device['index']}")
+                print(f"类型: {device['type']}")
+                print(f"型号: {device['model']}")
+                print(f"序列号: {device['serial']}")
+                if device["type"] == "Controller":
+                    print(f"角色: {device['role']}")
+                    # print(f"电量: {device['battery']}")
+            except Exception as e:
+                print(e)
             print("-" * 30)
 
     openvr.shutdown()
 
 if __name__ == "__main__":
-    main()
+    import sys
+    original_stdout = sys.stdout  # 备份原始输出流
+    try:
+        with open('vr_output.txt', 'w', encoding='utf-8') as f:
+            sys.stdout = f         # 重定向标准输出到文件
+            main()
+    finally:
+        sys.stdout = original_stdout  # 还原输出流
+    input("程序执行完毕，按回车键退出...")

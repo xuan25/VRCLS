@@ -317,34 +317,146 @@ def logger_process(queue,copyqueue,params):
             logger.error(text['text'])
         else :logger.error(text)
 
-def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
+# def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
+#     import openvr
+#     from..module.steamvr import VRTextOverlay
+#     textOverlay=VRTextOverlay()
+#     try:
+#         if not textOverlay.initialize(logger,params,hand):return
+#         textOverlay._create_text_texture()
+#         textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size)
+#         textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
+#         logger.put({"text":f"掌心显示启动完毕","level":"info"})
+#         try:pyttsx3.speak("SteamVR掌心显示启动完毕")
+#         except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
+#         while params['running']:
+#             if queue.empty():
+#                 time.sleep(0.5)
+#                 continue
+#             text=queue.get() 
+#             logger.put({"text":f"开始执行一次掌心输出","level":"debug"})
+#             textOverlay.update_text(text)
+#             time.sleep(1)
+#     # except Exception as e:
+#     #     logger.put({"text":f"发生错误: {str(e)}","level":"error"})
+#     finally:  # 确保始终执行清理
+#         if textOverlay.overlay_handle:
+#             textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
+#             textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
+#         openvr.shutdown()
+#         time.sleep(1)
+
+def steamvr_process(logger, queue: Queue, params, hand=0, size=0.15):
     import openvr
-    from..module.steamvr import VRTextOverlay
-    textOverlay=VRTextOverlay()
+    from ..module.steamvr import VRTextOverlay
+    textOverlay = VRTextOverlay()
+    MAX_RETRIES = 3  # 最大重试次数
+    retry_count = 0
+    INIT_WAIT = 8  # 初始化后等待时间
+    CHECK_INTERVAL = 10  # 正常检查间隔
+    
+    def safe_shutdown():
+        try:
+            if textOverlay.overlay_handle:
+                textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
+                textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
+            openvr.shutdown()
+            logger.put({"text":"VR资源已安全释放","level":"info"})
+        except Exception as e:
+            logger.put({"text":f"关闭资源时出错:{str(e)}","level":"error"})
+
     try:
-        if not textOverlay.initialize(logger,params,hand):return
-        textOverlay._create_text_texture()
-        textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size)
-        textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
-        logger.put({"text":f"掌心显示启动完毕","level":"info"})
-        try:pyttsx3.speak("SteamVR掌心显示启动完毕")
-        except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
-        while params['running']:
-            if queue.empty():
-                time.sleep(0.5)
-                continue
-            text=queue.get() 
-            logger.put({"text":f"开始执行一次掌心输出","level":"debug"})
-            textOverlay.update_text(text)
+        # 带重试的初始化
+        while retry_count < MAX_RETRIES and params['running']:
+            try:
+                if not textOverlay.initialize(logger, params, hand):
+                    raise RuntimeError("SteamVR初始化失败")
+                # logger.put({"text":"SteamVR初始化成功","level":"info"})
+                last_success = time.time()
+                check_interval = 10  # 手柄状态检查间隔
+                error_count = 0
+                MAX_ERRORS = 5  # 最大连续错误次数
+                textOverlay._create_text_texture()
+                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size*1.5)
+                textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
+                logger.put({"text":f"掌心显示启动完毕","level":"info"})
+                try:pyttsx3.speak("SteamVR掌心显示启动完毕")
+                except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
+                # 主循环
+                while params['running']:
+                    try:
+                        # 定期设备检查
+                        if time.time() - last_success > check_interval:
+                            current_status = textOverlay.set_overlay_to_hand(hand)
+                            if not current_status:
+                                logger.put({"text":"控制器连接状态异常，尝试恢复...","level":"warning"})
+                                textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
+                                time.sleep(1)
+                                textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
+                                if textOverlay.set_overlay_to_hand(hand):
+                                    last_success = time.time()
+                                    logger.put({"text":"控制器连接恢复成功","level":"info"})
+                                    error_count = 0
+                            else:
+                                last_success = time.time()
+                                error_count = 0
+
+                        # 处理消息队列
+                        if not queue.empty():
+                            text = queue.get()
+                            logger.put({"text":f"开始处理新的文本更新","level":"debug"})
+                            
+                            # 带重试的更新操作
+                            for _ in range(2):  # 最多重试2次
+                                try:
+                                    textOverlay.update_text(text)
+                                    break
+                                except openvr.error_code.OverlayError as oe:
+                                    logger.put({"text":f"OpenVR错误: {str(oe)}，尝试恢复...","level":"error"})
+                                    textOverlay._create_text_texture()  # 重新创建纹理
+                                    time.sleep(1)
+                            
+                            # 强制更新Overlay属性
+                            textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, size*1.5)
+                            textOverlay.overlay.setOverlayAlpha(textOverlay.overlay_handle, 1.0)
+                            
+                        time.sleep(0.1)
+                        error_count = 0  # 重置错误计数器
+
+                    except Exception as inner_e:
+                        error_count += 1
+                        logger.put({"text":f"[运行时错误] {str(inner_e)} ({error_count}/{MAX_ERRORS})","level":"error"})
+                        if error_count >= MAX_ERRORS:
+                            logger.put({"text":"达到最大错误次数，尝试重新初始化...","level":"critical"})
+                            safe_shutdown()
+                            time.sleep(5)
+                            break  # 退出内层循环进行重新初始化
+
+                # 正常退出循环
+                if not params['running']:
+                    break
+
+            except Exception as init_e:
+                retry_count += 1
+                logger.put({"text":f"初始化失败 ({retry_count}/{MAX_RETRIES}): {str(init_e)}","level":"error"})
+                safe_shutdown()
+                time.sleep(5 * retry_count)  # 指数退避
+                
+        if retry_count >= MAX_RETRIES:
+            logger.put({"text":"达到最大重试次数，SteamVR功能终止","level":"critical"})
+
+    except Exception as outer_e:
+        logger.put({"text":f"[未捕获的异常] {str(outer_e)}","level":"critical"})
+    finally:
+        safe_shutdown()
+        # 确保释放所有VR资源
+        for _ in range(3):
+            try:
+                openvr.shutdown()
+            except:
+                pass
             time.sleep(1)
-    # except Exception as e:
-    #     logger.put({"text":f"发生错误: {str(e)}","level":"error"})
-    finally:  # 确保始终执行清理
-        if textOverlay.overlay_handle:
-            textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
-            textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
-        openvr.shutdown()
-        time.sleep(1)
+
 def copyBox_process(queue:Queue):
     import tkinter as tk
     from ..module.copybox import ScrollableListApp

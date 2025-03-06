@@ -13,6 +13,6 @@ pyaudiowpatch
 numpy
 openvr
 Pillow
-psutil
+pywin32
 sherpa_onnx
 baidu-translate-api
