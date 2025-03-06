@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 from collections import deque
 import win32com.client
 class BoundedQueue:
-    def __init__(self, max_size=3):
+    def __init__(self, max_size=5):
         self.queue = deque(maxlen=max_size)
     
     def enqueue(self, item):
