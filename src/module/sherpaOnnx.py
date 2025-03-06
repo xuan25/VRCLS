@@ -22,7 +22,7 @@ def create_recognizer(logger,source):
     else:return None
     # 新增路径检查
     if not os.path.exists(onnx_bin):
-        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554获取帮助", "level": "error"})
+        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554下载并安装VRCLS本地识别模型包", "level": "error"})
         return None
     # Please replace the model files if needed.
     # See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
@@ -69,7 +69,9 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
    
 
     recognizer = create_recognizer(logger,config.get("targetTranslationLanguage"))
-
+    if recognizer is None:
+        logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
+        return
     sample_rate = int(device_info["defaultSampleRate"])
     samples_per_read = int(0.1 * sample_rate)  # 0.1秒 = 4800个样本
 
@@ -296,6 +298,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
         if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
         else:
             if params["runmode"] == "text" or params["runmode"] == "translation": 
+                for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
                 if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                 if params["runmode"] == "translation" : 
                     for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
