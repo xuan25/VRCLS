@@ -396,32 +396,36 @@ def steamvr_process(logger, queue: Queue, params,config):
                                 if textOverlay.set_overlay_to_hand(config.get("SteamVRHad")):
                                     last_success = time.time()
                                     logger.put({"text":"控制器连接恢复成功","level":"info"})
-                                    error_count = 0
+                                else: continue
                             else:
                                 last_success = time.time()
-                                error_count = 0
-
+                            
+                        error=0
                         # 处理消息队列
                         if not queue.empty():
                             text = queue.get()
                             logger.put({"text":f"开始处理新的文本更新","level":"debug"})
                             
+                            
                             # 带重试的更新操作
                             for _ in range(2):  # 最多重试2次
                                 try:
                                     textOverlay.update_text(text)
+                                    error=200
                                     break
                                 except openvr.error_code.OverlayError as oe:
-                                    logger.put({"text":f"OpenVR错误: {str(oe)}，尝试恢复...","level":"error"})
+                                    error+=1
+                                    logger.put({"text":f"OpenVR错误: {str(oe)}，尝试恢复...,{error}","level":"error"})
                                     textOverlay._create_text_texture()  # 重新创建纹理
                                     time.sleep(1)
+                                    
                             
                             # 强制更新Overlay属性
                             textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))
                             textOverlay.overlay.setOverlayAlpha(textOverlay.overlay_handle, 1.0)
                             
                         time.sleep(0.1)
-                        error_count = 0  # 重置错误计数器
+                        if error ==200:error_count = 0  # 重置错误计数器
 
                     except Exception as inner_e:
                         error_count += 1

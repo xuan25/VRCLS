@@ -32,8 +32,8 @@ class VRTextOverlay:
         self.textList_L=BoundedQueue()
         self.textList_R=BoundedQueue()
         self.text = text
-        self.text_L = "           桌面音频\n----------------------------------------------\n"
-        self.text_R = "            麦克风\n----------------------------------------------\n"
+        self.text_L = "                 桌面音频\n----------------------------------------------\n"
+        self.text_R = "                  麦克风\n----------------------------------------------\n"
         self.font_size = font_size
         self.vr_system = None
         self.overlay_handle = None
@@ -177,10 +177,10 @@ class VRTextOverlay:
             # self.textList.enqueue('\n'.join(result))
             if s.startswith("麦克风"):
                 self.textList_R.enqueue('\n'.join(result))
-                self.text_R =  f'                 麦克风\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_R.queue))
+                self.text_R =  f'                    麦克风\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_R.queue))
             else : 
                 self.textList_L.enqueue('\n'.join(result))
-                self.text_L =  f'                桌面音频\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_L.queue))
+                self.text_L =  f'                   桌面音频\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_L.queue))
 
             
 
