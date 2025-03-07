@@ -5,6 +5,12 @@ from multiprocessing import Process
 import baidu_translate as fanyi
 import os,sys,time
 import pyttsx3
+import keyboard
+def change_run_local(params,logger,mode):
+    key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
+    params[key]=not params[key]
+    logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}状态：{"打开" if params[key] else "关闭"}","level":"info"})
+
 def create_recognizer(logger,source):
 
         # 2. 动态路径注入（核心防护）
@@ -63,6 +69,18 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         if not device_index:
             logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
             micIndex=None
+    params["gameVoiceKeyRun"]=True 
+    voiceMode=config.get("gameVoiceMode")
+    voiceHotKey=config.get("gameVoiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["gameVoiceKeyRun"]=False 
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"cap"))
+        logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+
+
+    
     pa = pyaudiowpatch.PyAudio()
     # 获取输入设备信息  
     device_info = pa.get_default_wasapi_loopback() if micIndex is None else pa.get_device_info_by_index(micIndex)
@@ -93,6 +111,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     try:
         while params["running"]:
+            if not params["gameVoiceKeyRun"]:continue
             # 读取音频数据
             data = audio_stream.read(samples_per_read)
             samples = np.frombuffer(data, dtype=np.float32)
@@ -132,6 +151,18 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
             logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
+    params["voiceKeyRun"]=True 
+    voiceMode=config.get("voiceMode")
+    voiceHotKey=config.get("voiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["voiceKeyRun"]=False 
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"mic"))
+        logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+    
+    
+    
     pa = pyaudiowpatch.PyAudio()
     
     # 获取输入设备信息
@@ -163,6 +194,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     last_result = ""
     try:
         while params["running"]:
+            if not params["voiceKeyRun"]:continue
             # 读取音频数据
             data = audio_stream.read(samples_per_read)
             samples = np.frombuffer(data, dtype=np.float32)
@@ -203,6 +235,17 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
             logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
+    params["gameVoiceKeyRun"]=True 
+    voiceMode=config.get("gameVoiceMode")
+    voiceHotKey=config.get("gameVoiceHotKey")
+    if voiceMode == 0 :#常开模式
+        pass
+    elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        params["gameVoiceKeyRun"]=False 
+        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"cap"))
+        logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+
+
     pa = pyaudiowpatch.PyAudio()
     
     # 获取输入设备信息
@@ -234,6 +277,7 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
     last_result = ""
     try:
         while params["running"]:
+            if not params["gameVoiceKeyRun"]:continue
             # 读取音频数据
             data = audio_stream.read(samples_per_read)
             samples = np.frombuffer(data, dtype=np.float32)

@@ -74,7 +74,7 @@ def rebootJob():
     time.sleep(3)
     params["VRCBitmapLed_taskList"]=manager.list()
     if startUp.config.get("textInSteamVR"):
-        steamvrThread=Process(target=steamvr_process,daemon=True,args=(steamvrQueue,params,startUp.config))
+        steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config))
         steamvrThread.start()
     if startUp.config.get("localizedSpeech"):
         listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji))
