@@ -252,6 +252,7 @@
                                 <el-select v-model="data.config.SteamVRHad" :disabled="!data.config.textInSteamVR">
                                     <el-option label="右手" :value="0"></el-option>
                                     <el-option label="左手" :value="1"></el-option>
+                                    <el-option label="左手+右手" :value="2"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item label="SteamVR显示大小">
