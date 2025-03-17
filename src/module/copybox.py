@@ -21,17 +21,44 @@ class ScrollableListApp:
 
     def create_widgets(self):
         """ 创建界面组件 """
-        # 列表容器
-        self.list_container = tk.Frame(self.root)
-        self.list_container.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
+        # 主容器
+        main_frame = tk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 创建滚动条
+        self.scrollbar = tk.Scrollbar(main_frame)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # 创建带滚动条的Canvas
+        self.canvas = tk.Canvas(
+            main_frame, 
+            yscrollcommand=self.scrollbar.set,
+            highlightthickness=0
+        )
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # 配置滚动条
+        self.scrollbar.config(command=self.canvas.yview)
+        
+        # 创建内部框架容器
+        self.inner_frame = tk.Frame(self.canvas)
+        self.canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
         
         # 初始化10个空行
         for _ in range(10):
             self._create_empty_row()
+            
+        # 绑定画布尺寸变化
+        self.inner_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
+            )
+        )
 
     def _create_empty_row(self):
         """ 创建空行占位 """
-        frame = tk.Frame(self.list_container)
+        frame = tk.Frame(self.inner_frame)
         frame.pack(fill=tk.X, pady=2)
         self.row_frames.append(frame)
 
@@ -45,10 +72,8 @@ class ScrollableListApp:
         new_row.pack(fill=tk.X, pady=2)
         self.row_frames.append(new_row)
         
-        # 重新打包所有行
-        for frame in self.row_frames:
-            frame.pack_forget()
-            frame.pack(fill=tk.X, pady=2)
+        # 更新画布滚动区域
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def start_queue_listener(self):
         """ 启动队列监听线程 """
@@ -72,7 +97,7 @@ class ScrollableListApp:
 
     def _create_new_row(self, text):
         """ 实际创建新行 """
-        new_row = tk.Frame(self.list_container)
+        new_row = tk.Frame(self.inner_frame)
         
         # 文本标签
         lbl = tk.Label(new_row, text=text, anchor="w", width=40)
@@ -109,7 +134,7 @@ if __name__ == "__main__":
     # 创建进程间通信队列
     shared_queue = Queue()
     
-    # # 启动数据生产进程
+    # 启动数据生产进程
     # producer = Process(target=data_producer, args=(shared_queue,))
     # producer.daemon = True  # 设为守护进程随主进程退出
     # producer.start()

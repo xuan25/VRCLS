@@ -113,6 +113,7 @@ class StartUp:
                 continue
             baseurl=self.config["baseurl"]
             response = requests.post(baseurl+"/login",json=self.config["userInfo"])
+            self.logger.put({'text':response.text,"level":"debug"})
             if response.status_code==200:
                 if accont_wrong:
                     with open('client.json', 'w', encoding="utf8") as f:
@@ -124,12 +125,19 @@ class StartUp:
                 continue
             if response.status_code == 401: 
                 accont_wrong=True
-                self.logger.put({'text':response.text,"level":"debug"})
                 self.logger.put({'text':"password or account error , please enter again||账户或密码错误,请重新输入","level":"warning"})
                 time.sleep(3)
                 self.config["userInfo"]["username"] = input("请输入用户名: ")
                 self.config["userInfo"]["password"] = input("请输入密码: ")
                 continue
+            if response.status_code == 403:
+                self.logger.put({'text':response.text,"level":"debug"})
+                self.logger.put({'text':"password or account error , please enter again||账号已被禁用,请联系管理员","level":"error"})
+                return {}
+            return {}
+            
+
+                
             
 
         
