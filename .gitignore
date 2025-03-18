@@ -3,6 +3,8 @@
 *.log.*
 *.spec
 main.bat
+*.db
+*.mp3
 src/module/*.png
 sherpa-onnx-models/
 packaging-env/

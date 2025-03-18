@@ -406,6 +406,82 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
+
+                </el-col>
+            </el-row>
+            <el-row :gutter="20" >
+                <el-col  :span="8">
+                    <el-card style="margin-top: 20px;height: 620px;">
+                            <template #header>
+                                <div class="card-header">
+                                <span>日请求数量(近7日)</span>
+                                </div>
+                            </template>
+                            <el-alert v-if="error" :title="error" type="error" show-icon />
+                            <el-row>
+                                <el-col :span="16">
+                                <el-radio-group v-model="counter_mode" @change="fetchData">
+                                <el-radio-button label="成功数" value="true"/>
+                                <el-radio-button label="失败数" value="false"/>
+                                </el-radio-group>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-button type="primary" @click="fetchData" >刷新</el-button>
+                                </el-col>
+                                
+                            </el-row>
+                           
+                            <el-table :data="statsData" v-loading="loading" style="width: 100%">
+                                <el-table-column prop="date" label="日期" width="180">
+                                    <template #default="{ row }">
+                                    {{ formatDate(row.date) }}
+                                    </template>
+                                </el-table-column>
+                                
+                                <el-table-column prop="count" label="触发次数">
+                                    <template #default="{ row }">
+                                    <el-tag :type="row.count > 0 ? 'success' : 'info'">
+                                        {{ row.count }} 次
+                                    </el-tag>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                    </el-card>
+                </el-col>
+                <el-col  :span="16">
+                    <el-card style="margin-top: 20px;height: 620px;">
+                        <template #header>
+                            <span>当前模型参数</span>
+                        </template>
+                        <el-descriptions :column="2" label-width="15%" border>
+                            <template #extra>
+                                <el-button type="primary" @click="getAvatarParameters" style="float: right;">获取模型参数</el-button>
+                            </template>
+                            <el-descriptions-item>
+                                <template #label>
+                                    模型名称
+                                </template>
+                                {{ data.avatarInfo.avatarName }}
+                            </el-descriptions-item>
+                            <el-descriptions-item>
+                                <template #label>
+                                    模型ID
+                                </template>
+                                {{ data.avatarInfo.avatarID }}
+                            </el-descriptions-item>
+                            <el-descriptions-item :span="2">
+                                <template #label>
+                                    模型OSC文件路径
+                                </template>
+                                {{ data.avatarInfo.filePath }}
+                            </el-descriptions-item>
+                        </el-descriptions>
+                        <el-table :data="data.avatarParameters" style="width: 100%;height: 350px;" border stripe empty-text="请点击上方按钮获取模型参数">
+                        <el-table-column prop="name" label="参数名称" width="180" />
+                        <el-table-column prop="path" label="参数路径"  />
+                        <el-table-column prop="type" label="参数类型" />
+                        </el-table>
+                    </el-card>
                 </el-col>
             </el-row>
         <el-card style="margin-top: 20px;height: 620px;">
@@ -534,39 +610,8 @@
     
     
             </el-card>
-            <el-card style="margin-top: 20px;height: 600px;">
-                <template #header>
-                    <span>当前模型参数</span>
-                </template>
-                <el-descriptions :column="2" label-width="15%" border>
-                    <template #extra>
-                        <el-button type="primary" @click="getAvatarParameters" style="float: right;">获取模型参数</el-button>
-                    </template>
-                    <el-descriptions-item>
-                        <template #label>
-                            模型名称
-                        </template>
-                        {{ data.avatarInfo.avatarName }}
-                    </el-descriptions-item>
-                    <el-descriptions-item>
-                        <template #label>
-                            模型ID
-                        </template>
-                        {{ data.avatarInfo.avatarID }}
-                    </el-descriptions-item>
-                    <el-descriptions-item :span="2">
-                        <template #label>
-                            模型OSC文件路径
-                        </template>
-                        {{ data.avatarInfo.filePath }}
-                    </el-descriptions-item>
-                </el-descriptions>
-                <el-table :data="data.avatarParameters" style="width: 100%;height: 350px;" border stripe empty-text="请点击上方按钮获取模型参数">
-                <el-table-column prop="name" label="参数名称" width="180" />
-                <el-table-column prop="path" label="参数路径"  />
-                <el-table-column prop="type" label="参数类型" />
-            </el-table>
-            </el-card>
+            
+
         </el-main>  
         <el-aside width="10%">
             <sideInfo/>
@@ -706,11 +751,14 @@ let data=reactive({
 })
 
 
-
-    
+const statsData = ref([])
+const loading = ref(true)
+const error = ref(null)
+const counter_mode= ref("true")
 
 onMounted(()=>{
     getconfig()
+    fetchData()
 })
 
 const getCapture=()=>{
@@ -722,6 +770,22 @@ const getCapture=()=>{
         })
     });
 
+}
+// 日期格式化
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return `${date.getFullYear()}年${(date.getMonth() + 1).toString().padStart(2, '0')}月${date.getDate().toString().padStart(2, '0')}日`
+}
+// 获取数据
+const fetchData = async () => {
+  try {
+    const response = await axios.get('/api/stats',{params:{'mode':counter_mode.value}})
+    statsData.value = response.data//.reverse()  转为日期升序排列
+  } catch (err) {
+    error.value = `数据加载失败: ${err.message}`
+  } finally {
+    loading.value = false
+  }
 }
 watch(()=>data.config.Separate_Self_Game_Mic,()=>{getCapture()})
 function getconfig() {

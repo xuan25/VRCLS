@@ -10,6 +10,8 @@ import json,os,traceback,sys
 import webbrowser
 import ctypes
 from ctypes import wintypes
+import sqlite3
+from datetime import datetime, timedelta
 
 def enable_vt_mode():
     if sys.platform != 'win32':
@@ -94,6 +96,8 @@ def rebootJob():
     params["gameStopped"] = False
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
     params["sourceLanguage"]=startUp.config.get("sourceLanguage")
+    params["localizedCapture"]=startUp.config['localizedCapture']
+    params["localizedSpeech"]=startUp.config['localizedSpeech']
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
@@ -243,7 +247,45 @@ def open_web(host,port):
     except Exception:
         queue.put({"text":"没有找到指定的路径,使用默认浏览器打开网页","level":"debug"})
         webbrowser.open(url)
- 
+def get_db_connection():
+    conn = sqlite3.connect('log_statistics.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    mode=request.args.get('mode')
+    database='daily_stats' if mode=='true' else 'daily_fail_stats'
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 计算最近7天日期范围
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+        
+        # 查询最近7天数据（包含没有记录的日期）
+        cursor.execute(f'''
+            WITH dates(date) AS (
+                VALUES (date(?))
+                UNION ALL
+                SELECT date(date, '+1 day')
+                FROM dates
+                WHERE date < date(?)
+            )
+            SELECT dates.date, COALESCE({database}.count, 0) AS count
+            FROM dates
+            LEFT JOIN {database} ON dates.date = {database}.date
+            ORDER BY dates.date DESC
+            LIMIT 7
+        ''', (start_date, end_date))
+        
+        result = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify(result)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # TODO steamvr显示界面
 # TODO 修正各个模式下两个播放线程的行为
 if __name__ == '__main__':
@@ -307,11 +349,12 @@ if __name__ == '__main__':
         time.sleep(3)
         sendClient= startUp.setOSCClient(queue)
         params["VRCBitmapLed_taskList"]= manager.list()
-        tmp=" "*(8 if startUp.config.get("VRCBitmapLed_row") is None else startUp.config.get("VRCBitmapLed_row") )*(16 if startUp.config.get("VRCBitmapLed_col") is None else startUp.config.get("VRCBitmapLed_col"))
+        tmp=" "*(8 if startUp.config.get("VRCBitmapLed_row") is None else int(startUp.config.get("VRCBitmapLed_row")) )*(16 if int(startUp.config.get("VRCBitmapLed_col")) is None else int(startUp.config.get("VRCBitmapLed_col")))
         params["VRCBitmapLed_Line_old"]= tmp
         params["tragetTranslateLanguage"]=startUp.tragetTranslateLanguage
         params["sourceLanguage"]=startUp.sourceLanguage
-
+        params["localizedCapture"]=startUp.config['localizedCapture']
+        params["localizedSpeech"]=startUp.config['localizedSpeech']
         queue.put({'text':"vrc udpClient ok||发送准备就绪",'level':'info'})
         params["runmode"]= startUp.config["defaultMode"]
         params["steamReady"]=False
