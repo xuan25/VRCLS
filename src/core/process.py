@@ -337,7 +337,8 @@ def logger_process(queue, copyqueue, params):
         if params.get('opencopybox'):
             for txt in ["输出文字: ", "桌面音频识别结果："]:
                 if txt in text['text']:
-                    copyqueue.put(text['text'].split(txt, 1)[1].strip())
+                    tmp_text=text['text'].split(txt, 1)[1].strip()
+                    copyqueue.put(tmp_text[:len(tmp_text)-4])
 
         # 新增的统计逻辑
         if any(keyword in text['text'] for keyword in keyweod_list):
