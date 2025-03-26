@@ -1,65 +1,63 @@
-import pyaudio
 import requests
-from pydub import AudioSegment
-from io import BytesIO
+import pyaudio
+import miniaudio
 
-def stream_tts_audio():
-    # 发起 TTS 请求
+
+
+def libre_tts_audio(text,language='zh',deviceindex=None):
     response = requests.post(
         'https://tts-test.boyqiu001.top/v1/audio/speech',
         json={
             "model": "tts-1",
-            "input": "这是一段开心的话！",
-            "voice": "zh-CN-XiaoxiaoNeural", 
-            "style": "cheerful",
-            "speed": 1.2
+            "input": text,
+            "voice": 'zh-CN-YunzeNeural',
+            "style": "documentary-narration",
+            "speed": 1.0
         },
         headers={
-            "Authorization": "Bearer 0G~m6)^q1FPvKsAq2ENkcH,l7rP#5ka8&bNwkf=!dV24UGwPF6%s9Co+luH6,hDemQ4lKMuc-vFaGKc~OaxyeKHNk+pYfwEWq_Nv7IwR+%O5^EodMKotA=F,^Jf*F,q#fE.Rzgn59uRAMblK@,4xrO+yB.z*-s%S0lgNqkZ#J&N9h%LGF5Tyi8OWEBGd7MY7AYJH$g*Z"
+            "Authorization": "Bearer NfuWNpnr64KWB0KHyMRejWbS0wiMujyvJ9t4caaxPTKvPc5PSM"
         },
-        stream=True  # 启用流式传输
+        stream=True
     )
 
-    # 验证响应状态
     if response.status_code != 200:
-        raise Exception(f"TTS request failed with status {response.status_code}")
+        raise Exception(f"请求失败，状态码: {response.status_code}")
 
-    # 创建内存缓冲区
-    audio_buffer = BytesIO()
-    
-    # 流式接收数据
-    for chunk in response.iter_content(chunk_size=8192):
-        if chunk:
-            audio_buffer.write(chunk)
-    
-    # 重置缓冲区指针到起始位置
-    audio_buffer.seek(0)
+    # 直接将响应内容收集到字节对象
+    mp3_bytes = b''.join(response.iter_content(chunk_size=8192))
 
-    # 解码 MP3 数据
-    audio = AudioSegment.from_mp3(audio_buffer)
-    pcm_data = audio.raw_data
+    # 自动检测格式并解码（无需文件信息）
+    decoded = miniaudio.decode(
+        mp3_bytes,
+        output_format=miniaudio.SampleFormat.SIGNED16
+    )
+
+    # 转换为 bytes 类型
+    pcm_bytes = decoded.samples.tobytes()
 
     # 初始化 PyAudio
     p = pyaudio.PyAudio()
-    
-    # 打开音频流
     stream = p.open(
-        format=p.get_format_from_width(audio.sample_width),
-        channels=audio.channels,
-        rate=audio.frame_rate,
-        output=True
+        format=pyaudio.paInt16,
+        channels=decoded.nchannels,
+        rate=decoded.sample_rate,
+        output=True,
+        output_device_index=deviceindex
     )
 
-    # 分块播放
-    chunk_size = 1024
-    for i in range(0, len(pcm_data), chunk_size):
-        stream.write(pcm_data[i:i+chunk_size])
+    # 分块播放（确保块大小是帧的整数倍）
+    frame_size = decoded.nchannels * decoded.sample_width  # 每帧字节数
+    chunk_size = 4096 * frame_size  # 动态计算块大小sa
+    for i in range(0, len(pcm_bytes), chunk_size):
+        stream.write(pcm_bytes[i:i+chunk_size])
 
     # 清理资源
     stream.stop_stream()
     stream.close()
     p.terminate()
-    audio_buffer.close()
+
+
 
 if __name__ == "__main__":
-    stream_tts_audio()
+    # stream_tts_audio("这个是我的测试音频，能直接把文字转成语音",deviceindex=21)
+    libre_tts_audio("愿我不在的日子里 ，祝你早上、中午、下午、晚上好",language='wuu',deviceindex=21)

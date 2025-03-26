@@ -52,7 +52,7 @@ def create_recognizer(logger,source):
         blank_penalty=0.0,
     )
     return recognizer
-def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
+def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
         micIndex=None
@@ -128,7 +128,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
                 
             if is_endpoint:
                 if result:
-                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji))
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList))
                     p.start()
                 recognizer.reset(stream)
                 
@@ -140,7 +140,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         pa.terminate()
         logger.put({"text":"sound process exited complete||本地桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
+def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -211,7 +211,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
                 
             if is_endpoint or len(result)>30:
                 if result:
-                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji))
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
                     p.start()
                 recognizer.reset(stream)
 
@@ -224,7 +224,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
         pa.terminate()
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
-def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji):
+def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
@@ -294,7 +294,7 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
                 
             if is_endpoint or len(result)>30:
                 if result:
-                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji))
+                    p = Process(target=sherpa_once,daemon=True, args=(result,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList))
                     p.start()
                 recognizer.reset(stream)
 
@@ -307,12 +307,13 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
         pa.terminate()
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict):
+def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
     from ..handler.VRCBitmapLedHandler import VRCBitmapLedHandler
     from ..handler.SelfRead import SelfReadHandler
+    from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
 
     st=time.time()
@@ -323,6 +324,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
+    if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList)
     try:
         if mode=="cap":
             lan=whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.ZH
@@ -347,6 +349,15 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
                 if params["runmode"] == "translation" : 
                     for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
                 chatbox.handle(res,runMode=params["runmode"])
+                if config.get("TTSToggle")==3:
+                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage if mode=="mic" else sourceLanguage)
+                if config.get("TTSToggle")==1 and mode == 'mic':
+                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
+                    return
+                if config.get("TTSToggle")==2 and mode == 'mic':
+                    tts.tts_audio(res['text'],language=sourceLanguage)
+                    return
+                
             if params["runmode"] == "control":avatar.handle(res)
             if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
 

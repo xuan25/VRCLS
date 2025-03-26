@@ -264,6 +264,14 @@
                                     <el-option label="关闭" :value="false"></el-option>
                                 </el-select>
                             </el-form-item>
+                            <el-form-item label="语音合成输出">
+                                <el-select v-model="data.config.TTSToggle">
+                                    <el-option label="关闭" :value="0"></el-option>
+                                    <el-option label="翻译模式麦克风译文输出" :value="1"></el-option>
+                                    <el-option label="文字发送模式麦克风原文" :value="2"></el-option>
+                                    <el-option label="翻译模式麦克风+桌面音频译文输出" :value="3"></el-option>
+                                </el-select>
+                            </el-form-item>
                             <el-form-item label="点阵屏行列数">
                                 <el-row>
                                     <el-col :span="11">
@@ -279,7 +287,6 @@
                                 
                                 
                             </el-form-item>
-
 
                             <el-form-item label="点阵屏彩色模式">
                                 <el-radio-group v-model="data.config.VRCBitmapLed_COLOR" >
@@ -390,7 +397,12 @@
                             <el-form-item label="桌面音频按键切换快捷键">
                                 <el-input v-model="data.config.gameVoiceHotKey" :disabled="data.config.Separate_Self_Game_Mic==0"></el-input>
                             </el-form-item>
-
+                            <el-form-item label="TTS输出扬声器">
+                                <el-select v-model="data.config.TTSOutputName" :disabled="data.config.Separate_Self_Game_Mic==0">
+                                    <el-option label="系统默认" value="default"></el-option>
+                                    <el-option v-for="(item,index) in outputName" :key="index" :label="item" :value="item" ></el-option>
+                                </el-select>
+                            </el-form-item>
                             <el-form-item label="动态音量阈值">
                                 <el-tooltip
                                     class="box-item"
@@ -632,6 +644,7 @@ import { onMounted, reactive,ref,watch } from 'vue';
 const captureName=ref([]);
 
 const micName=ref([]);
+const outputName=ref([]);
 let data=reactive({
     local:{
                 defaultScriptsAction:'sendText',
@@ -800,6 +813,13 @@ function getconfig() {
         micName.value = response.data;
         ElMessage({
         message: '麦克风名称获取成功',
+        type: 'success',
+    })
+    });
+    axios.get('/api/getOutputs').then(response => {
+        outputName.value = response.data;
+        ElMessage({
+        message: '扬声器名称获取成功',
         type: 'success',
     })
     });

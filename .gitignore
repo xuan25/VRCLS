@@ -5,6 +5,7 @@
 main.bat
 *.db
 *.mp3
+.VSCodeCounter
 src/module/*.png
 sherpa-onnx-models/
 packaging-env/

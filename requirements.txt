@@ -16,3 +16,4 @@ Pillow
 pywin32
 sherpa_onnx
 baidu-translate-api
+miniaudio

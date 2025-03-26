@@ -13,9 +13,11 @@ class StartUp:
         self.params=params
         self.tragetTranslateLanguage="en"
         self.micList=[]
+        self.outPutList=[]
         self.loopbackList=[]
         self.loopbackIndexList=[]
         self.defautMicIndex=0
+        self.defautOutPutIndex=0
         try:
             with open('client.json', 'r',encoding='utf-8') as file:
                 self.config:dict = json.load(file)
@@ -153,6 +155,8 @@ class StartUp:
         device_count = p.get_device_count()
     
         hostapis=[]
+        self.micList=['' for _ in range(device_count)]
+        self.outPutList=['' for _ in range(device_count)]
         for j in range(host_api_count):
             hostapi=p.get_host_api_info_by_index(j)
             hostapis.append(hostapi["name"])
@@ -161,8 +165,11 @@ class StartUp:
             dev_info = p.get_device_info_by_index(i)
             # 检查设备是否是输入设备（麦克风）
             if dev_info['maxInputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
-                self.micList.append( f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}")
+                self.micList[i]=f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
+            if dev_info['maxOutputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
+                self.outPutList[i]= f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
         self.defautMicIndex=p.get_default_input_device_info()['index']
+        self.defautOutPutIndex=p.get_default_output_device_info()['index']
         # 关闭 PyAudio 实例
         p.terminate()
     def list_loopback_devices(self):
