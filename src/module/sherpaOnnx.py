@@ -2,10 +2,12 @@ import pyaudiowpatch
 import numpy as np
 import sherpa_onnx
 from multiprocessing import Process
-import baidu_translate as fanyi
+# import baidu_translate as fanyi
+import translators
 import os,sys,time
 import pyttsx3
 import keyboard
+import html
 def change_run_local(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
     params[key]=not params[key]
@@ -326,16 +328,17 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
     if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList)
     try:
-        if mode=="cap":
-            lan=whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.ZH
-        else:
-            lan=libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN
+        # if mode=="cap":
+        #     to_lan=whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.ZH
+        #     fr_lan=libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN
+        # else:
+        #     fr_lan=whisper_to_baidu[sourceLanguage] if whisper_to_baidu[sourceLanguage] else fanyi.Lang.ZH
+        #     to_lan=libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN
         res={}
         res['text']=result
         if params["runmode"] == "translation":
-            res['translatedText']=fanyi.translate_text(
-                result,
-                to=lan)
+            res['translatedText']=html.unescape(translators.translate_text(result,to_language=sourceLanguage if mode=="cap" else tragetTranslateLanguage))
+            
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         et=time.time()

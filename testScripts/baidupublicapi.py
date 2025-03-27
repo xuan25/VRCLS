@@ -1,12 +1,9 @@
-import baidu_translate as fanyi
+import baiduAPI as fanyi
 
 
 
-def aa():
 
-
-    result = fanyi.translate_text('Hello, World!')
-result_ru = fanyi.translate_text('Hello Здравствуйте', to=fanyi.Lang.ZH)
+result_ru = fanyi.translate_text('Hello',from_=fanyi.Lang.EN, to=fanyi.Lang.ZH)
 print(result_ru)
 # # 你好，世界！ Здравствуйте, Мир!
 

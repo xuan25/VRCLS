@@ -4,7 +4,8 @@ from multiprocessing import Process,Queue
 import keyboard
 import time
 import pyttsx3
-
+import translators
+import html
 
 def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
     from ..handler.DefaultCommand import DefaultCommand
@@ -38,9 +39,10 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
                 tragetTranslateLanguage=tmp
             if config["translationServer"] == "libre":
 
-                if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
-                elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
-                else:url=baseurl+"/func/translateToOtherLanguage"
+                # if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
+                # elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
+                # else:url=baseurl+"/func/translateToOtherLanguage"
+                url = baseurl+"/whisper/multitranscription"
             else:
                 url=baseurl+"/func/doubleTransciption"
         else: 
@@ -62,13 +64,16 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
             return
         # 解析JSON响应
         res = response.json()
-        et=time.time()
+        
         if res["text"] =="":
             logger.put({"text":"返回值过滤-服务端规则","level":"info"})
             return
         if res["text"] in filter:
             logger.put({"text":"返回值过滤-自定义规则","level":"info"})
             return
+        if params["runmode"] == "translation":
+            res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=sourceLanguage if mode=="cap" else tragetTranslateLanguage))
+        et=time.time()
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         logger.put({"text":f"用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
@@ -354,10 +359,10 @@ def logger_process(queue, copyqueue, params):
                 if txt in text['text']:
                     tmp_text=text['text'].split(txt, 1)[1].strip()
                     copyqueue.put(tmp_text[:len(tmp_text)-4])
-
+        today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
         # 新增的统计逻辑
         if any(keyword in text['text'] for keyword in keyweod_list):
-            today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+            
             try:
                 # 使用UPSERT语法更新统计
                 cursor.execute('''INSERT INTO daily_stats (date, count) 
