@@ -71,16 +71,20 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
         if res["text"] in filter:
             logger.put({"text":"返回值过滤-自定义规则","level":"info"})
             return
+
+        if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
+        elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
+        
         if params["runmode"] == "translation":
             try:
-                res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=tragetTranslateLanguage))
+                logger.put({"text":f"restext:{res["text"]}","level":"debug"})
+                res['translatedText']=html.unescape(translators.translate_text(res["text"],from_language=sourceLanguage,to_language=tragetTranslateLanguage))
             except Exception as e:
                 if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                    logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
                     res['translatedText']=res["text"]
                 else:logger.put({"text":f"翻译异常：{e}","level":"error"})
         et=time.time()
-        if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
-        elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         logger.put({"text":f"用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
         if defaultCommand.handle(res["text"],params=params):return
         if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
@@ -92,7 +96,7 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
                 if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                 chatbox.handle(res,runMode=params["runmode"])
                 if config.get("TTSToggle")==3:
-                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage if mode=="mic" else sourceLanguage)
+                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
                 if config.get("TTSToggle")==1 and mode == 'mic':
                     tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
                     return

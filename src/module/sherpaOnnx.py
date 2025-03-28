@@ -337,7 +337,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
         res={}
         res['text']=result
         try:
-            res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=tragetTranslateLanguage if mode== "mic" else sourceLanguage))
+            res['translatedText']=html.unescape(translators.translate_text(res["text"],from_language=tragetTranslateLanguage if mode== "cap" else sourceLanguage,to_language=tragetTranslateLanguage if mode== "mic" else sourceLanguage))
         except Exception as e:
             if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
                 res['translatedText']=res["text"]
