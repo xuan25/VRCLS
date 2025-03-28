@@ -336,9 +336,12 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
         #     to_lan=libretranslate_to_baidu[tragetTranslateLanguage] if libretranslate_to_baidu[tragetTranslateLanguage] else fanyi.Lang.EN
         res={}
         res['text']=result
-        if params["runmode"] == "translation":
-            res['translatedText']=html.unescape(translators.translate_text(result,to_language=sourceLanguage if mode=="cap" else tragetTranslateLanguage))
-            
+        try:
+            res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=tragetTranslateLanguage if mode== "mic" else sourceLanguage))
+        except Exception as e:
+            if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                res['translatedText']=res["text"]
+            else:logger.put({"text":f"翻译异常：{e}","level":"error"})
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
         et=time.time()
