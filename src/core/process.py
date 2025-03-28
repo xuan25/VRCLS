@@ -6,7 +6,7 @@ import time
 import pyttsx3
 import translators
 import html
-
+import  traceback
 def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
@@ -72,7 +72,12 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
             logger.put({"text":"返回值过滤-自定义规则","level":"info"})
             return
         if params["runmode"] == "translation":
-            res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=sourceLanguage if mode=="cap" else tragetTranslateLanguage))
+            try:
+                res['translatedText']=html.unescape(translators.translate_text(res["text"],to_language=tragetTranslateLanguage))
+            except Exception as e:
+                if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                    res['translatedText']=res["text"]
+                else:logger.put({"text":f"翻译异常：{e}","level":"error"})
         et=time.time()
         if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
         elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
