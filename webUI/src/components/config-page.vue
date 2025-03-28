@@ -264,14 +264,14 @@
                                     <el-option label="关闭" :value="false"></el-option>
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="语音合成输出">
+                            <!-- <el-form-item label="语音合成输出">
                                 <el-select v-model="data.config.TTSToggle">
                                     <el-option label="关闭" :value="0"></el-option>
                                     <el-option label="翻译模式麦克风译文输出" :value="1"></el-option>
                                     <el-option label="文字发送模式麦克风原文" :value="2"></el-option>
                                     <el-option label="翻译模式麦克风+桌面音频译文输出" :value="3"></el-option>
                                 </el-select>
-                            </el-form-item>
+                            </el-form-item> -->
                             <el-form-item label="点阵屏行列数">
                                 <el-row>
                                     <el-col :span="11">
@@ -397,12 +397,12 @@
                             <el-form-item label="桌面音频按键切换快捷键">
                                 <el-input v-model="data.config.gameVoiceHotKey" :disabled="data.config.Separate_Self_Game_Mic==0"></el-input>
                             </el-form-item>
-                            <el-form-item label="TTS输出扬声器">
+                            <!-- <el-form-item label="TTS输出扬声器">
                                 <el-select v-model="data.config.TTSOutputName" :disabled="data.config.Separate_Self_Game_Mic==0">
                                     <el-option label="系统默认" value="default"></el-option>
                                     <el-option v-for="(item,index) in outputName" :key="index" :label="item" :value="item" ></el-option>
                                 </el-select>
-                            </el-form-item>
+                            </el-form-item> -->
                             <el-form-item label="动态音量阈值">
                                 <el-tooltip
                                     class="box-item"

@@ -5,6 +5,7 @@
 main.bat
 *.db
 *.mp3
+main.*
 .VSCodeCounter
 src/module/*.png
 sherpa-onnx-models/
@@ -13,7 +14,7 @@ packaging-env/
 __pycache__/
 *.py[cod]
 *$py.class
-
+!main.py
 # C extensions
 *.so
 

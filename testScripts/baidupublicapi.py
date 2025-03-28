@@ -1,5 +1,5 @@
 import baiduAPI as fanyi
-
+from PyInstaller.utils.hooks import collect_all
 
 
 
