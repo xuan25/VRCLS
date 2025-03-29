@@ -97,10 +97,10 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
                 chatbox.handle(res,runMode=params["runmode"])
                 if config.get("TTSToggle")==3:
                     tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                if config.get("TTSToggle")==1 and mode == 'mic':
+                if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
                     tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
                     return
-                if config.get("TTSToggle")==2 and mode == 'mic':
+                if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
                     tts.tts_audio(res['text'],language=sourceLanguage)
                     return
             if params["runmode"] == "control":avatar.handle(res)

@@ -689,7 +689,9 @@ libretranslate_voice_mapping = {
     'wuu': 'zh-CN-YunzeNeural'
 }
 
-
+import requests
+import pyaudio
+import miniaudio
 class TTSHandler:
     def __init__(self,logger,config,mode,header,outputList):
         self.baseurl=config.get('baseurl')
@@ -706,9 +708,7 @@ class TTSHandler:
                 logger.put({"text":"无法找到指定输出，使用系统默认麦克风","level":"info"})
                 self.deviceindex=None
     def tts_audio(self,text,language='zh'):
-        import requests
-        import pyaudio
-        import miniaudio
+
         self.logger.put({"text":f"{self.baseurl}/func/tts","level":"debug"})
 
         response = requests.post(

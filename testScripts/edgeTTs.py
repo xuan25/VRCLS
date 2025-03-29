@@ -60,4 +60,4 @@ def libre_tts_audio(text,language='zh',deviceindex=None):
 
 if __name__ == "__main__":
     # stream_tts_audio("这个是我的测试音频，能直接把文字转成语音",deviceindex=21)
-    libre_tts_audio("愿我不在的日子里 ，祝你早上、中午、下午、晚上好",language='wuu',deviceindex=21)
+    libre_tts_audio("这个是我的测试音频，能直接把文字转成语音",language='wuu',deviceindex=21)

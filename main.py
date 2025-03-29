@@ -323,7 +323,7 @@ if __name__ == '__main__':
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
 
-               当前版本: V0.4.4
+               当前版本: V0.5.0-beta1
                    
         '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
