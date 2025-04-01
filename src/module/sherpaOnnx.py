@@ -55,7 +55,7 @@ def create_recognizer(logger,source):
         blank_penalty=0.0,
     )
     return recognizer
-def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
         micIndex=None
@@ -113,7 +113,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
     try:pyttsx3.speak("本地桌面音频进程启动完毕")
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice,ttsVoice))
     p.start()
     try:
         while params["running"]:
@@ -150,7 +150,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         p.close()
         logger.put({"text":"sound process exited complete||本地桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -203,7 +203,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         while params["running"]:
@@ -241,7 +241,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
         
-def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
@@ -293,7 +293,7 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         while params["running"]:
@@ -330,7 +330,7 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
         p.close()
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
+def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -340,20 +340,21 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     from hanziconv import HanziConv
 
     
-    tragetTranslateLanguage=params["tragetTranslateLanguage"]
-    sourceLanguage=params["sourceLanguage"]
+
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
-    if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList)
+    if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     translator=config.get('translateService')
     
     
-    try:
-        while params["running"]:
-            
+    while params["running"]:
+        try:
+    
+            tragetTranslateLanguage=params["tragetTranslateLanguage"]
+            sourceLanguage=params["sourceLanguage"]
             res={}
             res['text']=result.get()
             st=time.time()
@@ -373,7 +374,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et=time.time()
             logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
-            if defaultCommand.handle(res["text"],params=params):return
+            if defaultCommand.handle(res["text"],params=params):continue
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
             else:
                 if params["runmode"] == "text" or params["runmode"] == "translation": 
@@ -386,18 +387,16 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage if mode=="mic" else sourceLanguage)
                     if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                        return
                     if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
                         tts.tts_audio(res['text'],language=sourceLanguage)
-                        return
                     
                 if params["runmode"] == "control":avatar.handle(res)
                 if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
             et=time.time()
             logger.put({"text":f"总用时：{round(et-st,2)}s","level":"debug"})
-    except Exception as e:
-        logger.put({"text":"sherpa_once未知异常"+str(e),"level":"error"})
-        return
+        except Exception as e:
+            logger.put({"text":"sherpa_once未知异常"+str(e),"level":"error"})
+            continue
 whisper_to_baidu = {
     'af': 'afr',       # 阿非利堪斯语
     'am': 'amh',       # 阿姆哈拉语

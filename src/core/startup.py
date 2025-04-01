@@ -5,6 +5,8 @@ import requests
 import time
 import pyaudio
 import traceback
+
+from ..handler.tts import whisper_voice_mapping,libretranslate_voice_mapping
 # import os,sys
 # from pydub import AudioSegment
 class StartUp:
@@ -38,6 +40,17 @@ class StartUp:
                 self.filter=defaultFilter
         except json.JSONDecodeError as e:
             self.logger.put({'text':"filter.json配置文件解析异常,详情："+str(e),"level":"error"})
+            raise e
+        
+        try:
+            with open('ttsConfig.json', 'r',encoding='utf-8') as file:
+                self.ttsVoice:list = json.load(file)
+        except FileNotFoundError:
+            with open('ttsConfig.json', 'w', encoding="utf8") as f:
+                f.write(json.dumps({"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping},ensure_ascii=False, indent=4))
+                self.ttsVoice={"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping}
+        except json.JSONDecodeError as e:
+            self.logger.put({'text':"ttsConfig.json配置文件解析异常,详情："+str(e),"level":"error"})
             raise e
         
         try:

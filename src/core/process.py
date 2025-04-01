@@ -7,7 +7,7 @@ import pyttsx3
 import translators
 import html
 import traceback
-def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
+def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
     
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
@@ -18,18 +18,20 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
     from hanziconv import HanziConv
 
     
-    tragetTranslateLanguage=params["tragetTranslateLanguage"]
-    sourceLanguage=params["sourceLanguage"]
+
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
     chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
-    tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList)
+    tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     baseurl=config.get('baseurl')
     translator=config.get('translateService')
-    try:
-        while params["running"]:
+    while params["running"]:
+
+        try:
+            tragetTranslateLanguage=params["tragetTranslateLanguage"]
+            sourceLanguage=params["sourceLanguage"]
             audio=audioQueue.get()
             st=time.time()
             
@@ -66,16 +68,16 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                     logger.put({"text":f"请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
                 else:    
                     logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
-                return
+                continue
             # 解析JSON响应
             res = response.json()
             
             if res["text"] =="":
                 logger.put({"text":"返回值过滤-服务端规则","level":"info"})
-                return
+                continue
             if res["text"] in filter:
                 logger.put({"text":"返回值过滤-自定义规则","level":"info"})
-                return
+                continue
 
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
@@ -94,7 +96,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                         res['translatedText']=''
             et=time.time()
             logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
-            if defaultCommand.handle(res["text"],params=params):return
+            if defaultCommand.handle(res["text"],params=params):continue
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
             else:
                 if params["runmode"] == "text" or params["runmode"] == "translation": 
@@ -107,21 +109,19 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
                     if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                        return
                     if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
                         tts.tts_audio(res['text'],language=sourceLanguage)
-                        return
                 if params["runmode"] == "control":avatar.handle(res)
                 if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
             et=time.time()
             logger.put({"text":f"总用时：{round(et-st,2)}s","level":"debug"})
 
-    except requests.JSONDecodeError:
-        logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
-        return
-    except Exception as e:
-        logger.put({"text":"once未知异常"+str(e),"level":"error"})
-        return
+        except requests.JSONDecodeError:
+            logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
+            continue
+        except Exception as e:
+            logger.put({"text":"once未知异常"+str(e),"level":"error"})
+            continue
 def change_run(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
     params[key]=not params[key]
@@ -152,7 +152,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
@@ -191,7 +191,7 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         with m as s:
@@ -216,7 +216,7 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
         params["micStopped"]=True
 
 
-def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     if config.get("gameMicName")== "" or config.get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
@@ -255,7 +255,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
     except:pass
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         with m as s:
@@ -280,7 +280,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 
-def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
+def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     from .recordLocal import voice_activation_stream
     if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
@@ -316,7 +316,7 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         while params["running"]:

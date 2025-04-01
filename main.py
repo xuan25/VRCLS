@@ -4,7 +4,7 @@ from src.core.startup import StartUp
 from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process,copyBox_process
-from src.module.sherpaOnnx import sherpa_onnx_run,sherpa_onnx_run_local
+from src.module.sherpaOnnx import sherpa_onnx_run,sherpa_onnx_run_local,sherpa_onnx_run_mic
 import time
 import json,os,traceback,sys
 import webbrowser
@@ -79,16 +79,18 @@ def rebootJob():
         steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config))
         steamvrThread.start()
     if startUp.config.get("localizedSpeech"):
-        listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+        listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
     else:
-        listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+        listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
     listener_thread.start()
     if startUp.config.get("Separate_Self_Game_Mic")==1:
-        listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+        listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread1.start()
     elif startUp.config.get("Separate_Self_Game_Mic")==2:
-        listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+        listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread1.start()
+
+
 
     
     params["running"] = True
@@ -113,6 +115,12 @@ def saveConfig():
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
             return startUp.config
         if startUp.config.get("CopyBox") != data["config"].get("CopyBox"):
+            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+            return startUp.config
+        if startUp.config.get("localizedSpeech") != data["config"].get("localizedSpeech"):
+            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+            return startUp.config
+        if startUp.config.get("localizedCapture") != data["config"].get("localizedCapture"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
             return startUp.config
         startUp.config=data["config"]
@@ -323,7 +331,7 @@ if __name__ == '__main__':
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
 
-               当前版本: V0.5.0-beta6
+               当前版本: V0.5.0-beta7
                    
         '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
@@ -376,15 +384,15 @@ if __name__ == '__main__':
             steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params,startUp.config))
             steamvrThread.start()
         if startUp.config.get("localizedSpeech"):
-            listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+            listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         else:
-            listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+            listener_thread = Process(target=selfMic_listen,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread.start()
         if startUp.config.get("Separate_Self_Game_Mic")==1:
-            listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+            listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
-            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList))
+            listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,startUp.config,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
 
 
