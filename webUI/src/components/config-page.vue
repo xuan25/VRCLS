@@ -272,7 +272,40 @@
                                     <el-option label="翻译模式麦克风+桌面音频译文输出" :value="3"></el-option>
                                 </el-select>
                             </el-form-item>
-
+                            <el-form-item label="翻译引擎">
+                                <el-tooltip
+                                    class="box-item"
+                                    effect="dark"
+                                    content="如果翻译提示翻译异常，可以尝试更换引擎"
+                                    placement="right"
+                                >
+                                <el-select v-model="data.config.translateService">
+                                   <el-option label="小牛翻译" value="niutrans"></el-option> 
+                                    <el-option label="MyMemory" value="myMemory"></el-option> 
+                                    <el-option label="阿里巴巴" value="alibaba"></el-option> 
+                                    <el-option label="百度(坏的)" value="baidu"></el-option> 
+                                    <el-option label="ModernMt" value="modernMt"></el-option> 
+                                    <el-option label="火山翻译" value="volcEngine"></el-option>
+                                    <el-option label="金山词霸" value="iciba"></el-option> 
+                                    <el-option label="讯飞智能" value="iflytek"></el-option> 
+                                    <el-option label="Bing" value="bing"></el-option> 
+                                    <el-option label="Lingvanex" value="lingvanex"></el-option> 
+                                    <el-option label="Yandex" value="yandex"></el-option>
+                                    <el-option label="Itranslate" value="itranslate"></el-option>
+                                    <el-option label="Deepl" value="deepl"></el-option>
+                                    <el-option label="云译" value="cloudTranslation"></el-option>
+                                    <el-option label="腾讯交互翻译" value="qqTranSmart"></el-option> 
+                                    <el-option label="Itranslate" value="itranslate"></el-option>
+                                    <el-option label="搜狗" value="sogou"></el-option>
+                                    <el-option label="腾讯翻译君" value="qqFanyi"></el-option> 
+                                    <el-option label="有道" value="youdao"></el-option>
+                                    <el-option label="讯飞听见" value="iflyrec"></el-option>
+                                    <el-option label="沪江" value="hujiang"></el-option> 
+                                    <el-option label="中译语通" value="yeekit"></el-option>
+                                    
+                                </el-select>
+                                </el-tooltip>
+                            </el-form-item>
 
                         </el-form>
                     </el-card>

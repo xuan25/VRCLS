@@ -6,8 +6,9 @@ import time
 import pyttsx3
 import translators
 import html
-import  traceback
-def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
+import traceback
+def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList):
+    
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -26,85 +27,94 @@ def once(audio:sr.AudioData,sendClient,config,params,logger,filter,mode,steamvrQ
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
     tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList)
     baseurl=config.get('baseurl')
+    translator=config.get('translateService')
     try:
+        while params["running"]:
+            audio=audioQueue.get()
+            st=time.time()
+            
+            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
+            
+            if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
+                url=baseurl+"/whisper/multitranscription"
+            elif params["runmode"] == "translation":
+                if mode =="cap":
+                    tmp=sourceLanguage
+                    sourceLanguage=tragetTranslateLanguage
+                    tragetTranslateLanguage=tmp
+                if config["translationServer"] == "libre":
 
-        logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
-        st=time.time()
-        if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
-            url=baseurl+"/whisper/multitranscription"
-        elif params["runmode"] == "translation":
-            if mode =="cap":
-                tmp=sourceLanguage
-                sourceLanguage=tragetTranslateLanguage
-                tragetTranslateLanguage=tmp
-            if config["translationServer"] == "libre":
-
-                # if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
-                # elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
-                # else:url=baseurl+"/func/translateToOtherLanguage"
+                    # if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
+                    # elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
+                    # else:url=baseurl+"/func/translateToOtherLanguage"
+                    url = baseurl+"/whisper/multitranscription"
+                else:
+                    url=baseurl+"/func/doubleTransciption"
+            else: 
+                logger.put({"text":"运行模式异常,运行默认控制模式","level":"debug"})
+                params["runmode"] = "control"
                 url = baseurl+"/whisper/multitranscription"
-            else:
-                url=baseurl+"/func/doubleTransciption"
-        else: 
-            logger.put({"text":"运行模式异常,运行默认控制模式","level":"debug"})
-            params["runmode"] = "control"
-            url = baseurl+"/whisper/multitranscription"
-        logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
-        files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
-        
-        data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
-        response = requests.post(url, files=files, data=data, headers=params['headers'])
-        # 检查响应状态码
-        if response.status_code != 200:
-            if response.status_code == 430:
-                res=response.json()
-                logger.put({"text":f"请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
-            else:    
-                logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
-            return
-        # 解析JSON响应
-        res = response.json()
-        
-        if res["text"] =="":
-            logger.put({"text":"返回值过滤-服务端规则","level":"info"})
-            return
-        if res["text"] in filter:
-            logger.put({"text":"返回值过滤-自定义规则","level":"info"})
-            return
+            logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
+            files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
+            
+            data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
+            response = requests.post(url, files=files, data=data, headers=params['headers'])
+            # 检查响应状态码
+            if response.status_code != 200:
+                if response.status_code == 430:
+                    res=response.json()
+                    logger.put({"text":f"请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
+                else:    
+                    logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                return
+            # 解析JSON响应
+            res = response.json()
+            
+            if res["text"] =="":
+                logger.put({"text":"返回值过滤-服务端规则","level":"info"})
+                return
+            if res["text"] in filter:
+                logger.put({"text":"返回值过滤-自定义规则","level":"info"})
+                return
 
-        if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
-        elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
-        
-        if params["runmode"] == "translation":
-            try:
-                logger.put({"text":f"restext:{res["text"]}","level":"debug"})
-                res['translatedText']=html.unescape(translators.translate_text(res["text"],from_language=sourceLanguage,to_language=tragetTranslateLanguage))
-            except Exception as e:
-                if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
-                    logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
-                    res['translatedText']=res["text"]
-                else:logger.put({"text":f"翻译异常：{e}","level":"error"})
-        et=time.time()
-        logger.put({"text":f"用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
-        if defaultCommand.handle(res["text"],params=params):return
-        if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
-        else:
-            if params["runmode"] == "text" or params["runmode"] == "translation": 
-                for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
-                if params["runmode"] == "translation" : 
-                    for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
-                if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
-                chatbox.handle(res,runMode=params["runmode"])
-                if config.get("TTSToggle")==3:
-                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
-                    tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                    return
-                if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
-                    tts.tts_audio(res['text'],language=sourceLanguage)
-                    return
-            if params["runmode"] == "control":avatar.handle(res)
-            if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
+            if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
+            elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
+            et0=time.time()
+            if params["runmode"] == "translation":
+                try:
+                    logger.put({"text":f"restext:{res["text"]}","level":"debug"})
+                    res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
+                except Exception as e:
+                    if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                        logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
+                        res['translatedText']=res["text"]
+                    else:
+                        logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{e};","level":"error"})
+                        logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
+                        res['translatedText']=''
+            et=time.time()
+            logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
+            if defaultCommand.handle(res["text"],params=params):return
+            if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
+            else:
+                if params["runmode"] == "text" or params["runmode"] == "translation": 
+                    for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
+                    if params["runmode"] == "translation" : 
+                        for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
+                    if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
+                    chatbox.handle(res,runMode=params["runmode"])
+                    if config.get("TTSToggle")==3:
+                        tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
+                    if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
+                        tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
+                        return
+                    if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
+                        tts.tts_audio(res['text'],language=sourceLanguage)
+                        return
+                if params["runmode"] == "control":avatar.handle(res)
+                if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
+            et=time.time()
+            logger.put({"text":f"总用时：{round(et-st,2)}s","level":"debug"})
 
     except requests.JSONDecodeError:
         logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
@@ -180,25 +190,30 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
     try:pyttsx3.speak("麦克风音频进程启动完毕")
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
-    with m as s:
-        while params["running"]:
-            if not params["voiceKeyRun"]:continue
-            try:  # listen for 1 second, then check again if the stop function has been called
-                audio = r.listen(s, 10,30)
-                count=0
-            except sr.WaitTimeoutError:  # listening timed out, just try again
-                if params["runmode"] == "bitMapLed":
-                    if count>=2:
-                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
-                        pt.start()
-                    else:count+=1
-            else:
-                if params["running"] and params["voiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
-                    p.start()
-
-    logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
-    params["micStopped"]=True
+    audioQueue=Queue(-1)
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p.start()
+    try:
+        with m as s:
+            while params["running"]:
+                if not params["voiceKeyRun"]:continue
+                try:  # listen for 1 second, then check again if the stop function has been called
+                    audio = r.listen(s, 10,30)
+                    count=0
+                except sr.WaitTimeoutError:  # listening timed out, just try again
+                    if params["runmode"] == "bitMapLed":
+                        if count>=2:
+                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                            pt.start()
+                        else:count+=1
+                else:
+                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+    finally:
+        p.terminate()
+        while p.is_alive():time.sleep(0.5)
+        else: p.close()
+        logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
+        params["micStopped"]=True
 
 
 def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
@@ -239,25 +254,31 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
     try:pyttsx3.speak("游戏音频进程启动完毕")
     except:pass
     count=0
-    with m as s:
-        while params["running"]:
-            if not params["gameVoiceKeyRun"]:continue
-            try:  # listen for 1 second, then check again if the stop function has been called
-                audio = r.listen(s, 10,30)
-                count=0
-            except sr.WaitTimeoutError:  # listening timed out, just try again
-                if params["runmode"] == "bitMapLed":
-                    if count>=2:
-                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger,"vm"))
-                        pt.start()
-                    else:count+=1
-            else:
-                if params["running"] and params["gameVoiceKeyRun"]:
-                    p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList))
-                    p.start()
-
-    logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
-    params["gameStopped"] = True
+    audioQueue=Queue(-1)
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p.start()
+    try:
+        with m as s:
+            while params["running"]:
+                if not params["gameVoiceKeyRun"]:continue
+                try:  # listen for 1 second, then check again if the stop function has been called
+                    audio = r.listen(s, 10,30)
+                    count=0
+                except sr.WaitTimeoutError:  # listening timed out, just try again
+                    if params["runmode"] == "bitMapLed":
+                        if count>=2:
+                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger,"vm"))
+                            pt.start()
+                        else:count+=1
+                else:
+                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+    finally:
+        p.terminate()
+        while p.is_alive():time.sleep(0.5)
+        else: p.close()
+        p.close()
+        logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
+        params["gameStopped"] = True
 
 def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList):
     from .recordLocal import voice_activation_stream
@@ -294,29 +315,36 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
     try:pyttsx3.speak("桌面音频进程启动完毕")
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
-    while params["running"]:
-        if not params["gameVoiceKeyRun"]:continue
-        try:  # listen for 1 second, then check again if the stop function has been called
-            audio = voice_activation_stream(
-                logger=logger,
-                micIndex=micIndex,
-                params=params,
-                silence_threshold=int(energy_threshold)
-            )
-            count=0
-        except sr.WaitTimeoutError:  # listening timed out, just try again
-            if params["runmode"] == "bitMapLed":
-                if count>=2:
-                    pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
-                    pt.start()
-                else:count+=1
-        else:
-            if params["running"] and params["gameVoiceKeyRun"]:
-                p = Process(target=once,daemon=True, args=(audio,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList))
-                p.start()
+    audioQueue=Queue(-1)
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList))
+    p.start()
+    try:
+        while params["running"]:
+            if not params["gameVoiceKeyRun"]:continue
+            try:  # listen for 1 second, then check again if the stop function has been called
+                audio = voice_activation_stream(
+                    logger=logger,
+                    micIndex=micIndex,
+                    params=params,
+                    silence_threshold=int(energy_threshold)
+                )
+                count=0
+            except sr.WaitTimeoutError:  # listening timed out, just try again
+                if params["runmode"] == "bitMapLed":
+                    if count>=2:
+                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                        pt.start()
+                    else:count+=1
+            else:
+                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+    finally:
+        p.terminate()
+        while p.is_alive():time.sleep(0.5)
+        else: p.close()
+        p.close()
 
-    logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
-    params["gameStopped"] = True
+        logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
+        params["gameStopped"] = True
 
 def logger_process(queue, copyqueue, params):
     from .logger import MyLogger
