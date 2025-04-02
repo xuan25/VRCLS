@@ -146,6 +146,7 @@ class TTSHandler:
     def __delattr__(self, name):
         self.p.terminate()
     def tts_audio(self, text, language='zh'):
+        # TODO 增加按键切换开关
         self.logger.put({"text": f"{self.baseurl}/func/tts", "level": "debug"})
 
         try:
