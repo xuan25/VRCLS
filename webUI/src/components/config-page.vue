@@ -16,7 +16,7 @@
             </el-button-group>
             <el-row :gutter="20">
                 <el-col :span="8" >
-                    <el-card style="height: 850px;">
+                    <el-card style="height: 900px;">
                         <template #header>
                             <div class="card-header">
                             <span>程序配置</span>
@@ -280,7 +280,8 @@
                                     placement="right"
                                 >
                                 <el-select v-model="data.config.translateService">
-                                   <el-option label="小牛翻译" value="niutrans"></el-option> 
+                                    <el-option label="开发者服务器" value="developer"></el-option> 
+                                    <el-option label="小牛翻译" value="niutrans"></el-option> 
                                     <el-option label="MyMemory" value="myMemory"></el-option> 
                                     <el-option label="阿里巴巴" value="alibaba"></el-option> 
                                     <el-option label="百度(坏的)" value="baidu"></el-option> 
@@ -306,6 +307,12 @@
                                 </el-select>
                                 </el-tooltip>
                             </el-form-item>
+                            <el-form-item label="暂停osc输出">
+                                <el-select v-model="data.config.oscShutdown">
+                                    <el-option label="开启" :value="true"></el-option>
+                                    <el-option label="关闭" :value="false"></el-option>
+                                </el-select>
+                            </el-form-item>
 
                         </el-form>
                     </el-card>
@@ -327,7 +334,7 @@
                             </el-form-item>
                         </el-form>
                     </el-card>
-                    <el-card style="height: 600px;">
+                    <el-card style="height: 650px;">
                         <template #header>
                             <div class="card-header">
                             <span>默认脚本关键词配置</span>
@@ -360,7 +367,7 @@
                     </el-card>
                 </el-col>
                 <el-col :span="8">
-                    <el-card style="height: 850px;">
+                    <el-card style="height: 900px;">
                         <template #header>
                             <div class="card-header">
                             <span>语音控制配置</span>

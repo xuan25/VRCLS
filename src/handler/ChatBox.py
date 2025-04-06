@@ -1,4 +1,4 @@
-from typing import Optional
+import time
 from .base_handler import BaseHandler
 from .Color import Colors
 class ChatboxHandler(BaseHandler):
@@ -15,9 +15,21 @@ class ChatboxHandler(BaseHandler):
         text=res['text']
         transtext=res.get('translatedText')
         self.logger.put({"text":f"{Colors.CYAN}输出文字: {transtext}({text}){Colors.END}","level":"info"})
-        self.osc_client.send_message("/chatbox/input",[ f'{transtext}({text})', True, False])
+        while True:
+            try:
+                self.osc_client.send_message("/chatbox/input",[ f'{transtext}({text})', True, False])
+                break
+            except OSError:
+                time.sleep(0.1)
+                continue
 
     def sendTextFunction(self,res:str):
         text=res['text']
         self.logger.put({"text":f"{Colors.CYAN}输出文字: {text}{Colors.END}","level":"info"})
-        self.osc_client.send_message("/chatbox/input",[ f'{text}', True, False])   
+        while True:
+            try:
+                self.osc_client.send_message("/chatbox/input",[ f'{text}', True, False])   
+                break
+            except OSError:
+                time.sleep(0.1)
+                continue

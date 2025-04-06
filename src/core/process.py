@@ -7,6 +7,7 @@ import pyttsx3
 import translators
 import html
 import traceback
+
 def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
     
     from ..handler.DefaultCommand import DefaultCommand
@@ -45,11 +46,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                     sourceLanguage=tragetTranslateLanguage
                     tragetTranslateLanguage=tmp
                 if config["translationServer"] == "libre":
-
-                    # if tragetTranslateLanguage=="en" and sourceLanguage== "zh" :url=baseurl+"/func/translateToEnglish"
-                    # elif sourceLanguage != "zh" :url=baseurl+"/func/multitranslateToOtherLanguage"
-                    # else:url=baseurl+"/func/translateToOtherLanguage"
-                    url = baseurl+"/whisper/multitranscription"
+                    url=baseurl+"/func/multitranslateToOtherLanguage" if config.get("translateService")=="developer" else baseurl+"/whisper/multitranscription"
                 else:
                     url=baseurl+"/func/doubleTransciption"
             else: 
@@ -82,7 +79,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et0=time.time()
-            if params["runmode"] == "translation":
+            if params["runmode"] == "translation" and config.get("translateService")!="developer":
                 try:
                     logger.put({"text":f"restext:{res["text"]}","level":"debug"})
                     res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
@@ -95,7 +92,10 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                         logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
                         res['translatedText']=''
             et=time.time()
-            logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
+            if config.get("translateService")!="developer":
+                logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
+            else:
+                logger.put({"text":f"服务器识别+翻译用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
             if defaultCommand.handle(res["text"],params=params):continue
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
             else:
@@ -104,7 +104,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
                     if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
-                    chatbox.handle(res,runMode=params["runmode"])
+                    if not config.get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
                     if config.get("TTSToggle")==3:
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
                     if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
@@ -114,7 +114,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                 if params["runmode"] == "control":avatar.handle(res)
                 if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
             et=time.time()
-            logger.put({"text":f"总用时：{round(et-st,2)}s","level":"debug"})
+            logger.put({"text":f"服务器识别总用时：{round(et-st,2)}s","level":"debug"})
 
         except requests.JSONDecodeError:
             logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
@@ -366,7 +366,7 @@ def logger_process(queue, copyqueue, params):
                      (date TEXT PRIMARY KEY, count INTEGER DEFAULT 0)''')
     conn.commit()
     # 定义需要统计的关键词列表
-    keyweod_list = ["返回值过滤-"]
+    keyweod_list = ["返回值过滤-","服务器翻译成功："]
     localizedSpeech=None
     localizedCapture=None
     TTSToggle=None
@@ -374,9 +374,9 @@ def logger_process(queue, copyqueue, params):
         text = queue.get()
         if localizedSpeech != params.get("localizedSpeech"):
             localizedSpeech=params.get("localizedSpeech")
-            if not localizedSpeech: keyweod_list.append("输出文字: ")
+            if not localizedSpeech: keyweod_list.append("服务器识别总用时：")
             else:
-                try:keyweod_list.remove("输出文字: ")
+                try:keyweod_list.remove("服务器识别总用时：")
                 except:pass
         if localizedCapture != params.get("localizedCapture"):
             localizedCapture=params.get("localizedCapture")
@@ -489,6 +489,7 @@ def steamvr_process(logger, queue: Queue, params,config):
                 last_success = time.time()
                 check_interval = 10  # 手柄状态检查间隔
                 error_count = 0
+                retry_count=0
                 MAX_ERRORS = 5  # 最大连续错误次数
                 textOverlay._create_text_texture()
                 textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))

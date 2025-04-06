@@ -36,7 +36,8 @@ defaultConfig={
     "CopyBox":False,
     "TTSToggle":0,#0 关闭 1 翻译模式麦克风译文输出 2 文字发送模式麦克风原文 3 翻译模式麦克风+桌面音频译文输出
     "TTSOutputName":'default',
-    "translateService":'alibaba',
+    "translateService":'developer',
+    "oscShutdown":False,
     "defaultScripts": [
         {
             "action": "sendText",

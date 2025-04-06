@@ -9,6 +9,7 @@ import pyttsx3
 import keyboard
 import html
 import traceback
+from pythonosc import udp_client
 def change_run_local(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
     params[key]=not params[key]
@@ -115,6 +116,8 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
     messageQueue=Queue(-1)
     p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice,ttsVoice))
     p.start()
+    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    lastSendTime=time.time()
     try:
         while params["running"]:
             if not params["gameVoiceKeyRun"]:continue
@@ -131,7 +134,12 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
 
             if result and (last_result != result):
                 last_result = result
-                
+
+                nowtime=time.time()
+                if nowtime-lastSendTime>1:
+                    lastSendTime=nowtime
+                    client.send_message("/chatbox/input",[ f'{result}', True, False]) 
+            
             if is_endpoint:
                 if result:
                    messageQueue.put(result)
@@ -205,6 +213,8 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     messageQueue=Queue(-1)
     p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
+    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    lastSendTime=time.time()
     try:
         while params["running"]:
             if not params["voiceKeyRun"]:continue
@@ -221,8 +231,13 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
 
             if result and (last_result != result):
                 last_result = result
-                
-            if is_endpoint or len(result)>30:
+                nowtime=time.time()
+                if nowtime-lastSendTime>1:
+                    lastSendTime=nowtime
+                    client.send_message("/chatbox/input",[ f'{result}', True, False]) 
+
+             
+            if is_endpoint:
                 if result:
                     messageQueue.put(result)
                 recognizer.reset(stream)
@@ -295,6 +310,8 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
     messageQueue=Queue(-1)
     p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
+    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    lastSendTime=time.time()
     try:
         while params["running"]:
             if not params["gameVoiceKeyRun"]:continue
@@ -311,8 +328,13 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
 
             if result and (last_result != result):
                 last_result = result
-                
-            if is_endpoint or len(result)>30:
+            
+                nowtime=time.time()
+                if nowtime-lastSendTime>1:
+                    lastSendTime=nowtime
+                    client.send_message("/chatbox/input",[ f'{result}', True, False]) 
+
+            if is_endpoint:
                 if result:
                     messageQueue.put(result)
                 recognizer.reset(stream)
@@ -338,7 +360,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     from ..handler.SelfRead import SelfReadHandler
     from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
-
+    import requests
     
 
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
@@ -349,7 +371,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     translator=config.get('translateService')
     
-    
+    baseurl=config.get('baseurl')
     while params["running"]:
         try:
     
@@ -359,20 +381,47 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
             res['text']=result.get()
             st=time.time()
             et0=time.time()
-            if params["runmode"] == "translation": 
-                try:
-                    res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=tragetTranslateLanguage if mode== "cap" else sourceLanguage,to_language=tragetTranslateLanguage if mode== "mic" else sourceLanguage))
-                except Exception as e:
-                    if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
-                        logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
-                        res['translatedText']=res["text"]
-                    else:
-                        logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{str(e)}","level":"error"})
-                        logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
-                        res['translatedText']=''
+            if params["runmode"] == "translation":
+                if mode =="cap":
+                    tmp=sourceLanguage
+                    sourceLanguage=tragetTranslateLanguage
+                    tragetTranslateLanguage=tmp
+                if config.get("translateService")!="developer":
+
+                    try:
+                        res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
+                    except Exception as e:
+                        if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                            logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
+                            res['translatedText']=res["text"]
+                        else:
+                            logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{str(e)}","level":"error"})
+                            logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
+                            res['translatedText']=''
+                else:
+                    url=baseurl+'/func/webtranslate'
+                    data = {"text":res['text'],"targetLanguage": tragetTranslateLanguage, "sourceLanguage": "zh" if sourceLanguage=="zt" else  sourceLanguage}
+                    logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
+                    response=requests.post(url, json=data, headers=params['headers'])
+                    
+                                # 检查响应状态码
+                    if response.status_code != 200:
+                        if response.status_code == 430:
+                            res=response.json()
+                            logger.put({"text":f"请求过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+                        else:    
+                            logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                        continue
+                    # 解析JSON响应
+                    res = response.json()
+                    logger.put({"text":f"服务器翻译成功：","level":"debug"})
+                        
+                
+                
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et=time.time()
+            logger.put({"text":f"本地桌面音频识别结果: " + res["text"],"level":"debug"})
             logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
             if defaultCommand.handle(res["text"],params=params):continue
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
@@ -382,7 +431,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
                     if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
-                    chatbox.handle(res,runMode=params["runmode"])
+                    if not config.get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
                     if config.get("TTSToggle")==3:
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage if mode=="mic" else sourceLanguage)
                     if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
