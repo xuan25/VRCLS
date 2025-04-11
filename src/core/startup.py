@@ -75,7 +75,7 @@ class StartUp:
         self.configCheck()
         if self.config.get("CopyBox"):self.params["opencopybox"]=True
         # self.initffmpeg()
-        if not self.config.get('localizedSpeech') or self.config.get("Separate_Self_Game_Mic") !=0 or self.config.get("TTSToggle") !=0:
+        if not self.config.get('localizedSpeech') or self.config.get("Separate_Self_Game_Mic") !=0 or self.config.get("TTSToggle") !=0 or self.config.get("translateService") =='developer':
            return self.checkAccount()
         else:
             try:
