@@ -4,22 +4,21 @@ import winsound
 import time
 import pyttsx3
 class AvatarHandler(BaseHandler):
-    def __init__(self,logger, osc_client,config):
+    def __init__(self,logger, osc_client,params):
         super().__init__(osc_client)
-        self.config=config
+        self.params=params
         self.logger=logger
     """聊天框处理器"""
         
     def handle(self, message: str):
         self.controlFunction(message)
     def controlFunction(self,res):
-        config=self.config
         logger=self.logger
         text=res['text']
         global running
-        if config["activateText"] == "":
+        if self.params["config"]["activateText"] == "":
             logger.put({"text":"无头命令:"+text,"level":"info"})
-            for script in config.get("scripts"):
+            for script in self.params["config"].get("scripts"):
                 if any( command in text  for command in script.get("text")):
                     logger.put({"text":"执行命令:"+script["action"],"level":"info"})
                     for vrcaction in script["vrcActions"]:
@@ -34,13 +33,13 @@ class AvatarHandler(BaseHandler):
                         time.sleep( float(vrcaction.get("sleeptime")) if vrcaction.get("sleeptime") is not None and vrcaction.get("sleeptime") != ""  else 0.1)
                     try:pyttsx3.speak(f"触发命令 {script["action"]}")
                     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
-        elif config["activateText"] in text:
-            commandlist=text.split(config["activateText"])
+        elif self.params["config"]["activateText"] in text:
+            commandlist=text.split(self.params["config"]["activateText"])
             command=commandlist[-1]
-            if (config["stopText"] in command) or config["stopText"] == "":
-                if config["stopText"] != "":command=command.split(config["stopText"])[0]
+            if (self.params["config"]["stopText"] in command) or self.params["config"]["stopText"] == "":
+                if self.params["config"]["stopText"] != "":command=command.split(self.params["config"]["stopText"])[0]
                 logger.put({"text":"有头命令:"+command,"level":"info"})
-                for script in config.get("scripts"):
+                for script in self.params["config"].get("scripts"):
                     if command in script.get("text"):
                         logger.put({"text":"执行命令:"+script.get("action"),"level":"info"})
                         for vrcaction in script["vrcActions"]:

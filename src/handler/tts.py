@@ -127,18 +127,18 @@ import requests
 import pyaudio
 import miniaudio
 class TTSHandler:
-    def __init__(self,logger,config,mode,header,outputList,ttsVoice):
-        self.baseurl=config.get('baseurl')
+    def __init__(self,logger,params,mode,header,outputList,ttsVoice):
+        self.baseurl=params["config"].get('baseurl')
         self.sourceType='whisper'if mode!='mic' else'libre'
         self.header=header
         self.logger=logger
         self.ttsVoice=ttsVoice
-        if config.get("TTSOutputName")== "" or config.get("TTSOutputName") is None or config.get("TTSOutputName")== "default":
+        if params["config"].get("TTSOutputName")== "" or params["config"].get("TTSOutputName") is None or params["config"].get("TTSOutputName")== "default":
             logger.put({"text":"使用系统默认输出","level":"info"})
             self.deviceindex=None
         else:
             try:
-                self.deviceindex=outputList.index(config.get("TTSOutputName"))
+                self.deviceindex=outputList.index(params["config"].get("TTSOutputName"))
             except ValueError:
                 logger.put({"text":"无法找到指定输出，使用系统默认麦克风","level":"info"})
                 self.deviceindex=None

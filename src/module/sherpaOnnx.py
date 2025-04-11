@@ -1,21 +1,12 @@
-import pyaudiowpatch
-import numpy as np
-import sherpa_onnx
-from multiprocessing import Process,Queue
-# import baidu_translate as fanyi
-import translators
-import os,sys,time
-import pyttsx3
-import keyboard
-import html
-import traceback
-from pythonosc import udp_client
+
 def change_run_local(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
     params[key]=not params[key]
     logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}状态：{"打开" if params[key] else "关闭"}","level":"info"})
 
 def create_recognizer(logger,source):
+    import sherpa_onnx
+    import os,sys
 
         # 2. 动态路径注入（核心防护）
     if getattr(sys, 'frozen', False):
@@ -56,17 +47,24 @@ def create_recognizer(logger,source):
         blank_penalty=0.0,
     )
     return recognizer
-def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
+def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import pyaudiowpatch
+    import numpy as np
+    from multiprocessing import Process,Queue
+    import time
+    import pyttsx3
+    import keyboard
+    from pythonosc import udp_client
+    if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None or params["config"].get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
         micIndex=None
     else:
         device_index=False
         for i in micList:
-            if config.get("gameMicName")==i.get("name"):
+            if params["config"].get("gameMicName")==i.get("name"):
                 device_index=True
                 micIndex=i.get('index')
-                logger.put({"text":f"当前桌面音频：{config.get("gameMicName")}","level":"info"})
+                logger.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
                 break
         
         
@@ -74,8 +72,8 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
             logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
             micIndex=None
     params["gameVoiceKeyRun"]=True 
-    voiceMode=config.get("gameVoiceMode")
-    voiceHotKey=config.get("gameVoiceHotKey")
+    voiceMode=params["config"].get("gameVoiceMode")
+    voiceHotKey=params["config"].get("gameVoiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -90,7 +88,7 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
     device_info = pa.get_default_wasapi_loopback() if micIndex is None else pa.get_device_info_by_index(micIndex)
    
 
-    recognizer = create_recognizer(logger,config.get("targetTranslationLanguage"))
+    recognizer = create_recognizer(logger,params["config"].get("targetTranslationLanguage"))
     if recognizer is None:
         logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
         return
@@ -114,9 +112,9 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
     try:pyttsx3.speak("本地桌面音频进程启动完毕")
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice,ttsVoice))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice,ttsVoice))
     p.start()
-    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    client=udp_client.SimpleUDPClient(params["config"].get("osc-ip"), int(params["config"].get("osc-port")))
     lastSendTime=time.time()
     try:
         while params["running"]:
@@ -158,20 +156,27 @@ def sherpa_onnx_run_local(sendClient,config,params,logger,micList:list,defautMic
         p.close()
         logger.put({"text":"sound process exited complete||本地桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
-    if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
+def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import pyaudiowpatch
+    import numpy as np
+    from multiprocessing import Process,Queue
+    import time
+    import pyttsx3
+    import keyboard
+    from pythonosc import udp_client
+    if params["config"].get("micName")== "" or params["config"].get("micName") is None or params["config"].get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
     else:
         try:
-            micIndex=micList.index(config.get("micName"))
+            micIndex=micList.index(params["config"].get("micName"))
         except ValueError:
             logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
     params["voiceKeyRun"]=True 
-    voiceMode=config.get("voiceMode")
-    voiceHotKey=config.get("voiceHotKey")
+    voiceMode=params["config"].get("voiceMode")
+    voiceHotKey=params["config"].get("voiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -187,7 +192,7 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     input_device = pa.get_device_info_by_index(micIndex)
     
 
-    recognizer = create_recognizer(logger,config.get("sourceLanguage"))
+    recognizer = create_recognizer(logger,params["config"].get("sourceLanguage"))
     if recognizer is None:
         logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
         return
@@ -211,9 +216,9 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
-    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    client=udp_client.SimpleUDPClient(params["config"].get("osc-ip"), int(params["config"].get("osc-port")))
     lastSendTime=time.time()
     try:
         while params["running"]:
@@ -256,20 +261,27 @@ def sherpa_onnx_run(sendClient,config,params,logger,micList:list,defautMicIndex,
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
         
-def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
+def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import pyaudiowpatch
+    import numpy as np
+    from multiprocessing import Process,Queue
+    import time
+    import pyttsx3
+    import keyboard
+    from pythonosc import udp_client
+    if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
     else:
         try:
-            micIndex=micList.index(config.get("micName"))
+            micIndex=micList.index(params["config"].get("micName"))
         except ValueError:
             logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
     params["gameVoiceKeyRun"]=True 
-    voiceMode=config.get("gameVoiceMode")
-    voiceHotKey=config.get("gameVoiceHotKey")
+    voiceMode=params["config"].get("gameVoiceMode")
+    voiceHotKey=params["config"].get("gameVoiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -284,7 +296,7 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
     input_device = pa.get_device_info_by_index(micIndex)
     
 
-    recognizer = create_recognizer(logger,config.get("targetTranslationLanguage"))
+    recognizer = create_recognizer(logger,params["config"].get("targetTranslationLanguage"))
     if recognizer is None:
         logger.put({"text":"本地模型当前只支持，中文、英文、俄文、越南文、日文、泰文、印尼文和阿拉伯文","level":"warning"})
         return
@@ -308,9 +320,9 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     last_result = ""
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
-    client=udp_client.SimpleUDPClient(config.get("osc-ip"), int(config.get("osc-port")))
+    client=udp_client.SimpleUDPClient(params["config"].get("osc-ip"), int(params["config"].get("osc-port")))
     lastSendTime=time.time()
     try:
         while params["running"]:
@@ -352,7 +364,12 @@ def sherpa_onnx_run_mic(sendClient,config,params,logger,micList:list,defautMicIn
         p.close()
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
-def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
+def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
+    import translators
+    import time
+    import html
+    import traceback
+    
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -363,15 +380,15 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
     import requests
     
 
-    avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
-    defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
-    chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
-    bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
-    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
-    if config.get("TTSToggle")!=0:tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
-    translator=config.get('translateService')
+    avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
+    defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,params=params)
+    chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,params=params)
+    bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,params=params)
+    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
+    if params["config"].get("TTSToggle")!=0:tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
+    translator=params["config"].get('translateService')
     
-    baseurl=config.get('baseurl')
+    baseurl=params["config"].get('baseurl')
     while params["running"]:
         try:
     
@@ -386,7 +403,7 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
                     tmp=sourceLanguage
                     sourceLanguage=tragetTranslateLanguage
                     tragetTranslateLanguage=tmp
-                if config.get("translateService")!="developer":
+                if params["config"].get("translateService")!="developer":
 
                     try:
                         res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
@@ -428,15 +445,15 @@ def sherpa_once(result,sendClient,config,params,logger,filter,mode,steamvrQueue,
             else:
                 if params["runmode"] == "text" or params["runmode"] == "translation": 
                     for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
-                    if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
+                    if params["config"].get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
-                    if not config.get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
-                    if config.get("TTSToggle")==3:
+                    if not params["config"].get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
+                    if params["config"].get("TTSToggle")==3:
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage if mode=="mic" else sourceLanguage)
-                    if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
+                    if params["config"].get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                    if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
+                    if params["config"].get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
                         tts.tts_audio(res['text'],language=sourceLanguage)
                     
                 if params["runmode"] == "control":avatar.handle(res)

@@ -1,13 +1,13 @@
 from .base_handler import BaseHandler
 import pyttsx3
 class DefaultCommand(BaseHandler):
-    def __init__(self,logger, osc_client,config):
+    def __init__(self,logger, osc_client,params):
         super().__init__(osc_client)
-        self.defaultScripts=config["defaultScripts"]
+        self.params=params
         self.logger=logger
     def handle(self,text,params):
         params["runmode"]
-        for dafaultcommand in self.defaultScripts:
+        for dafaultcommand in self.params["config"]["defaultScripts"]:
             if any( command in text for command in dafaultcommand["text"]):
                 if dafaultcommand["action"]=="sendText":
                     if params["runmode"] =="text":

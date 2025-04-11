@@ -1,15 +1,9 @@
-import speech_recognition as sr
-import requests
-from multiprocessing import Process,Queue
-import keyboard
-import time
-import pyttsx3
-import translators
-import html
-import traceback
-
-def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
-    
+def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):
+    import requests
+    import time
+    import translators
+    import html
+    import traceback
     from ..handler.DefaultCommand import DefaultCommand
     from ..handler.ChatBox import ChatboxHandler
     from ..handler.Avatar import AvatarHandler
@@ -20,14 +14,14 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
 
     
 
-    avatar=AvatarHandler(logger=logger,osc_client=sendClient,config=config)
-    defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,config=config)
-    chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,config=config)
-    bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,config=config,params=params)
-    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,config=config)
-    tts=TTSHandler(logger=logger,config=config,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
-    baseurl=config.get('baseurl')
-    translator=config.get('translateService')
+    avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
+    defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,params=params)
+    chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,params=params)
+    bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,params=params)
+    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
+    tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
+    baseurl=params["config"].get('baseurl')
+    translator=params["config"].get('translateService')
     while params["running"]:
 
         try:
@@ -45,8 +39,8 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                     tmp=sourceLanguage
                     sourceLanguage=tragetTranslateLanguage
                     tragetTranslateLanguage=tmp
-                if config["translationServer"] == "libre":
-                    url=baseurl+"/func/multitranslateToOtherLanguage" if config.get("translateService")=="developer" else baseurl+"/whisper/multitranscription"
+                if params["config"]["translationServer"] == "libre":
+                    url=baseurl+"/func/multitranslateToOtherLanguage" if params["config"].get("translateService")=="developer" else baseurl+"/whisper/multitranscription"
                 else:
                     url=baseurl+"/func/doubleTransciption"
             else: 
@@ -79,7 +73,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et0=time.time()
-            if params["runmode"] == "translation" and config.get("translateService")!="developer":
+            if params["runmode"] == "translation" and params["config"].get("translateService")!="developer":
                 try:
                     logger.put({"text":f"restext:{res["text"]}","level":"debug"})
                     res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
@@ -92,7 +86,7 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                         logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
                         res['translatedText']=''
             et=time.time()
-            if config.get("translateService")!="developer":
+            if params["config"].get("translateService")!="developer":
                 logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
             else:
                 logger.put({"text":f"服务器识别+翻译用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
@@ -103,13 +97,13 @@ def once(audioQueue,sendClient,config,params,logger,filter,mode,steamvrQueue,cus
                     for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
-                    if config.get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
-                    if not config.get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
-                    if config.get("TTSToggle")==3:
+                    if params["config"].get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
+                    if not params["config"].get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
+                    if params["config"].get("TTSToggle")==3:
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                    if config.get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
+                    if params["config"].get("TTSToggle")==1 and mode == 'mic' and params["runmode"] == "translation" :
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
-                    if config.get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
+                    if params["config"].get("TTSToggle")==2 and mode == 'mic'and params["runmode"] == "text" :
                         tts.tts_audio(res['text'],language=sourceLanguage)
                 if params["runmode"] == "control":avatar.handle(res)
                 if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
@@ -127,7 +121,8 @@ def change_run(params,logger,mode):
     params[key]=not params[key]
     logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}状态：{"打开" if params[key] else "关闭"}","level":"info"})
 
-def clearVRCBitmapLed(client,config,params,logger):
+def clearVRCBitmapLed(client,params,logger):
+    import time
     logger.put({"text":f"开始清空点阵屏","level":"info"})
 
     if "clear" not in params["VRCBitmapLed_taskList"]:params["VRCBitmapLed_taskList"].append("clear")
@@ -135,7 +130,7 @@ def clearVRCBitmapLed(client,config,params,logger):
     while params["VRCBitmapLed_taskList"][0]!="clear":
         if "clear" not in params["VRCBitmapLed_taskList"]:return
         time.sleep(0.1)
-    num=(8 if config.get("VRCBitmapLed_row") is None else config.get("VRCBitmapLed_row") )*(16 if config.get("VRCBitmapLed_col") is None else config.get("VRCBitmapLed_col"))
+    num=(8 if params["config"].get("VRCBitmapLed_row") is None else params["config"].get("VRCBitmapLed_row") )*(16 if params["config"].get("VRCBitmapLed_col") is None else params["config"].get("VRCBitmapLed_col"))
     if num==128:
         for i in range(num):
 
@@ -152,13 +147,18 @@ def clearVRCBitmapLed(client,config,params,logger):
     params["VRCBitmapLed_taskList"].pop(0)
     logger.put({"text":f"清空点阵屏完成","level":"info"})
 
-def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
-    if config.get("micName")== "" or config.get("micName") is None or config.get("micName")== "default":
+def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import speech_recognition as sr
+    from multiprocessing import Process,Queue
+    import keyboard
+    import time
+    import pyttsx3
+    if params["config"].get("micName")== "" or params["config"].get("micName") is None or params["config"].get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
         micIndex=defautMicIndex
     else:
         try:
-            micIndex=micList.index(config.get("micName"))
+            micIndex=micList.index(params["config"].get("micName"))
         except ValueError:
             logger.put({"text":"无法找到指定麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
@@ -166,11 +166,11 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
     r = sr.Recognizer()
     m = sr.Microphone(device_index=micIndex)
     params["voiceKeyRun"]=True 
-    voiceMode=config.get("voiceMode")
-    dynamicVoice=config.get("dynamicThreshold")
+    voiceMode=params["config"].get("voiceMode")
+    dynamicVoice=params["config"].get("dynamicThreshold")
     r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
-    customthreshold=config.get("customThreshold")
-    voiceHotKey=config.get("voiceHotKey")
+    customthreshold=params["config"].get("customThreshold")
+    voiceHotKey=params["config"].get("voiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -191,7 +191,7 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,params,logger,filter,"mic",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         with m as s:
@@ -203,7 +203,7 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
                 except sr.WaitTimeoutError:  # listening timed out, just try again
                     if params["runmode"] == "bitMapLed":
                         if count>=2:
-                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,params,logger))
                             pt.start()
                         else:count+=1
                 else:
@@ -216,13 +216,20 @@ def selfMic_listen(sendClient,config,params,logger,micList:list,defautMicIndex,f
         params["micStopped"]=True
 
 
-def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None :
+def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import speech_recognition as sr
+
+    from multiprocessing import Process,Queue
+    import keyboard
+    import time
+    import pyttsx3
+
+    if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
         return
     else:
         try:
-            micIndex=micList.index(config.get("micName"))
+            micIndex=micList.index(params["config"].get("micName"))
         except ValueError:
             logger.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
             micIndex=defautMicIndex
@@ -230,11 +237,11 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
     r = sr.Recognizer()
     m = sr.Microphone(device_index=micIndex)
     params["gameVoiceKeyRun"]=True 
-    voiceMode=config.get("voiceMode")
-    dynamicVoice=config.get("dynamicThreshold")
+    voiceMode=params["config"].get("voiceMode")
+    dynamicVoice=params["config"].get("dynamicThreshold")
     r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
-    customthreshold=config.get("gameCustomThreshold")
-    voiceHotKey=config.get("gameVoiceHotKey")
+    customthreshold=params["config"].get("gameCustomThreshold")
+    voiceHotKey=params["config"].get("gameVoiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -255,7 +262,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
     except:pass
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         with m as s:
@@ -267,7 +274,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
                 except sr.WaitTimeoutError:  # listening timed out, just try again
                     if params["runmode"] == "bitMapLed":
                         if count>=2:
-                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger,"vm"))
+                            pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,params,logger,"vm"))
                             pt.start()
                         else:count+=1
                 else:
@@ -280,18 +287,24 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 
-def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
+    import speech_recognition as sr
+    from multiprocessing import Process,Queue
+    import keyboard
+    import time
+    import pyttsx3
+
     from .recordLocal import voice_activation_stream
-    if config.get("gameMicName")== "" or config.get("gameMicName") is None or config.get("gameMicName")== "default":
+    if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None or params["config"].get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
         micIndex=None
     else:
         device_index=False
         for i in micList:
-            if config.get("gameMicName")==i.get("name"):
+            if params["config"].get("gameMicName")==i.get("name"):
                 device_index=True
                 micIndex=i.get('index')
-                logger.put({"text":f"当前桌面音频：{config.get("gameMicName")}","level":"info"})
+                logger.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
                 break
         
             
@@ -299,9 +312,9 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
             logger.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
             micIndex=None
     params["gameVoiceKeyRun"]=True 
-    voiceMode=config.get("gameVoiceMode")
-    customthreshold=config.get("gameCustomThreshold")
-    voiceHotKey=config.get("gameVoiceHotKey")
+    voiceMode=params["config"].get("gameVoiceMode")
+    customthreshold=params["config"].get("gameCustomThreshold")
+    voiceHotKey=params["config"].get("gameVoiceHotKey")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
@@ -316,7 +329,7 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     count=0
     audioQueue=Queue(-1)
-    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,config,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
+    p = Process(target=once,daemon=True, args=(audioQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     try:
         while params["running"]:
@@ -332,7 +345,7 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
             except sr.WaitTimeoutError:  # listening timed out, just try again
                 if params["runmode"] == "bitMapLed":
                     if count>=2:
-                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,config,params,logger))
+                        pt = Process(target=clearVRCBitmapLed,daemon=True, args=(sendClient,params,logger))
                         pt.start()
                     else:count+=1
             else:
@@ -462,13 +475,14 @@ def logger_process(queue, copyqueue, params):
 #         openvr.shutdown()
 #         time.sleep(1)
 
-def steamvr_process(logger, queue: Queue, params,config):
+def steamvr_process(logger, queue, params):
+    import time
     import openvr
     from ..module.steamvr import VRTextOverlay
     textOverlay = VRTextOverlay()
     MAX_RETRIES = 10  # 最大重试次数
     retry_count = 0
-    is_two_hand=config.get("SteamVRHad")==2
+    is_two_hand=params["config"].get("SteamVRHad")==2
     def safe_shutdown():
         try:
             if textOverlay.overlay_handle:
@@ -483,7 +497,7 @@ def steamvr_process(logger, queue: Queue, params,config):
         # 带重试的初始化
         while retry_count < MAX_RETRIES and params['running']:
             try:
-                if not textOverlay.initialize(logger, params, config):
+                if not textOverlay.initialize(logger, params):
                     raise RuntimeError("SteamVR初始化失败")
                 # logger.put({"text":"SteamVR初始化成功","level":"info"})
                 last_success = time.time()
@@ -492,10 +506,10 @@ def steamvr_process(logger, queue: Queue, params,config):
                 retry_count=0
                 MAX_ERRORS = 5  # 最大连续错误次数
                 textOverlay._create_text_texture()
-                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))
+                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,params["config"].get("SteamVRSize")*(1.5 if params["config"].get("Separate_Self_Game_Mic")!=0 else 1.0))
                 textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
                 if is_two_hand:
-                    textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle_1,config.get("SteamVRSize")*(1.5 if config.get("Separate_Self_Game_Mic")!=0 else 1.0))
+                    textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle_1,params["config"].get("SteamVRSize")*(1.5 if params["config"].get("Separate_Self_Game_Mic")!=0 else 1.0))
                     textOverlay.overlay.showOverlay(textOverlay.overlay_handle_1)
                 logger.put({"text":f"掌心显示启动完毕","level":"info"})
                 # 主循环
@@ -504,10 +518,10 @@ def steamvr_process(logger, queue: Queue, params,config):
                         # 定期设备检查
                         if time.time() - last_success > check_interval:
                             
-                            if config.get("SteamVRHad") ==2:
+                            if params["config"].get("SteamVRHad") ==2:
                                 current_status = textOverlay.set_overlay_to_hand(0) and textOverlay.set_overlay_to_hand(1,True)
                             else:
-                                current_status = textOverlay.set_overlay_to_hand(config.get("SteamVRHad"))
+                                current_status = textOverlay.set_overlay_to_hand(params["config"].get("SteamVRHad"))
                                 
 
                             if not current_status:
@@ -516,11 +530,11 @@ def steamvr_process(logger, queue: Queue, params,config):
                                 if is_two_hand:textOverlay.overlay.hideOverlay(textOverlay.overlay_handle_1)
                                 time.sleep(1)
                                 textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
-                                if config.get("SteamVRHad") ==2:
+                                if params["config"].get("SteamVRHad") ==2:
                                     textOverlay.overlay.showOverlay(textOverlay.overlay_handle_1)
                                     status_tmp = textOverlay.set_overlay_to_hand(0) and textOverlay.set_overlay_to_hand(1,True)
                                 else:
-                                    status_tmp = textOverlay.set_overlay_to_hand(config.get("SteamVRHad"))
+                                    status_tmp = textOverlay.set_overlay_to_hand(params["config"].get("SteamVRHad"))
                              
                                 if status_tmp:
                                     last_success = time.time()
@@ -546,7 +560,7 @@ def steamvr_process(logger, queue: Queue, params,config):
                                     logger.put({"text":f"OpenVR错误: {str(type(oe))}，尝试恢复初始化,{error}","level":"error"})
                                     safe_shutdown()
                                     time.sleep(5)
-                                    if not textOverlay.initialize(logger, params, config):
+                                    if not textOverlay.initialize(logger, params):
                                         raise RuntimeError("SteamVR初始化失败")
                                     time.sleep(1)
                                     textOverlay._create_text_texture()  # 重新创建纹理
@@ -559,11 +573,11 @@ def steamvr_process(logger, queue: Queue, params,config):
                                     
                             
                             # 强制更新Overlay属性
-                            textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, config.get("SteamVRSize")*(1.0 if config.get("Separate_Self_Game_Mic")==0 or config.get("SteamVRHad") ==2 else 1.5))
+                            textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle, params["config"].get("SteamVRSize")*(1.0 if params["config"].get("Separate_Self_Game_Mic")==0 or params["config"].get("SteamVRHad") ==2 else 1.5))
                             textOverlay.overlay.setOverlayAlpha(textOverlay.overlay_handle, 1.0)
-                            if config.get("SteamVRHad") ==2:
+                            if params["config"].get("SteamVRHad") ==2:
                                 # 强制更新Overlay属性
-                                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle_1, config.get("SteamVRSize")*(1.0 if config.get("Separate_Self_Game_Mic")==0 or config.get("SteamVRHad") ==2 else 1.5))
+                                textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle_1, params["config"].get("SteamVRSize")*(1.0 if params["config"].get("Separate_Self_Game_Mic")==0 or params["config"].get("SteamVRHad") ==2 else 1.5))
                                 textOverlay.overlay.setOverlayAlpha(textOverlay.overlay_handle_1, 1.0)
                         time.sleep(0.1)
                         if error ==200:error_count = 0  # 重置错误计数器
@@ -602,7 +616,7 @@ def steamvr_process(logger, queue: Queue, params,config):
                 pass
             time.sleep(1)
 
-def copyBox_process(queue:Queue):
+def copyBox_process(queue):
     import tkinter as tk
     from ..module.copybox import ScrollableListApp
     # 启动GUI

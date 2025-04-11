@@ -38,6 +38,7 @@ defaultConfig={
     "TTSOutputName":'default',
     "translateService":'developer',
     "oscShutdown":False,
+    "VRCChatboxformat":"{translatedText}({text})",
     "defaultScripts": [
         {
             "action": "sendText",

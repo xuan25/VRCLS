@@ -69,11 +69,10 @@ class VRTextOverlay:
             return False
         
         
-    def initialize(self,logger,params, config):
-        
+    def initialize(self,logger,params):
+        self.params=params
         # 等待SteamVR启动
-        self.config=config
-        hand=config.get("SteamVRHad")
+        hand=params["config"].get("SteamVRHad")
         ready=False
         once=True
         self.logger=logger
@@ -92,7 +91,7 @@ class VRTextOverlay:
         # 初始化Overlay系统
         self.overlay = openvr.IVROverlay()
         
-        if config.get("SteamVRHad") ==2:
+        if params["config"].get("SteamVRHad") ==2:
             ready=self.check_Controller(logger,0) and self.check_Controller(logger,0)
             if ready:
                 # 创建Overlay（带时间戳保证唯一性）
@@ -267,8 +266,8 @@ class VRTextOverlay:
         return img
 
     def _create_text_texture(self,alignment='top'):
-            onlyMic = self.config.get("Separate_Self_Game_Mic")==0
-            mode=self.config.get("SteamVRHad")==2
+            onlyMic = self.params["config"].get("Separate_Self_Game_Mic")==0
+            mode=self.params["config"].get("SteamVRHad")==2
             img_R=self._draw_one_texture(self.text_R)
             _img_data = img_R.tobytes()
             _buffer = (ctypes.c_char * len(_img_data)).from_buffer_copy(_img_data)

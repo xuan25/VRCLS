@@ -17,15 +17,14 @@ def half_to_full(half_str):
 
 
 class VRCBitmapLedHandler(BaseHandler):
-    def __init__(self,logger, osc_client,config,params):
+    def __init__(self,logger, osc_client,params):
         super().__init__(osc_client)
-        self.config=config
         self.logger=logger
         self.params=params
     """聊天框处理器"""
         
     def handle(self, message: str,params):
-        self.controlFunction(message,params,self.config.get("VRCBitmapLed_row"),self.config.get("VRCBitmapLed_col"))
+        self.controlFunction(message,params,self.params["config"].get("VRCBitmapLed_row"),self.params["config"].get("VRCBitmapLed_col"))
     def string_to_unicode_bytes(self,s) -> List[int]:
         bytes_array = []
         for char in s:
@@ -57,7 +56,7 @@ class VRCBitmapLedHandler(BaseHandler):
             if params["VRCBitmapLed_taskList"][-1]=="clear":params["VRCBitmapLed_taskList"][-1]=uid
             else:params["VRCBitmapLed_taskList"].append(uid)
         else:params["VRCBitmapLed_taskList"].append(uid)
-        if self.config.get("VRCBitmapLed_COLOR")==True: rgb=find_nearest_foreground(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        if self.params["config"].get("VRCBitmapLed_COLOR")==True: rgb=find_nearest_foreground(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         text=res['text']
         text = half_to_full(text)
         lines=self.format_to_box_autowrap(text,row,col)
@@ -78,7 +77,7 @@ class VRCBitmapLedHandler(BaseHandler):
 
                 # 发送BitmapLed/Data
                 
-                if self.config.get("VRCBitmapLed_COLOR")==True:self.osc_client.send_message("/avatar/parameters/BitmapLed/DataX24", rgb)
+                if self.params["config"].get("VRCBitmapLed_COLOR")==True:self.osc_client.send_message("/avatar/parameters/BitmapLed/DataX24", rgb)
                 self.osc_client.send_message("/avatar/parameters/BitmapLed/DataX16", data[high_index])
                 self.osc_client.send_message("/avatar/parameters/BitmapLed/Data", data[low_index])
                 if lines[index]=='。'or  lines[index]==' ':rgb=find_nearest_foreground(random.randint(0,255),random.randint(0,255),random.randint(0,255))

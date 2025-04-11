@@ -3,11 +3,11 @@ from .base_handler import BaseHandler
 from .Color import Colors
 
 class SelfReadHandler(BaseHandler):
-    def __init__(self,logger, osc_client,steamvrQueue,config):
+    def __init__(self,logger, osc_client,steamvrQueue,params):
         super().__init__(osc_client)
         self.logger=logger
         self.steamvrQueue=steamvrQueue
-        self.steamvrOpen=config.get("textInSteamVR")
+        self.steamvrOpen=params["config"].get("textInSteamVR")
     """聊天框处理器"""
         
     def handle(self, res,source:str,steamready):

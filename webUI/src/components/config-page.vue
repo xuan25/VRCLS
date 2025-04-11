@@ -422,6 +422,15 @@
                                     <el-option v-for="(item,index) in outputName" :key="index" :label="item" :value="item" ></el-option>
                                 </el-select>
                             </el-form-item>
+                            <el-space fill>
+                                <el-alert type="info" show-icon :closable="false">
+                                    <p>下方{translatedText}会被替换为译文，{text}会被替换为原文</p>
+                                </el-alert>
+                                <el-form-item label="VRC文本框输出样式">
+                                    <el-input  type="textarea" :autosize="{ minRows: 1, maxRows: 2 }" v-model="data.config.VRCChatboxformat"></el-input>
+                                </el-form-item>
+                            </el-space>
+
                             <el-form-item label="点阵屏行列数">
                                 <el-row>
                                     <el-col :span="11">
