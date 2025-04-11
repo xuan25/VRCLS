@@ -271,7 +271,7 @@ def gameMic_listen_VoiceMeeter(sendClient,config,params,logger,micList:list,defa
                             pt.start()
                         else:count+=1
                 else:
-                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+                    if params["running"] and params["gameVoiceKeyRun"]:audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
@@ -336,7 +336,7 @@ def gameMic_listen_capture(sendClient,config,params,logger,micList:list,defautMi
                         pt.start()
                     else:count+=1
             else:
-                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+                    if params["running"] and params["gameVoiceKeyRun"]:audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
