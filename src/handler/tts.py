@@ -169,6 +169,7 @@ class TTSHandler:
                 else:
                     self.logger.put({"text": f"数据接收异常:{response.text}", "level": "warning"})
                 return
+            self.logger.put({"text": f"TTS文本生成: {text}", "level": "debug"})
 
 
 

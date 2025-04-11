@@ -386,7 +386,7 @@ def logger_process(queue, copyqueue, params):
                 except:pass
         if TTSToggle != params.get("TTSToggle"):
             TTSToggle=params.get("TTSToggle")
-            if not TTSToggle: keyweod_list.append("TTS文本生成: ")
+            if TTSToggle!=0: keyweod_list.append("TTS文本生成: ")
             else:
                 try:keyweod_list.remove("TTS文本生成: ")
                 except:pass
