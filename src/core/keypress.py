@@ -24,12 +24,15 @@ class VKeyHandler:
             pass
 
     def handle_key_press(self):
-        self.params[self.keyname]=True 
+        if not self.params[self.keyname]:
+            self.params[self.keyname]=True 
         # print("V键被按下，执行按下操作")
         # 在此处添加按下V键时需要执行的代码
 
     def handle_key_release(self):
-        self.params[self.keyname]=False
+        if self.params[self.keyname]:
+            time.sleep(2)
+            self.params[self.keyname]=False
         # print("V键被释放，执行释放操作")
         # 在此处添加释放V键时需要执行的代码
 

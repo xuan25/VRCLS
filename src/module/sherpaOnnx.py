@@ -141,7 +141,10 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
     lastSendTime=time.time()
     try:
         while params["running"]:
-            if not params["gameVoiceKeyRun"]:continue
+            if not params["gameVoiceKeyRun"]:
+                if not audio_stream.is_stopped():audio_stream.stop_stream()
+            else:
+                if not audio_stream.is_stopped():audio_stream.start_stream()
             # 读取音频数据
             data = audio_stream.read(samples_per_read)
             samples = np.frombuffer(data, dtype=np.float32)
@@ -155,9 +158,9 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
 
             if result and (last_result != result):
                 last_result = result
-
                 nowtime=time.time()
-                if nowtime-lastSendTime>1:
+                dalaytime=float(params["config"].get("realtimeOutputDelay"))
+                if dalaytime>0 and nowtime-lastSendTime>dalaytime:
                     lastSendTime=nowtime
                     client.send_message("/chatbox/input",[ f'{result}', True, False]) 
             
@@ -212,8 +215,8 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
         from ..core.keypress import VKeyHandler
-        params["gameVoiceKeyRun"]=False 
-        keyThread = VKeyHandler()
+        params["voiceKeyRun"]=False 
+        keyThread = VKeyHandler(params,"voiceKeyRun")
         keyThread.start()
         logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
     
@@ -251,9 +254,16 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
     p.start()
     client=udp_client.SimpleUDPClient(params["config"].get("osc-ip"), int(params["config"].get("osc-port")))
     lastSendTime=time.time()
+
+
+    
     try:
         while params["running"]:
-            if not params["voiceKeyRun"]:continue
+            if not params["voiceKeyRun"]:
+                if not audio_stream.is_stopped():audio_stream.stop_stream()
+                continue
+            else:
+                if audio_stream.is_stopped():audio_stream.start_stream()
             # 读取音频数据
             data = audio_stream.read(samples_per_read)
             samples = np.frombuffer(data, dtype=np.float32)
@@ -261,19 +271,17 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
             stream.accept_waveform(sample_rate, samples)
             while recognizer.is_ready(stream):
                 recognizer.decode_stream(stream)
-
-            is_endpoint = recognizer.is_endpoint(stream)
+            is_endpoint=recognizer.is_endpoint(stream)
             result = recognizer.get_result(stream)
-
+            
             if result and (last_result != result):
                 last_result = result
                 nowtime=time.time()
-                dalaytime=float(params["config"].get("osc-realtimeOutputDelay"))
+                dalaytime=float(params["config"].get("realtimeOutputDelay"))
                 if dalaytime>0 and nowtime-lastSendTime>dalaytime:
                     lastSendTime=nowtime
                     client.send_message("/chatbox/input",[ f'{result}', True, False]) 
 
-             
             if is_endpoint:
                 if result:
                     messageQueue.put(result)
@@ -327,7 +335,7 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
         from ..core.keypress import VKeyHandler
         params["gameVoiceKeyRun"]=False 
-        keyThread = VKeyHandler()
+        keyThread = VKeyHandler(params,"gameVoiceKeyRun")
         keyThread.start()
         logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
 
@@ -381,9 +389,9 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
 
             if result and (last_result != result):
                 last_result = result
-            
                 nowtime=time.time()
-                if nowtime-lastSendTime>1:
+                dalaytime=float(params["config"].get("realtimeOutputDelay"))
+                if dalaytime>0 and nowtime-lastSendTime>dalaytime:
                     lastSendTime=nowtime
                     client.send_message("/chatbox/input",[ f'{result}', True, False]) 
 
