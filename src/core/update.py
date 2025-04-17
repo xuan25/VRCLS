@@ -1,4 +1,4 @@
-import os
+import time
 import sys
 import shutil
 import zipfile
@@ -147,7 +147,6 @@ timeout /t 5 /nobreak >nul
 taskkill /F /IM VRCLS.exe
 robocopy "{temp_dir / 'VRCLS'}" "{install_dir}" /E /COPY:DATSO /MOVE
 rd /s /q "{temp_dir}"
-start "" "{install_dir / 'VRCLS.exe'}"
 del "%~f0"
 """
 
@@ -200,6 +199,12 @@ def main_update(url: str, install_dir: Path) -> None:
 
     # 执行更新流程
     if not fast_download(url, zip_path):return False
+    print(r'''
+              
+              >>>>> 新版本文件解压安装中，窗户将自动关闭，请在窗口关闭10s后重新启动程序 <<<<<
+            
+''')
+    time.sleep(3)
     return unzip_and_replace(zip_path, install_dir)
     # restart_application()
 def module_download(url: str, install_dir: Path) -> bool:
@@ -214,6 +219,11 @@ def module_download(url: str, install_dir: Path) -> bool:
         zip_path = download_dir / file_name
 
         if not fast_download(url, zip_path):return False
+        print(r'''
+              
+              >>>>> 模型包文件解压安装中，请勿关闭窗口 <<<<<
+            
+''')
         extract_root = Path(os.path.dirname(sys._MEIPASS))/"temp_extract" if getattr(sys, 'frozen', False) else os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),"temp_extract")         # 临时解压目录
         final_output_dir = install_dir / "sherpa-onnx-models" # 最终输出目录
 
