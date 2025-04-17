@@ -619,7 +619,7 @@
                     <el-card style="height: 500px;">
                         <template #header>
                                 <span>自定义脚本执行动作</span>
-                        </template>
+                         </template>
                         <el-scrollbar height="400px">
                             <el-descriptions
                                 v-for="(item, index) in data.config.scripts[data.local.scriptClick].vrcActions"

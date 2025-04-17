@@ -15,7 +15,7 @@ defaultConfig={
     "voiceMode":0,
     "webBrowserPath":"",
     "dynamicThreshold":False,
-    "customThreshold":0.02,
+    "customThreshold":0.01,
     "voiceHotKey_new":"<alt>+1",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
@@ -26,7 +26,7 @@ defaultConfig={
     "Separate_Self_Game_Mic":0,
     "gameMicName":"default",
     "gameVoiceMode":0,
-    "gameCustomThreshold":0.02,
+    "gameCustomThreshold":0.01,
     "gameVoiceHotKey_new":"<alt>+2",
     "textInSteamVR":False,
     "SteamVRHad":0,#右手单手，左手单手 双手
