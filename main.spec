@@ -23,6 +23,8 @@ tmp_ret = collect_all('zeroconf')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('openvr')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('py7zr')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 datas.append(('templates','templates'))
 datas.append(('ffmpeg/bin/*', 'ffmpeg/bin'))
 datas += collect_models('sherpa-onnx-models')  # 递归打包整个目录树

@@ -16,7 +16,7 @@ defaultConfig={
     "webBrowserPath":"",
     "dynamicThreshold":False,
     "customThreshold":0.02,
-    "voiceHotKey":"alt+q",
+    "voiceHotKey_new":"<alt>+1",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
     "translationServer":"libre",# "whisper","libre"
@@ -27,7 +27,7 @@ defaultConfig={
     "gameMicName":"default",
     "gameVoiceMode":0,
     "gameCustomThreshold":0.02,
-    "gameVoiceHotKey":"alt+q",
+    "gameVoiceHotKey_new":"<alt>+2",
     "textInSteamVR":False,
     "SteamVRHad":0,#右手单手，左手单手 双手
     "SteamVRSize":0.15,
@@ -39,6 +39,7 @@ defaultConfig={
     "translateService":'developer',
     "oscShutdown":False,
     "VRCChatboxformat":"{translatedText}({text})",
+    "realtimeOutputDelay":-1.0,
     "defaultScripts": [
         {
             "action": "sendText",

@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, url_for,jsonify,send_from_directory
 import waitress
 from src.core.startup import StartUp
+from src.core.update import main_update
 from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process,copyBox_process
@@ -12,6 +13,10 @@ import ctypes
 from ctypes import wintypes
 import sqlite3
 from datetime import datetime, timedelta
+import requests
+
+class stopSignal(Exception):
+    pass
 
 def enable_vt_mode():
     if sys.platform != 'win32':
@@ -192,6 +197,14 @@ def getMics():
     global queue,startUp
     queue.put({"text":"/getMics","level":"debug"})
     return jsonify([item for item in startUp.micList if item != '']),200
+
+@app.route('/api/getUpdate', methods=['get'])
+def getUpdate():
+    global queue,params
+    queue.put({"text":"/getUpdate","level":"debug"})
+    if params["updateInfo"].get('version','None')!='None':return jsonify({"info":params["updateInfo"],"changelog":params['updateChangeLog']}),200
+    return jsonify({}),400
+    
 @app.route('/api/getOutputs', methods=['get'])
 def getOutputs():
     global queue,startUp
@@ -300,12 +313,23 @@ def get_stats():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# TODO steamvr显示界面
-# TODO 修正各个模式下两个播放线程的行为
+@app.route('/api/upgrade', methods=['get'])
+def upgrade():
+    from pathlib import Path
+    global queue,params,logger_thread,startUp,listener_thread1,steamvrThread,stop_for_except
+    queue.put({"text":"/api/upgrade","level":"debug"})
+    if main_update(params["updateInfo"]['packgeURL'], Path(os.path.dirname(sys._MEIPASS))):
+        stop_for_except=False
+        raise stopSignal
+    else:
+        queue.put({"text":"请刷新配置网页重新开始更新任务","level":"warning"})
+        return jsonify({"message":'请刷新配置网页重新开始更新任务'}),401
+
 if __name__ == '__main__':
     freeze_support()
     enable_vt_mode()# 在程序启动时立即调用
     try:
+        VERSION_NUM='v0.5.2'
         listener_thread=None
         startUp=None
         manager = Manager()
@@ -314,10 +338,11 @@ if __name__ == '__main__':
         params["running"] = True
         params["micStopped"] = False
         params["gameStopped"] = False
+        stop_for_except=True
+
 
         logger_thread = Process(target=logger_process,daemon=True,args=(queue,copyQueue,params))
         logger_thread.start()
-
         startUp=StartUp(queue,params)
         queue.put({'text':r'''
 ------------------------------------------------------------------------
@@ -332,7 +357,7 @@ if __name__ == '__main__':
         $/     $$/   $$/  $$$$$$/  $$$$$$$$/  $$$$$$/  
                                                    
 
-               当前版本: V0.5.1
+               当前版本: '''+str(VERSION_NUM)+r'''
                    
         '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
                                                 
@@ -371,6 +396,32 @@ if __name__ == '__main__':
         params["localizedCapture"]=startUp.config['localizedCapture']
         params["localizedSpeech"]=startUp.config['localizedSpeech']
         params["TTSToggle"]=startUp.config['TTSToggle']
+        params["updateInfo"]={'version':'None'}
+        if getattr(sys, 'frozen', False):
+            queue.put({'text':"update check||开始版本更新检查",'level':'warning'})
+            response = requests.get(startUp.config['baseurl']+"/latestVersionInfo")
+            try:
+                res=response.json()
+                if response.status_code==200:
+                    res=response.json()
+                    if VERSION_NUM!= res['version']:
+                        queue.put({'text':"need to update||需要更新",'level':'info'})
+                        params["updateInfo"]=res
+                        response = requests.get('https://cloudflarestorage.boyqiu001.top/VRCLS_changeLog.md')
+                        params['updateChangeLog']=response.text
+                    else:
+                            queue.put({'text':"no need to update||当前处于最新版，无需更新",'level':'info'})
+                else:
+                    queue.put({'text':"update check failed||版本更新检查异常",'level':'warning'})
+                    queue.put({'text':response.text,'level':'debug'})
+            except requests.exceptions.JSONDecodeError:
+                queue.put({'text':"update check failed||版本更新检查异常",'level':'warning'})
+                queue.put({'text':traceback.format_exc(),'level':'debug'})
+            except Exception:
+                queue.put({'text':"update check failed||版本更新检查异常",'level':'warning'})
+                queue.put({'text':traceback.format_exc(),'level':'debug'})
+                    
+            
         queue.put({'text':"vrc udpClient ok||发送准备就绪",'level':'info'})
         params["runmode"]= startUp.config["defaultMode"]
         params["steamReady"]=False
@@ -408,10 +459,23 @@ if __name__ == '__main__':
 
     finally:
         # 设置退出事件来通知所有子线程
-        logger_thread.kill()
-        if listener_thread:listener_thread.kill()
+        logger_thread.terminate()
+        if listener_thread:
+            try:listener_thread.terminate()
+            except:pass
         if startUp:
-            if startUp.config.get("Separate_Self_Game_Mic")!=0: listener_thread1.kill()
-            if startUp.config.get("textInSteamVR"):steamvrThread.kill()
-        input("press any key to exit||任意键退出...")
+            if startUp.config.get("Separate_Self_Game_Mic")!=0: 
+                try:listener_thread1.terminate()
+                except:pass
+            if startUp.config.get("textInSteamVR"):
+                try:steamvrThread.terminate()
+                except:pass
+            if startUp.config.get("CopyBox"):
+                try:copybox_thread.terminate()
+                except:pass
+        if stop_for_except:
+            input("press any key to exit||任意键退出...")
+        else:
+            print("窗口即将自动关闭，将在30s内自动重启")
+
     

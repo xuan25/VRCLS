@@ -150,7 +150,8 @@ def clearVRCBitmapLed(client,params,logger):
 def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     import speech_recognition as sr
     from multiprocessing import Process,Queue
-    import keyboard
+    from pynput import keyboard
+    from functools import partial
     import time
     import pyttsx3
     if params["config"].get("micName")== "" or params["config"].get("micName") is None or params["config"].get("micName")== "default":
@@ -170,13 +171,20 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
     dynamicVoice=params["config"].get("dynamicThreshold")
     r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
     customthreshold=params["config"].get("customThreshold")
-    voiceHotKey=params["config"].get("voiceHotKey")
+    voiceHotKey=params["config"].get("voiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["voiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"mic"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from ..core.keypress import VKeyHandler
+        params["voiceKeyRun"]=False 
+        keyThread = VKeyHandler(params,"voiceKeyRun")
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
     
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
         logger.put({"text":"开始音量测试","level":"info"})
@@ -207,20 +215,23 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
                             pt.start()
                         else:count+=1
                 else:
-                    if params["running"] and params["voiceKeyRun"]:audioQueue.put(audio)
+                    if params["running"] and  (params["voiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
 
 
 def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     import speech_recognition as sr
-
     from multiprocessing import Process,Queue
-    import keyboard
+    from pynput import keyboard
+    from functools import partial
     import time
     import pyttsx3
 
@@ -241,13 +252,20 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
     dynamicVoice=params["config"].get("dynamicThreshold")
     r.dynamic_energy_threshold=False if dynamicVoice is None or dynamicVoice == False else True
     customthreshold=params["config"].get("gameCustomThreshold")
-    voiceHotKey=params["config"].get("gameVoiceHotKey")
+    voiceHotKey=params["config"].get("gameVoiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"cap"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前游戏麦克风状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from .keypress import VKeyHandler
+        params["gameVoiceKeyRun"]=False 
+        keyThread = VKeyHandler(params,"gameVoiceKeyRun")
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
     
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
         logger.put({"text":"开始音量测试","level":"info"})
@@ -278,19 +296,22 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
                             pt.start()
                         else:count+=1
                 else:
-                    if params["running"] and params["gameVoiceKeyRun"]:audioQueue.put(audio)
+                    if params["running"] and  (params["gameVoiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        p.close()
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 
 def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     import speech_recognition as sr
     from multiprocessing import Process,Queue
-    import keyboard
+    from pynput import keyboard
+    from functools import partial
     import time
     import pyttsx3
 
@@ -314,14 +335,20 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
     params["gameVoiceKeyRun"]=True 
     voiceMode=params["config"].get("gameVoiceMode")
     customthreshold=params["config"].get("gameCustomThreshold")
-    voiceHotKey=params["config"].get("gameVoiceHotKey")
+    voiceHotKey=params["config"].get("gameVoiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run,args=(params,logger,"cap"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
-
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from .keypress import VKeyHandler
+        params["gameVoiceKeyRun"]=False 
+        keyThread = VKeyHandler(params,"gameVoiceKeyRun")
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
     energy_threshold=32768.0*customthreshold
 
     logger.put({"text":"sound process started complete||桌面音频进程启动完毕","level":"info"})
@@ -349,13 +376,14 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
                         pt.start()
                     else:count+=1
             else:
-                    if params["running"] and params["gameVoiceKeyRun"]:audioQueue.put(audio)
+                    if params["running"] and (params["gameVoiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        p.close()
-
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 

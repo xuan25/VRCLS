@@ -7,13 +7,24 @@ def change_run_local(params,logger,mode):
 def create_recognizer(logger,source):
     import sherpa_onnx
     import os,sys
-
+    from pathlib import Path
+    import unicodedata
+    
+    def contains_chinese_chars(path):
+        for char in str(path):
+            if unicodedata.name(char).startswith('CJK'):  # 检查是否为CJK字符，包括中文
+                return True
+        return False
+    
         # 2. 动态路径注入（核心防护）
     if getattr(sys, 'frozen', False):
         base_dir = sys._MEIPASS
     else:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         base_dir = os.path.dirname(os.path.dirname(current_dir))  # 适配 src/core 的层级
+    if contains_chinese_chars(base_dir):
+        logger.put({"text": f"路径存在中文，请修改VRCLS安装位置。当前路径：{base_dir}", "level": "error"})
+        return None
     if source in ["zh","en","zt"] :
         #中英
         onnx_bin = os.path.join(base_dir,"sherpa-onnx-models", "sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20")
@@ -23,8 +34,11 @@ def create_recognizer(logger,source):
     else:return None
     # 新增路径检查
     if not os.path.exists(onnx_bin):
-        logger.put({"text": f"模型路径不存在：{onnx_bin},\n请去qq群1011986554下载并安装VRCLS本地识别模型包", "level": "error"})
-        return None
+        logger.put({"text": f"模型路径不存在：{onnx_bin},\n开始自动下载模型", "level": "error"})
+        from ..core.update import module_download
+        if not module_download('https://cloudflarestorage.boyqiu001.top/VRCLS本地识别模型包.7z',Path(base_dir)):
+            logger.put({"text": f"模型自动下载失败,可以尝试重启程序再次安装，\n也可以去qq群1011986554或github文档页面下载并手动安装VRCLS本地识别模型包", "level": "error"})
+            return None
     # Please replace the model files if needed.
     # See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
     # for download links.
@@ -53,7 +67,7 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
     from multiprocessing import Process,Queue
     import time
     import pyttsx3
-    import keyboard
+
     from pythonosc import udp_client
     if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None or params["config"].get("gameMicName")== "default":
         logger.put({"text":"使用系统默认桌面音频","level":"info"})
@@ -73,13 +87,22 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
             micIndex=None
     params["gameVoiceKeyRun"]=True 
     voiceMode=params["config"].get("gameVoiceMode")
-    voiceHotKey=params["config"].get("gameVoiceHotKey")
+    voiceHotKey=params["config"].get("gameVoiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
+        from pynput import keyboard
+        from functools import partial
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"cap"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run_local,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from ..core.keypress import VKeyHandler
+        params["gameVoiceKeyRun"]=False 
+        keyThread = VKeyHandler(params,"gameVoiceKeyRun")
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
 
 
     
@@ -153,7 +176,9 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        p.close()
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||本地桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
@@ -162,7 +187,8 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
     from multiprocessing import Process,Queue
     import time
     import pyttsx3
-    import keyboard
+    from pynput import keyboard
+    from functools import partial
     from pythonosc import udp_client
     if params["config"].get("micName")== "" or params["config"].get("micName") is None or params["config"].get("micName")== "default":
         logger.put({"text":"使用系统默认麦克风","level":"info"})
@@ -176,15 +202,20 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
     params["voiceKeyRun"]=True 
     voiceMode=params["config"].get("voiceMode")
-    voiceHotKey=params["config"].get("voiceHotKey")
+    voiceHotKey=params["config"].get("voiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["voiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"mic"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run_local,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
-    
-    
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from ..core.keypress import VKeyHandler
+        params["gameVoiceKeyRun"]=False 
+        keyThread = VKeyHandler()
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
     
     pa = pyaudiowpatch.PyAudio()
     
@@ -237,7 +268,8 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
             if result and (last_result != result):
                 last_result = result
                 nowtime=time.time()
-                if nowtime-lastSendTime>1:
+                dalaytime=float(params["config"].get("osc-realtimeOutputDelay"))
+                if dalaytime>0 and nowtime-lastSendTime>dalaytime:
                     lastSendTime=nowtime
                     client.send_message("/chatbox/input",[ f'{result}', True, False]) 
 
@@ -257,7 +289,9 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        p.close()
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
         
@@ -267,7 +301,8 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
     from multiprocessing import Process,Queue
     import time
     import pyttsx3
-    import keyboard
+    from pynput import keyboard
+    from functools import partial
     from pythonosc import udp_client
     if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None :
         logger.put({"text":"请指定游戏麦克风，游戏麦克风线程退出","level":"warning"})
@@ -281,14 +316,20 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
     logger.put({"text":f"当前游戏麦克风：{micList[micIndex]}","level":"info"})
     params["gameVoiceKeyRun"]=True 
     voiceMode=params["config"].get("gameVoiceMode")
-    voiceHotKey=params["config"].get("gameVoiceHotKey")
+    voiceHotKey=params["config"].get("gameVoiceHotKey_new")
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["gameVoiceKeyRun"]=False 
-        keyboard.add_hotkey(hotkey=voiceHotKey, callback=change_run_local,args=(params,logger,"cap"))
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run_local,params,logger,"cap")})
+        keyThread.start()
         logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
-
+    elif voiceMode == 2 and voiceHotKey is not None:#按住说话
+        from ..core.keypress import VKeyHandler
+        params["gameVoiceKeyRun"]=False 
+        keyThread = VKeyHandler()
+        keyThread.start()
+        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
 
     pa = pyaudiowpatch.PyAudio()
     
@@ -361,7 +402,9 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        p.close()
+        if voiceMode!=0:
+            try:keyThread.stop()
+            except:pass
         logger.put({"text":"sound process exited complete||游戏音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customEmoji:dict,outputList,ttsVoice):

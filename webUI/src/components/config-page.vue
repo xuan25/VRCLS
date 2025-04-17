@@ -1,4 +1,5 @@
 <template>
+
     <el-container>  
       <el-header>
         <h1>VRCLS配置管理</h1>
@@ -387,6 +388,7 @@
                                 <el-select v-model="data.config.voiceMode">
                                     <el-option label="持续开启" :value="0"></el-option>
                                     <el-option label="按键切换" :value="1"></el-option>
+                                    <el-option label="按下v说话" :value="2"></el-option>
                                 </el-select>
                             </el-form-item>
  
@@ -395,7 +397,7 @@
                                 <el-slider v-model="data.config.customThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold"/>
                             </el-form-item>
                             <el-form-item label="麦克风按键切换快捷键">
-                                <el-input v-model="data.config.voiceHotKey"></el-input>
+                                <el-input v-model="data.config.voiceHotKey_new"></el-input>
                             </el-form-item>
 
                             <el-form-item label="桌面音频源/麦克风">
@@ -408,13 +410,14 @@
                                 <el-select v-model="data.config.gameVoiceMode" :disabled="data.config.Separate_Self_Game_Mic==0">
                                     <el-option label="持续开启" :value="0"></el-option>
                                     <el-option label="按键切换" :value="1"></el-option>
+                                    <el-option label="按下v说话" :value="2"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item label="桌面音频自定义阈值">
                                 <el-slider v-model="data.config.gameCustomThreshold" show-input :max="0.6" :step="0.001" :disabled="data.config.dynamicThreshold || data.config.Separate_Self_Game_Mic==0"/>
                             </el-form-item>
                             <el-form-item label="桌面音频按键切换快捷键">
-                                <el-input v-model="data.config.gameVoiceHotKey" :disabled="data.config.Separate_Self_Game_Mic==0"></el-input>
+                                <el-input v-model="data.config.gameVoiceHotKey_new" :disabled="data.config.Separate_Self_Game_Mic==0"></el-input>
                             </el-form-item>
                             <el-form-item label="TTS输出扬声器">
                                 <el-select v-model="data.config.TTSOutputName" :disabled="data.config.TTSToggle==0">
@@ -422,8 +425,15 @@
                                     <el-option v-for="(item,index) in outputName" :key="index" :label="item" :value="item" ></el-option>
                                 </el-select>
                             </el-form-item>
+                            <el-form-item label="本地识别模型实时文本输出间隔">
+                                <el-select v-model="data.config.realtimeOutputDelay" :disabled="!data.config.localizedSpeech">
+                                    <el-option label="关闭" :value="-1.0"></el-option>
+                                    <el-option label="1秒" :value="1.0"></el-option>
+                                    <el-option label="2秒" :value="2.0"></el-option>
+                                </el-select>
+                            </el-form-item>
                             <el-space fill>
-                                <el-alert type="info" show-icon :closable="false">
+                                <el-alert type="info" show-icon :closable="true">
                                     <p>下方{translatedText}会被替换为译文，{text}会被替换为原文</p>
                                 </el-alert>
                                 <el-form-item label="VRC文本框输出样式">
@@ -672,8 +682,6 @@
     
     
             </el-card>
-            
-
         </el-main>  
         <el-aside width="10%">
             <sideInfo/>
@@ -681,16 +689,41 @@
       </el-container>
 
     </el-container>
+
+    <el-dialog
+            v-model="dialogVisible"
+            title="有新的可用升级"
+            style="text-align: left;"
+        >
+        
+            <h1>可升级至 {{data.local.updateInfo.version}}</h1>
+            <h2>更新日志：</h2>
+            <el-scrollbar height="400px" wrap-style="border: 1px solid black;">
+            <div v-html="mdhtml" ></div>
+        </el-scrollbar>
+
+            <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="dialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="upgrade">
+                更新
+                </el-button>
+            </div>
+            </template>
+    </el-dialog>
 </template>
 
 <script setup>
+import { marked } from 'marked';
 import sideInfo from './side-info.vue'
 import axios from 'axios';
 import { ElMessage ,ElMessageBox} from 'element-plus'
 import {
   Delete,Plus
 } from '@element-plus/icons-vue'
-import { onMounted, reactive,ref,watch } from 'vue';
+import { onMounted, reactive,ref,watch,computed } from 'vue';
+
+const dialogVisible = ref(false)
 const captureName=ref([]);
 
 const micName=ref([]);
@@ -701,6 +734,8 @@ let data=reactive({
                 item1:'',
                 scriptClick:0,
                 micName:[],
+                updateInfo:{},
+                markdownContent:''
             },
     config:{
                 userInfo: {
@@ -812,7 +847,7 @@ let data=reactive({
         "filePath": ""
     }
 })
-
+const mdhtml=computed(()=>marked(data.local.markdownContent))
 
 const statsData = ref([])
 const loading = ref(true)
@@ -822,6 +857,7 @@ const counter_mode= ref("true")
 onMounted(()=>{
     getconfig()
     fetchData()
+    getUpdate()
 })
 
 const getCapture=()=>{
@@ -834,6 +870,31 @@ const getCapture=()=>{
     });
 
 }
+const getUpdate=()=>{
+    axios.get('/api/getUpdate').then(response => {
+        if(response.status==200){
+            data.local.updateInfo = response.data.info;
+            dialogVisible.value=true
+            data.local.markdownContent = response.data.changelog
+        }
+        
+
+    });
+
+}
+const upgrade=()=>{
+    axios.get('/api/upgrade').then(response => {
+                    if(response.status==401){
+                        window.location.reload();
+                    }
+                }
+                )
+                ElMessage({
+                    type: 'success',
+                    message: '开始更新',
+                })
+}
+
 // 日期格式化
 const formatDate = (dateString) => {
   const date = new Date(dateString)

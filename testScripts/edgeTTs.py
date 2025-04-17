@@ -60,4 +60,4 @@ def libre_tts_audio(text,language='zh',deviceindex=None):
 
 if __name__ == "__main__":
     # stream_tts_audio("这个是我的测试音频，能直接把文字转成语音",deviceindex=21)
-    libre_tts_audio("这个是我的测试音频，能直接把文字转成语音",language='wuu',deviceindex=21)
+    libre_tts_audio("当金箍棒出现的那一刻，身为主角的哪吒顿时显得黯然失色，全片一半以上的妖族加上敖广还有他儿子以及哪吒都只能勉强举起来的金箍棒，在我猴哥手里随便耍。一想到500年以后猴哥来找敖广要金箍棒，备注要大闹天宫的时候，敖广嘴上虽然不情愿，但是心里在想，天庭，这次要给你来个大的了。",language='wuu')
