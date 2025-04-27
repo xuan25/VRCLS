@@ -6,11 +6,12 @@ class VKeyHandler:
         self.listener = None
         self.params=params
         self.keyname=keyname
-
+        self.checkKey=params['config'].get("capPressingKey") if keyname=='gameVoiceKeyRun' else params['config'].get("micPressingKey")
+        self.checkKey=self.checkKey[0].lower()
     def on_press(self, key):
         # 检测按下V键（包括Shift+V的大写情况）
         try:
-            if key.char.lower() == 'v':
+            if key.char.lower() == self.checkKey:
                 self.handle_key_press()
         except AttributeError:
             pass
@@ -18,7 +19,7 @@ class VKeyHandler:
     def on_release(self, key):
         # 检测释放V键
         try:
-            if key.char.lower() == 'v':
+            if key.char.lower() == self.checkKey:
                 self.handle_key_release()
         except AttributeError:
             pass

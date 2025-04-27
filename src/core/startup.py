@@ -79,7 +79,10 @@ class StartUp:
            return self.checkAccount()
         else:
             try:
-                requests.post(self.config["baseurl"]+"/login",json=self.config["userInfo"],timeout=20)
+                response = requests.post(self.config["baseurl"]+"/login",json=self.config["userInfo"],timeout=20)
+                if response.status_code==200:
+                    res=response.json()
+                    return {'Authorization': 'Bearer '+res["access_token"]}
             except Exception:
                 pass
         return None

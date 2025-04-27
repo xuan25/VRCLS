@@ -210,7 +210,7 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["voiceKeyRun"]=False 
-        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run_local,params,logger,"cap")})
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run_local,params,logger,"mic")})
         keyThread.start()
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
@@ -429,6 +429,7 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
     from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
     import requests
+    from ..module.translate import developer_trasnlator,other_trasnlator
     
 
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
@@ -442,7 +443,8 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
     baseurl=params["config"].get('baseurl')
     while params["running"]:
         try:
-    
+            tragetTranslateLanguage2=params["config"].get("targetTranslationLanguage2")
+            tragetTranslateLanguage3=params["config"].get("targetTranslationLanguage3")
             tragetTranslateLanguage=params["tragetTranslateLanguage"]
             sourceLanguage=params["sourceLanguage"]
             res={}
@@ -468,7 +470,11 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                             res['translatedText']=''
                 else:
                     url=baseurl+'/func/webtranslate'
-                    data = {"text":res['text'],"targetLanguage": tragetTranslateLanguage, "sourceLanguage": "zh" if sourceLanguage=="zt" else  sourceLanguage}
+                    data = {"text":res['text'],
+                            "targetLanguage": tragetTranslateLanguage,
+                            'targetLanguage2': tragetTranslateLanguage2,
+                            'targetLanguage3': tragetTranslateLanguage3,
+                            "sourceLanguage": "zh" if sourceLanguage=="zt" else  sourceLanguage}
                     logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
                     response=requests.post(url, json=data, headers=params['headers'])
                     
@@ -483,20 +489,27 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                     # 解析JSON响应
                     res = response.json()
                     logger.put({"text":f"服务器翻译成功：","level":"debug"})
+            if  params["runmode"] == "translation" and  mode=='mic' and params["config"].get("translateService")!="developer":        
+                # 第二语言
+                if  tragetTranslateLanguage2!="none":
+                        res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                # 第三语言
+                if  tragetTranslateLanguage3!="none":
+                        res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
                         
-                
                 
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et=time.time()
             logger.put({"text":f"本地桌面音频识别结果: " + res["text"],"level":"debug"})
             logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
-            if defaultCommand.handle(res["text"],params=params):continue
+            
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
             else:
+                if defaultCommand.handle(res["text"],params=params):continue
                 if params["runmode"] == "text" or params["runmode"] == "translation": 
+                    selfRead.handle(res,"麦克风",params["steamReady"])
                     for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
-                    if params["config"].get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
                     if not params["config"].get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])

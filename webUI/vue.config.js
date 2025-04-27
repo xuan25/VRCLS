@@ -8,5 +8,6 @@ module.exports = defineConfig({
         target: 'http://localhost:8980', // 你的后端服务地址
         changeOrigin: true,
       },
-}}
+}},
+lintOnSave:false
 })

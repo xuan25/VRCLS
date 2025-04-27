@@ -419,7 +419,7 @@ class VRTextOverlay:
             if self.overlay_handle:
                 self.overlay.hideOverlay(self.overlay_handle)
                 self.overlay.destroyOverlay(self.overlay_handle)
-            openvr.shutdown()
+            # openvr.shutdown()
             time.sleep(5)
     # 在现有代码基础上添加
     def refresh_overlay(self):

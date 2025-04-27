@@ -1,5 +1,5 @@
 import time
-import sys
+import sys,os
 import shutil
 import zipfile
 import requests
@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import concurrent.futures
 from tqdm import tqdm
 import subprocess
+import hashlib
 
 def fast_download(url: str, save_path: Path, workers=8) -> bool:
     """增强版多线程下载"""
@@ -137,15 +138,44 @@ def _single_download_optimized(url: str, save_path: Path) -> bool:
 
 
 
+def get_file_info(folder):
+    """递归获取文件夹内所有文件的相对路径和哈希值"""
+    file_dict = {}
+    for root, _, files in os.walk(folder):
+        rel_path = os.path.relpath(root, folder)
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_file = os.path.join(rel_path, file).replace('\\', '/')
+            # 计算文件哈希（可选）
+            with open(file_path, 'rb') as f:
+                file_hash = hashlib.md5(f.read()).hexdigest()
+            file_dict[rel_file] = file_hash
+    return file_dict
+
+def copy_new_files(src_folder, dst_folder):
+    """复制源文件夹中存在但目标文件夹缺失的文件"""
+    src_files = get_file_info(src_folder)
+    dst_files = get_file_info(dst_folder)
+
+    for rel_file, file_hash in src_files.items():
+        dst_file_path = os.path.join(dst_folder, rel_file)
+        if rel_file not in dst_files:  # 新增文件
+            src_file_path = os.path.join(src_folder, rel_file)
+            os.makedirs(os.path.dirname(dst_file_path), exist_ok=True)
+            shutil.copy2(src_file_path, dst_file_path)
+            print(f'Copied: {rel_file}')
+        elif src_files[rel_file] != dst_files[rel_file]:  # 内容不同的文件
+            print(f'Modified (not copied): {rel_file}')
 
 
 def create_restarter(temp_dir: Path, install_dir: Path):
     """创建跨平台的启动脚本"""
     script = temp_dir / "update_launcher.bat"
     content = f"""@echo off
-timeout /t 5 /nobreak >nul
+timeout /t 2 /nobreak >nul
 taskkill /F /IM VRCLS.exe
-robocopy "{temp_dir / 'VRCLS'}" "{install_dir}" /E /COPY:DATSO /MOVE
+timeout /t 3 /nobreak >nul
+move /Y "{temp_dir / 'VRCLS' /'VRCLS.exe'}" "{install_dir /'VRCLS.exe'}"
 rd /s /q "{temp_dir}"
 del "%~f0"
 """
@@ -169,7 +199,7 @@ def unzip_and_replace(zip_path: Path, install_dir: Path) -> None:
         # 解压到临时目录
         with zipfile.ZipFile(zip_path) as zip_ref:
             zip_ref.extractall(temp_dir)
-        
+        copy_new_files(temp_dir/'VRCLS'/'_internal', install_dir /'_internal')
         # 创建平台特定的启动脚本
         restarter_script = create_restarter(temp_dir, install_dir)
         
@@ -183,7 +213,8 @@ def unzip_and_replace(zip_path: Path, install_dir: Path) -> None:
         zip_path.unlink()
         return True
     except Exception as e:
-        print(f"更新失败: {e}\n")
+        import traceback
+        traceback.print_exc()
         return False
 
 

@@ -14,10 +14,12 @@ from ctypes import wintypes
 import sqlite3
 from datetime import datetime, timedelta
 import requests
-
+import threading as td
+from engineio.async_drivers import threading
+from flask_socketio import SocketIO, emit
 class stopSignal(Exception):
-    pass
 
+    pass
 def enable_vt_mode():
     if sys.platform != 'win32':
         return  # 仅Windows需要处理
@@ -62,13 +64,43 @@ def enable_vt_mode():
         print("设置模式失败")
         exit(1)
     
+def toggle_console(show: bool):
+    if sys.platform == 'win32':
+        console_handler = ctypes.windll.kernel32.GetConsoleWindow()
+        if console_handler != 0:
+            ctypes.windll.user32.ShowWindow(console_handler, 1 if show else 0)
 
+import winreg
 
-queue=Queue(-1)
-copyQueue=Queue(-1)
+def check_webview2_registry():
+    reg_paths = [
+        r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  # 64位系统
+        r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"             # 32位系统
+    ]
+    try:
+        for path in reg_paths:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path)
+            version, _ = winreg.QueryValueEx(key, "pv")
+            if version > "0.0.0.0":
+                return True
+    except FileNotFoundError:
+        pass
+    return False
+
+import platform
+
+def get_system_arch():
+    arch = platform.machine().lower()
+    return "x64" if "64" in arch else "x86"
+
+def download_webview2_runtime(arch):
+    base_url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+    download_url = f"{base_url}&arch={arch}"
+    return download_url
 processList=[]
 app = Flask(__name__,static_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key' 
+socketio = SocketIO(app, cors_allowed_origins="*",async_mode='threading')
 
 def rebootJob():
     global queue,params,listener_thread,listener_thread,startUp,sendClient,manager,steamvrQueue
@@ -92,7 +124,7 @@ def rebootJob():
         listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread1.start()
     elif startUp.config.get("Separate_Self_Game_Mic")==2:
-        listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
+        listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread1.start()
 
 
@@ -118,23 +150,23 @@ def saveConfig():
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
         if startUp.config.get("Separate_Self_Game_Mic") != data["config"].get("Separate_Self_Game_Mic"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return startUp.config
+            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         if startUp.config.get("CopyBox") != data["config"].get("CopyBox"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return startUp.config
+            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         if startUp.config.get("localizedSpeech") != data["config"].get("localizedSpeech"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return startUp.config
+            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         if startUp.config.get("localizedCapture") != data["config"].get("localizedCapture"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return startUp.config
+            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         startUp.config=data["config"]
         params["config"]=data["config"]
     except Exception as e:
         queue.put({"text":f"config saved 配置保存异常:{e}","level":"warning"})
         return jsonify({"text":f"config saved 配置保存异常:{e}","level":"warning"}),401
     queue.put({"text":"config saved 配置保存完毕","level":"info"})
-    return startUp.config
+    return jsonify("保存成功"),200
 
 @app.route('/')
 def ui():
@@ -156,7 +188,9 @@ def reboot():
     rebootJob()
     return jsonify({'message':'sound process restart complete|| 程序完成重启'}),200
  
-
+@app.route('/api/verion', methods=['get'])
+def verion():
+    return jsonify({'text':VERSION_NUM}),200
 # 处理表单提交
 @app.route('/api/saveandreboot', methods=['post'])
 def update_config():
@@ -274,6 +308,8 @@ def open_web(host,port):
     except Exception:
         queue.put({"text":"没有找到指定的路径,使用默认浏览器打开网页","level":"debug"})
         webbrowser.open(url)
+        
+
 def get_db_connection():
     conn = sqlite3.connect('log_statistics.db')
     conn.row_factory = sqlite3.Row
@@ -282,6 +318,7 @@ def get_db_connection():
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     mode=request.args.get('mode')
+    dayNum=request.args.get('dayNum')
     database='daily_stats' if mode=='true' else 'daily_fail_stats'
     try:
         conn = get_db_connection()
@@ -289,7 +326,7 @@ def get_stats():
         
         # 计算最近7天日期范围
         end_date = datetime.now().strftime("%Y-%m-%d")
-        start_date = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=int(dayNum))).strftime("%Y-%m-%d")
         
         # 查询最近7天数据（包含没有记录的日期）
         cursor.execute(f'''
@@ -304,8 +341,8 @@ def get_stats():
             FROM dates
             LEFT JOIN {database} ON dates.date = {database}.date
             ORDER BY dates.date DESC
-            LIMIT 7
-        ''', (start_date, end_date))
+            LIMIT ?
+        ''', (start_date, end_date,dayNum))
         
         result = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -315,6 +352,7 @@ def get_stats():
         return jsonify({"error": str(e)}), 500
 @app.route('/api/upgrade', methods=['get'])
 def upgrade():
+    toggle_console(True)
     from pathlib import Path
     global queue,params,logger_thread,startUp,listener_thread1,steamvrThread,stop_for_except
     queue.put({"text":"/api/upgrade","level":"debug"})
@@ -324,12 +362,58 @@ def upgrade():
     else:
         queue.put({"text":"请刷新配置网页重新开始更新任务","level":"warning"})
         return jsonify({"message":'请刷新配置网页重新开始更新任务'}),401
+    
+# ---------- 在主进程中启动WS发送线程 ----------
+def ws_log_sender():
+    global socketio,socketQueue
+    while True:
+        try:
+            msg = socketQueue.get()
+            if msg.get('shutdown'):
+                break
+            if msg.get('type')=='log':
+                socketio.emit('log', {
+                    'text': msg['text'],
+                    'level': msg['level'],
+                    'timestamp': msg.get('timestamp')
+                })
+            else:
+                socketio.emit(msg.get('type'), {
+                    'text': msg['text'],
+                })
+        except Exception as e:
+            print(f"WS发送异常: {str(e)}")
 
+@socketio.on('connect')
+def handle_connect():
+    emit('log', {'text': 'Connected to log server','level':'0','timestamp':''})
+    
+def run_server(app,host,port):
+    global socketio
+    socketio.run(app=app,debug=False, host=host, port=port,allow_unsafe_werkzeug=True)
+    print('server exit')
 if __name__ == '__main__':
     freeze_support()
-    enable_vt_mode()# 在程序启动时立即调用
+    if not check_webview2_registry():
+        arch = get_system_arch()
+        url_webview = download_webview2_runtime(arch)
+        print(f'未检测到vebview环境\n请通过以下网页链接安装webview环境：{url_webview}')
+        while not check_webview2_registry():time.sleep(5)
+    
+    print('''
+          检测到vebview环境
+          本窗口将自动关闭，程序将在10s内启动......
+
+          ''')
+    time.sleep(3)
+    show_console = '--show-console' in sys.argv
+    toggle_console(show_console)
+    if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
-        VERSION_NUM='v0.5.2'
+        queue=Queue(-1)
+        copyQueue=Queue(-1)
+        socketQueue=Queue(-1)
+        VERSION_NUM='v0.5.4'
         listener_thread=None
         startUp=None
         manager = Manager()
@@ -341,8 +425,10 @@ if __name__ == '__main__':
         stop_for_except=True
 
 
-        logger_thread = Process(target=logger_process,daemon=True,args=(queue,copyQueue,params))
+        logger_thread = Process(target=logger_process,daemon=True,args=(queue,copyQueue,params,socketQueue))
         logger_thread.start()
+        ws_thread = td.Thread(target=ws_log_sender, daemon=True)
+        ws_thread.start()
         startUp=StartUp(queue,params)
         queue.put({'text':r'''
 ------------------------------------------------------------------------
@@ -375,9 +461,7 @@ if __name__ == '__main__':
         并解锁请求速率限制,发电方式请加qq群查看群公告
 
         可以使用本地模型，无限制,延迟较低,但准确度较差
-        如需使用本地识别模型
-        请去qq群文件VRCLS最新版本文件夹
-        下载并安装VRCLS本地识别模型包
+        本地识别模型会自动下载，也可群内手动下载
 
         如需获取更多服务器资源或技术支持请加qq群
 
@@ -427,10 +511,6 @@ if __name__ == '__main__':
         params["steamReady"]=False
 
         steamvrQueue=Queue(-1)
-
-        if startUp.config.get("CopyBox"):
-            copybox_thread = Process(target=copyBox_process,daemon=True,args=(copyQueue,))
-            copybox_thread.start()
         # start listening in the background (note that we don't have to do this inside a `with` statement)
         # this is called from the background thread
         if startUp.config.get("textInSteamVR"):
@@ -445,37 +525,53 @@ if __name__ == '__main__':
             listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
-            listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
+            listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
 
 
             
         
         queue.put({'text':"api ok||api就绪",'level':'info'})
-        open_web(startUp.config['api-ip'],startUp.config['api-port'])
-        waitress.serve(app=app, host=startUp.config['api-ip'], port=startUp.config['api-port'])
+        # open_web(startUp.config['api-ip'],startUp.config['api-port'])
+        server_thread=td.Thread(target=run_server, daemon=True,args=(app,startUp.config['api-ip'],startUp.config['api-port']))
+        server_thread.start()
+        import webview
+    
+        window = webview.create_window(
+            'VRCLS控制面板', 
+            f'http://{startUp.config['api-ip']}:{startUp.config['api-port']}',
+            width=1200,
+            height=800
+        )
+        
+        webview.start()
+        
     except Exception as e:
-        traceback.print_exc()
-
+        queue.put({'text':traceback.format_exc(),'level':'error'})
+        time.sleep(3)
     finally:
-        # 设置退出事件来通知所有子线程
+        socketio.stop()
+        params["running"]=False
+        
         logger_thread.terminate()
+        
         if listener_thread:
-            try:listener_thread.terminate()
-            except:pass
+            try:
+                listener_thread.terminate()
+            except:
+                traceback.print_exc()
         if startUp:
             if startUp.config.get("Separate_Self_Game_Mic")!=0: 
-                try:listener_thread1.terminate()
-                except:pass
+                try:
+                    listener_thread1.terminate()
+                except:traceback.print_exc()
             if startUp.config.get("textInSteamVR"):
                 try:steamvrThread.terminate()
-                except:pass
-            if startUp.config.get("CopyBox"):
-                try:copybox_thread.terminate()
-                except:pass
+                except:traceback.print_exc()
+        
+
         if stop_for_except:
-            input("press any key to exit||任意键退出...")
+            print("press any key to exit||任意键退出...")
         else:
             print("窗口即将自动关闭，将在30s内自动重启")
-
-    
+        # 设置退出事件来通知所有子线程

@@ -18,3 +18,4 @@ sherpa_onnx
 translators
 miniaudio
 py7zr
+flask_socketio

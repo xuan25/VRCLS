@@ -19,6 +19,8 @@ defaultConfig={
     "voiceHotKey_new":"<alt>+1",
     "sourceLanguage": "zh",
     "targetTranslationLanguage": "en",
+    "targetTranslationLanguage2": "none",
+    "targetTranslationLanguage3": "none",
     "translationServer":"libre",# "whisper","libre"
     "VRCBitmapLed_row":8,
     "VRCBitmapLed_col":16,
@@ -38,8 +40,10 @@ defaultConfig={
     "TTSOutputName":'default',
     "translateService":'developer',
     "oscShutdown":False,
-    "VRCChatboxformat":"{translatedText}({text})",
+    "VRCChatboxformat_new":"{translatedText}\n{translatedText2}\n{translatedText3}\n{text}",
     "realtimeOutputDelay":-1.0,
+    "micPressingKey":'v',
+    "capPressingKey":'b',
     "defaultScripts": [
         {
             "action": "sendText",

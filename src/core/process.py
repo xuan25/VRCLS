@@ -11,7 +11,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     from ..handler.SelfRead import SelfReadHandler
     from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
-
+    from ..module.translate import other_trasnlator
     
 
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
@@ -22,11 +22,14 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     baseurl=params["config"].get('baseurl')
     translator=params["config"].get('translateService')
-    while params["running"]:
 
+    while params["running"]:
         try:
+            tragetTranslateLanguage2=params["config"].get("targetTranslationLanguage2")
+            tragetTranslateLanguage3=params["config"].get("targetTranslationLanguage3")
             tragetTranslateLanguage=params["tragetTranslateLanguage"]
             sourceLanguage=params["sourceLanguage"]
+            
             audio=audioQueue.get()
             st=time.time()
             
@@ -50,7 +53,10 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
             files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
             
-            data = {'targetLanguage': tragetTranslateLanguage, 'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
+            data = {'targetLanguage': tragetTranslateLanguage,
+                    'targetLanguage2': tragetTranslateLanguage2,
+                    'targetLanguage3': tragetTranslateLanguage3,
+                    'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
             response = requests.post(url, files=files, data=data, headers=params['headers'])
             # 检查响应状态码
             if response.status_code != 200:
@@ -85,19 +91,27 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                         logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{e};","level":"error"})
                         logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
                         res['translatedText']=''
+            if params["runmode"] == "translation" and mode=="mic" and params["config"].get("translateService")!="developer":
+                # 第二语言
+                if  tragetTranslateLanguage2!="none":
+                    res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                # 第三语言
+                if tragetTranslateLanguage3!="none":
+                    res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                        
             et=time.time()
             if params["config"].get("translateService")!="developer":
                 logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
             else:
                 logger.put({"text":f"服务器识别+翻译用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})
-            if defaultCommand.handle(res["text"],params=params):continue
             if mode=="cap":selfRead.handle(res,"桌面音频",params["steamReady"])
             else:
+                if defaultCommand.handle(res["text"],params=params):continue
                 if params["runmode"] == "text" or params["runmode"] == "translation": 
+                    selfRead.handle(res,"麦克风",params["steamReady"])
                     for key in list(customEmoji.keys()):res['text']=res['text'].replace(key,customEmoji[key])
                     if params["runmode"] == "translation" : 
                         for key in list(customEmoji.keys()):res['translatedText']=res['translatedText'].replace(key,customEmoji[key])
-                    if params["config"].get("textInSteamVR"):selfRead.handle(res,"麦克风",params["steamReady"])
                     if not params["config"].get("oscShutdown"):chatbox.handle(res,runMode=params["runmode"])
                     if params["config"].get("TTSToggle")==3:
                         tts.tts_audio(res['translatedText'],language=tragetTranslateLanguage)
@@ -176,7 +190,7 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
         params["voiceKeyRun"]=False 
-        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
+        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"mic")})
         keyThread.start()
         logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
@@ -226,7 +240,7 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
 
-
+# TODO 检查调用错误
 def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     import speech_recognition as sr
     from multiprocessing import Process,Queue
@@ -387,10 +401,11 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
         logger.put({"text":"sound process exited complete||桌面音频进程退出完毕","level":"info"})
         params["gameStopped"] = True
 
-def logger_process(queue, copyqueue, params):
+def logger_process(queue, copyqueue, params, socketQueue):
     from .logger import MyLogger
     import sqlite3
     import datetime
+    import traceback
 
     logger = MyLogger().logger
 
@@ -411,97 +426,76 @@ def logger_process(queue, copyqueue, params):
     localizedSpeech=None
     localizedCapture=None
     TTSToggle=None
-    while True:
-        text = queue.get()
-        if localizedSpeech != params.get("localizedSpeech"):
-            localizedSpeech=params.get("localizedSpeech")
-            if not localizedSpeech: keyweod_list.append("服务器识别总用时：")
-            else:
-                try:keyweod_list.remove("服务器识别总用时：")
-                except:pass
-        if localizedCapture != params.get("localizedCapture"):
-            localizedCapture=params.get("localizedCapture")
-            if not localizedCapture: keyweod_list.append("桌面音频识别结果：")
-            else:
-                try:keyweod_list.remove("桌面音频识别结果：")
-                except:pass
-        if TTSToggle != params.get("TTSToggle"):
-            TTSToggle=params.get("TTSToggle")
-            if TTSToggle!=0: keyweod_list.append("TTS文本生成: ")
-            else:
-                try:keyweod_list.remove("TTS文本生成: ")
-                except:pass
-        # 原有的复制逻辑
-        if params.get('opencopybox'):
-            for txt in ["输出文字: ", "桌面音频识别结果："]:
+    try:
+        while True:
+            text = queue.get()
+            if localizedSpeech != params.get("localizedSpeech"):
+                localizedSpeech=params.get("localizedSpeech")
+                if not localizedSpeech: keyweod_list.append("服务器识别总用时：")
+                else:
+                    try:keyweod_list.remove("服务器识别总用时：")
+                    except:pass
+            if localizedCapture != params.get("localizedCapture"):
+                localizedCapture=params.get("localizedCapture")
+                if not localizedCapture: keyweod_list.append("桌面音频识别结果：")
+                else:
+                    try:keyweod_list.remove("桌面音频识别结果：")
+                    except:pass
+            if TTSToggle != params.get("TTSToggle"):
+                TTSToggle=params.get("TTSToggle")
+                if TTSToggle!=0: keyweod_list.append("TTS文本生成: ")
+                else:
+                    try:keyweod_list.remove("TTS文本生成: ")
+                    except:pass
+            # 原有的复制逻辑
+            for txt in ["麦克风识别结果：", "桌面音频识别结果："]:
                 if txt in text['text']:
                     tmp_text=text['text'].split(txt, 1)[1].strip()
-                    copyqueue.put(tmp_text[:len(tmp_text)-4])
-        today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
-        # 新增的统计逻辑
-        if any(keyword in text['text'] for keyword in keyweod_list):
-            
-            try:
-                # 使用UPSERT语法更新统计
-                cursor.execute('''INSERT INTO daily_stats (date, count) 
-                                VALUES (?, 1)
-                                ON CONFLICT(date) 
-                                DO UPDATE SET count = count + 1''', (today,))
-                conn.commit()
-            except Exception as e:
-                logger.error(f"数据库更新失败: {str(e)}")
-                conn.rollback()
-        if any(keyword in text['text'] for keyword in ["请求过于频繁,触发规则","数据接收异常:"]):
-            
-            try:
-                # 使用UPSERT语法更新统计
-                cursor.execute('''INSERT INTO daily_fail_stats (date, count) 
-                                VALUES (?, 1)
-                                ON CONFLICT(date) 
-                                DO UPDATE SET count = count + 1''', (today,))
-                conn.commit()
-            except Exception as e:
-                logger.error(f"数据库更新失败: {str(e)}")
-                conn.rollback()
+                    if params['running']:socketQueue.put({'type':'mic'if txt=="麦克风识别结果：" else 'cap','text':tmp_text[:len(tmp_text)-4]})
+            today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+            # 新增的统计逻辑
+            if any(keyword in text['text'] for keyword in keyweod_list):
+                
+                try:
+                    # 使用UPSERT语法更新统计
+                    cursor.execute('''INSERT INTO daily_stats (date, count) 
+                                    VALUES (?, 1)
+                                    ON CONFLICT(date) 
+                                    DO UPDATE SET count = count + 1''', (today,))
+                    conn.commit()
+                except Exception as e:
+                    logger.error(f"数据库更新失败: {str(e)}")
+                    conn.rollback()
+            if any(keyword in text['text'] for keyword in ["请求过于频繁,触发规则","数据接收异常:"]):
+                
+                try:
+                    # 使用UPSERT语法更新统计
+                    cursor.execute('''INSERT INTO daily_fail_stats (date, count) 
+                                    VALUES (?, 1)
+                                    ON CONFLICT(date) 
+                                    DO UPDATE SET count = count + 1''', (today,))
+                    conn.commit()
+                except Exception as e:
+                    logger.error(f"数据库更新失败: {str(e)}")
+                    conn.rollback()
 
-        # 原有的日志记录逻辑
-        log_level = text['level']
-        log_content = text['text']
-        {
-            "debug": logger.debug,
-            "info": logger.info,
-            "warning": logger.warning,
-            "error": logger.error
-        }.get(log_level, logger.error)(log_content)
-
-# def steamvr_process(logger,queue:Queue,params,hand=0,size=0.15):
-#     import openvr
-#     from..module.steamvr import VRTextOverlay
-#     textOverlay=VRTextOverlay()
-#     try:
-#         if not textOverlay.initialize(logger,params,hand):return
-#         textOverlay._create_text_texture()
-#         textOverlay.overlay.setOverlayWidthInMeters(textOverlay.overlay_handle,size)
-#         textOverlay.overlay.showOverlay(textOverlay.overlay_handle)
-#         logger.put({"text":f"掌心显示启动完毕","level":"info"})
-#         try:pyttsx3.speak("SteamVR掌心显示启动完毕")
-#         except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
-#         while params['running']:
-#             if queue.empty():
-#                 time.sleep(0.5)
-#                 continue
-#             text=queue.get() 
-#             logger.put({"text":f"开始执行一次掌心输出","level":"debug"})
-#             textOverlay.update_text(text)
-#             time.sleep(1)
-#     # except Exception as e:
-#     #     logger.put({"text":f"发生错误: {str(e)}","level":"error"})
-#     finally:  # 确保始终执行清理
-#         if textOverlay.overlay_handle:
-#             textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
-#             textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
-#         openvr.shutdown()
-#         time.sleep(1)
+            # 原有的日志记录逻辑
+            log_level = text['level']
+            log_content = text['text']
+            {
+                "debug": logger.debug,
+                "info": logger.info,
+                "warning": logger.warning,
+                "error": logger.error
+            }.get(log_level, logger.error)(log_content)
+            if log_level!="debug" and params['running']:socketQueue.put({
+                        'type':'log',
+                        'text': text['text'],
+                        'level': text['level'],
+                        'timestamp': datetime.datetime.now().isoformat()
+                    })
+    except Exception:
+        logger.error(f'日志进程报错：{traceback.format_exc()}')
 
 def steamvr_process(logger, queue, params):
     import time
@@ -516,7 +510,7 @@ def steamvr_process(logger, queue, params):
             if textOverlay.overlay_handle:
                 textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
                 textOverlay.overlay.destroyOverlay(textOverlay.overlay_handle)
-            openvr.shutdown()
+            # openvr.shutdown()
             logger.put({"text":"VR资源已安全释放","level":"info"})
         except Exception as e:
             logger.put({"text":f"关闭资源时出错:{str(e)}","level":"error"})
@@ -637,12 +631,12 @@ def steamvr_process(logger, queue, params):
     finally:
         safe_shutdown()
         # 确保释放所有VR资源
-        for _ in range(3):
-            try:
-                openvr.shutdown()
-            except:
-                pass
-            time.sleep(1)
+        # for _ in range(3):
+        #     try:
+        #         openvr.shutdown()
+        #     except:
+        #         pass
+        #     time.sleep(1)
 
 def copyBox_process(queue):
     import tkinter as tk

@@ -15,7 +15,7 @@ class ChatboxHandler(BaseHandler):
         text=res['text']
         transtext=res.get('translatedText')
         self.logger.put({"text":f"{Colors.CYAN}输出文字: {transtext}({text}){Colors.END}","level":"info"})
-        output=self.replace_multiple_placeholders(self.params['config']['VRCChatboxformat'],res)
+        output=self.replace_multiple_placeholders(self.params['config']['VRCChatboxformat_new'],res)
         while True:
             try:
                 self.osc_client.send_message("/chatbox/input",[ output, True, False])

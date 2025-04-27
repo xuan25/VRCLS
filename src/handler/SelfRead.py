@@ -13,7 +13,11 @@ class SelfReadHandler(BaseHandler):
     def handle(self, res,source:str,steamready):
         text=res['text']
         transtext=res.get('translatedText')
-        if transtext:message=f"{transtext}({text})"
+        transtext2=res.get('translatedText2','')
+        transtext3=res.get('translatedText3','')
+        if transtext2!='':transtext2+=' | '
+        if transtext3!='':transtext3+=' | '
+        if transtext:message=f"{transtext} | {transtext2}{transtext3}{text}"
         else:message=text
         logger=self.logger
         logger.put({"text":f"{Colors.YELLOW if source=="麦克风" else Colors.GREEN}{source}识别结果：{message}{Colors.END}","level":"info"})
