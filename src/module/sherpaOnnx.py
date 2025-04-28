@@ -457,7 +457,8 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                     sourceLanguage=tragetTranslateLanguage
                     tragetTranslateLanguage=tmp
                 if params["config"].get("translateService")!="developer":
-
+                    res['translatedText2']=''
+                    res['translatedText3']=''
                     try:
                         res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
                     except Exception as e:
@@ -489,6 +490,7 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                     # 解析JSON响应
                     res = response.json()
                     logger.put({"text":f"服务器翻译成功：","level":"debug"})
+
             if  params["runmode"] == "translation" and  mode=='mic' and params["config"].get("translateService")!="developer":        
                 # 第二语言
                 if  tragetTranslateLanguage2!="none":
@@ -525,7 +527,8 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
             et=time.time()
             logger.put({"text":f"总用时：{round(et-st,2)}s","level":"debug"})
         except Exception as e:
-            logger.put({"text":"sherpa_once未知异常"+str(e),"level":"error"})
+            import traceback
+            logger.put({"text":"sherpa_once未知异常"+traceback.format_exc(),"level":"error"})
             continue
 whisper_to_baidu = {
     'af': 'afr',       # 阿非利堪斯语

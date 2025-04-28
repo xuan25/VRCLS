@@ -75,11 +75,13 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             if res["text"] in filter:
                 logger.put({"text":"返回值过滤-自定义规则","level":"info"})
                 continue
-
+            
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et0=time.time()
             if params["runmode"] == "translation" and params["config"].get("translateService")!="developer":
+                res['translatedText2']=''
+                res['translatedText3']=''
                 try:
                     logger.put({"text":f"restext:{res["text"]}","level":"debug"})
                     res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
@@ -91,6 +93,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                         logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{e};","level":"error"})
                         logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
                         res['translatedText']=''
+
             if params["runmode"] == "translation" and mode=="mic" and params["config"].get("translateService")!="developer":
                 # 第二语言
                 if  tragetTranslateLanguage2!="none":
