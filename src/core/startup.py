@@ -4,7 +4,7 @@ from .osc_client import OSCClient
 import requests
 import time
 import pyaudio
-import traceback
+import os
 
 from ..handler.tts import whisper_voice_mapping,libretranslate_voice_mapping
 # import os,sys
@@ -73,6 +73,7 @@ class StartUp:
         self.getMics()
         self.list_loopback_devices()
         self.configCheck()
+        os.environ["translators_default_region"]=self.config.get('translateRegion')
         if self.config.get("CopyBox"):self.params["opencopybox"]=True
         # self.initffmpeg()
         if not self.config.get('localizedSpeech') or self.config.get("Separate_Self_Game_Mic") !=0 or self.config.get("TTSToggle") !=0 or self.config.get("translateService") =='developer':

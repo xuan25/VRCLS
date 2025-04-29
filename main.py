@@ -160,6 +160,9 @@ def saveConfig():
         if startUp.config.get("localizedCapture") != data["config"].get("localizedCapture"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
             return jsonify({"text":"请关闭整个程序后再重启程序"}),220
+        if startUp.config.get("textInSteamVR") != data["config"].get("textInSteamVR"):
+            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         startUp.config=data["config"]
         params["config"]=data["config"]
     except Exception as e:
@@ -413,7 +416,7 @@ if __name__ == '__main__':
         queue=Queue(-1)
         copyQueue=Queue(-1)
         socketQueue=Queue(-1)
-        VERSION_NUM='v0.5.4'
+        VERSION_NUM='v0.5.4-fix1'
         listener_thread=None
         startUp=None
         manager = Manager()

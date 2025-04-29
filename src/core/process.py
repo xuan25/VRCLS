@@ -62,9 +62,9 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             if response.status_code != 200:
                 if response.status_code == 430:
                     res=response.json()
-                    logger.put({"text":f"请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
+                    logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
                 else:    
-                    logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                    logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}服务器数据接收异常:{response.text}","level":"warning"})
                 continue
             # 解析JSON响应
             res = response.json()
@@ -429,6 +429,21 @@ def logger_process(queue, copyqueue, params, socketQueue):
     localizedSpeech=None
     localizedCapture=None
     TTSToggle=None
+    
+    infoType={
+        "麦克风识别结果：":'mic',
+        "桌面音频识别结果：":'cap',
+        "桌面音频请求过于频繁,可以尝试更换其他翻译引擎,触发规则":'cap',
+        "麦克风请求过于频繁,可以尝试更换其他翻译引擎,触发规则":'mic',
+        '桌面音频请求过于频繁,触发规则':'cap',
+        "麦克风请求过于频繁,触发规则":'mic',
+        '桌面音频本地识别服务器翻译数据接收异常:':'cap',
+        '麦克风本地识别服务器翻译数据接收异常:':'mic',
+        '桌面音频服务器数据接收异常:':'cap',
+        '麦克风服务器数据接收异常:':'mic',
+        'TTS请求过于频繁,触发规则':'mic',
+        "TTS数据接收异常:":'mic'
+    }
     try:
         while True:
             text = queue.get()
@@ -451,10 +466,12 @@ def logger_process(queue, copyqueue, params, socketQueue):
                     try:keyweod_list.remove("TTS文本生成: ")
                     except:pass
             # 原有的复制逻辑
-            for txt in ["麦克风识别结果：", "桌面音频识别结果："]:
+            for txt in infoType.keys():
                 if txt in text['text']:
                     tmp_text=text['text'].split(txt, 1)[1].strip()
-                    if params['running']:socketQueue.put({'type':'mic'if txt=="麦克风识别结果：" else 'cap','text':tmp_text[:len(tmp_text)-4]})
+                    if params['running']:
+                        socketQueue.put({'type':infoType[txt],'text':tmp_text[:len(tmp_text)-4] if '识别结果' in txt else text['text']})
+            
             today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
             # 新增的统计逻辑
             if any(keyword in text['text'] for keyword in keyweod_list):

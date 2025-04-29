@@ -135,7 +135,7 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
     try:pyttsx3.speak("本地桌面音频进程启动完毕")
     except:logger.put({"text":"请去系统设置-时间和语言中的语音栏目安装中文语音包","level":"warning"})
     messageQueue=Queue(-1)
-    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice,ttsVoice))
+    p = Process(target=sherpa_once,daemon=True, args=(messageQueue,sendClient,params,logger,filter,"cap",steamvrQueue,customEmoji,outputList,ttsVoice))
     p.start()
     client=udp_client.SimpleUDPClient(params["config"].get("osc-ip"), int(params["config"].get("osc-port")))
     lastSendTime=time.time()
@@ -483,9 +483,9 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                     if response.status_code != 200:
                         if response.status_code == 430:
                             res=response.json()
-                            logger.put({"text":f"请求过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+                            logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}请求过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
                         else:    
-                            logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
+                            logger.put({"text":f"本地识别服务器翻译数据接收异常:{response.text}","level":"warning"})
                         continue
                     # 解析JSON响应
                     res = response.json()

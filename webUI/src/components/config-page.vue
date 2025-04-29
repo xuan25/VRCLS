@@ -60,8 +60,10 @@
                     <el-button type="primary" @click="reboot">重启服务</el-button>
                 </el-button-group>
                 <div v-if="data.local.clickedMenuItem == 1">
-                    <el-row :gutter="20">
-                        <el-col :span="10">
+
+                    <el-row :gutter="20" >
+                    
+                        <el-col :span="data.config.Separate_Self_Game_Mic==0?20:10">
                             <el-card class="log-container">
                                 <template #header>
                                     <div class="card-header">
@@ -74,7 +76,7 @@
                                 </el-table>
                             </el-card>
                         </el-col>
-                        <el-col :span="10">
+                        <el-col :span="10" v-if="data.config.Separate_Self_Game_Mic!=0" >
                             <el-card class="log-container">
                                 <template #header>
                                     <div class="card-header">
@@ -458,9 +460,9 @@
                                                 placement="right">
                                                 <el-select v-model="data.config.translateService">
                                                     <el-option label="开发者服务器" value="developer"></el-option>
-                                                    <el-option label="小牛翻译" value="niutrans"></el-option>
-                                                    <el-option label="MyMemory" value="myMemory"></el-option>
                                                     <el-option label="阿里巴巴" value="alibaba"></el-option>
+                                                    <el-option label="谷歌(中国大陆地区不可用)" value="google"></el-option>
+                                                    <el-option label="MyMemory" value="myMemory"></el-option>
                                                     <el-option label="百度(坏的)" value="baidu"></el-option>
                                                     <el-option label="ModernMt" value="modernMt"></el-option>
                                                     <el-option label="火山翻译" value="volcEngine"></el-option>
@@ -483,6 +485,12 @@
 
                                                 </el-select>
                                             </el-tooltip>
+                                        </el-form-item>
+                                        <el-form-item label="翻译引擎接入点地区">
+                                            <el-select v-model="data.config.translateRegion">
+                                                <el-option label="中国大陆地区" value="CN"></el-option>
+                                                <el-option label="其他" value="EN"></el-option>
+                                            </el-select>
                                         </el-form-item>
                                         <el-form-item label="暂停osc输出">
                                             <el-select v-model="data.config.oscShutdown">
@@ -933,7 +941,7 @@ import sideInfo from './side-info.vue'
 import sideInfoFour from './side-info-four.vue'
 import axios from 'axios';
 import { io } from 'socket.io-client'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox,ElNotification  } from 'element-plus'
 import {
     Delete, Plus
 } from '@element-plus/icons-vue'
@@ -947,6 +955,14 @@ import useClipboard from 'vue-clipboard3';
 
 const socket = io()
 socket.on('log', (log) => {
+    if(log.level=='error'){
+        ElNotification({
+            title: '发生错误',
+            message: log.text,
+            duration: 0,
+            type: 'error',
+        })
+    }
     data.local.loggerInfo += log.timestamp + ': ' + log.level + ' - ' + log.text + '\n'
 })
 socket.on('cap', (log) => {
@@ -961,6 +977,7 @@ const captureName = ref([]);
 const menuClick = (key, keyPath) => {
     data.local.clickedMenuItem = key
 }
+
 const { toClipboard } = useClipboard();
 const handleRowClick = async (row) => {
     try {
@@ -973,8 +990,11 @@ const handleRowClick = async (row) => {
 };
 const micName = ref([]);
 const outputName = ref([]);
+const testuserInfo={
+}
 let data = reactive({
     local: {
+        configGetOK:false,
         defaultScriptsAction: 'sendText',
         item1: '',
         scriptClick: 0,
@@ -989,107 +1009,6 @@ let data = reactive({
         logDayNum:7
     },
     config: {
-        userInfo: {
-            username: "testuser",
-            password: "abc123!"
-        },
-        baseurl: "https://whisper.boyqiu001.cn:7070",
-        'osc-port': 9000,
-        'osc-ip': "127.0.0.1",
-        defaultMode: "control",
-        exitText: "关闭语音助手",
-        activateText: "",
-        stopText: "",
-        sourceLanguage: "zh",
-        targetTranslationLanguage: "en",
-        Separate_Self_Game_Mic: 0,
-        translationServer: "whisper",
-        defaultScripts: [
-            {
-                "action": "sendText",
-                "text": [
-                    "切换到文字发送模式",
-                    "到文字发送模式",
-                    "文字发送"
-                ]
-            },
-            {
-                "action": "changToTrans",
-                "text": [
-                    "切换到翻译模式",
-                    "到翻译模式"
-                ]
-            },
-            {
-                "action": "changToControl",
-                "text": [
-                    "切换到控制模式",
-                    "到控制模式"
-                ]
-            },
-            {
-                "action": "changToEnglish",
-                "text": [
-                    "切换到英语翻译"
-                ]
-            },
-            {
-                "action": "changTojapanese",
-                "text": [
-                    "切换到日语翻译"
-                ]
-            },
-            {
-                "action": "changToRussian",
-                "text": [
-                    "切换到俄语翻译"
-                ]
-            },
-            {
-                "action": "changToKorean",
-                "text": [
-                    "切换到韩语翻译"
-                ]
-            }
-        ],
-        scripts: [{
-            "action": "toggle Mic",
-            "text": [
-                "切换麦克风",
-                "切換麥克風"
-            ],
-            "vrcActions": [
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValue": 0,
-                    "vrcValueType": "bool",
-                    "sleeptime": 0.1
-                },
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValueType": "bool",
-                    "vrcValue": 1
-                },
-                {
-                    "vrcPath": "/input/Voice",
-                    "vrcValueType": "bool",
-                    "vrcValue": 0
-                }
-            ]
-        },
-        {
-            "action": "blackCloth",
-            "text": [
-                "黑色衣服"
-            ],
-            "vrcActions": [
-                {
-                    "vrcPath": "/avatar/parameters/Change_material",
-                    "vrcValueType": "float",
-                    "vrcValue": 0
-                }
-            ]
-        }]
     },
     avatarParameters: [],
     avatarInfo: {
@@ -1098,6 +1017,11 @@ let data = reactive({
         "filePath": ""
     }
 })
+watch(()=> data.config, () => {
+    if(data.local.configGetOK){
+        saveconfig();
+    }
+}, { deep: true })
 const mdhtml = computed(() => marked(data.local.markdownContent))
 
 const statsData = ref([])
@@ -1169,6 +1093,7 @@ watch(() => data.config.Separate_Self_Game_Mic, () => { getCapture() })
 function getconfig() {
     axios.get('/api/getConfig').then(response => {
         data.config = response.data;
+        data.local.configGetOK=true
         ElMessage({
             message: '配置信息获取成功',
             type: 'success',
@@ -1200,7 +1125,7 @@ function saveconfig() {
             ElMessage({message: response.data['text'],type: 'error',})
         }
         if (response.status == 200) {
-            ElMessage({message: '配置保存完毕',type: 'success',})
+            ElMessage({message: '配置保存完毕,重启服务后生效',type: 'success',})
         }
         if (response.status == 220) {
             ElMessage({message: '配置保存完毕,请关闭整个程序后再重启程序',type: 'warning',})

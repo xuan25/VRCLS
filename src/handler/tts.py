@@ -165,9 +165,9 @@ class TTSHandler:
             if response.status_code != 200:
                 if response.status_code == 430:
                     res = response.json()
-                    self.logger.put({"text": f"请求过于频繁,触发规则{res.get('limit')}", "level": "warning"})
+                    self.logger.put({"text": f"TTS请求过于频繁,触发规则{res.get('limit')}", "level": "warning"})
                 else:
-                    self.logger.put({"text": f"数据接收异常:{response.text}", "level": "warning"})
+                    self.logger.put({"text": f"TTS数据接收异常:{response.text}", "level": "warning"})
                 return
             self.logger.put({"text": f"TTS文本生成: {text}", "level": "debug"})
 
