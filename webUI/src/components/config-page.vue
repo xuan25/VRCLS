@@ -61,9 +61,9 @@
                 </el-button-group>
                 <div v-if="data.local.clickedMenuItem == 1">
 
-                    <el-row :gutter="20" >
-                    
-                        <el-col :span="data.config.Separate_Self_Game_Mic==0?20:10">
+                    <el-row :gutter="20">
+
+                        <el-col :span="data.config.Separate_Self_Game_Mic == 0 ? 20 : 10">
                             <el-card class="log-container">
                                 <template #header>
                                     <div class="card-header">
@@ -76,7 +76,7 @@
                                 </el-table>
                             </el-card>
                         </el-col>
-                        <el-col :span="10" v-if="data.config.Separate_Self_Game_Mic!=0" >
+                        <el-col :span="10" v-if="data.config.Separate_Self_Game_Mic != 0">
                             <el-card class="log-container">
                                 <template #header>
                                     <div class="card-header">
@@ -137,107 +137,8 @@
                                             <el-tooltip class="box-item" effect="dark" content="可说中文输出日语"
                                                 placement="right">
                                                 <el-select v-model="data.config.sourceLanguage">
-                                                    <el-option label="阿非利堪斯语(Afrikaans)" value="af"></el-option>
-                                                    <el-option label="阿姆哈拉语(Amharic)" value="am"></el-option>
-                                                    <el-option label="阿拉伯语(Arabic)" value="ar"></el-option>
-                                                    <el-option label="阿萨姆语(Assamese)" value="as"></el-option>
-                                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option>
-                                                    <el-option label="巴什基尔语(Bashkir)" value="ba"></el-option>
-                                                    <el-option label="白俄罗斯语(Belarusian)" value="be"></el-option>
-                                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option>
-                                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option>
-                                                    <el-option label="藏语(Tibetan)" value="bo"></el-option>
-                                                    <el-option label="布雷顿语(Breton)" value="br"></el-option>
-                                                    <el-option label="波斯尼亚语(Bosnian)" value="bs"></el-option>
-                                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option>
-                                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
-                                                    <el-option label="威尔士语(Welsh)" value="cy"></el-option>
-                                                    <el-option label="丹麦语(Danish)" value="da"></el-option>
-                                                    <el-option label="德语(German)" value="de"></el-option>
-                                                    <el-option label="希腊语(Greek)" value="el"></el-option>
-                                                    <el-option label="英语(English)" value="en"></el-option>
-                                                    <el-option label="西班牙语(Spanish)" value="es"></el-option>
-                                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
-                                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
-                                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
-                                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option>
-                                                    <el-option label="法罗语(Faroese)" value="fo"></el-option>
-                                                    <el-option label="法语(French)" value="fr"></el-option>
-                                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
-                                                    <el-option label="古吉拉特语(Gujarati)" value="gu"></el-option>
-                                                    <el-option label="豪萨语(Hausa)" value="ha"></el-option>
-                                                    <el-option label="夏威夷语(Hawaiian)" value="haw"></el-option>
-                                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option>
-                                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
-                                                    <el-option label="克罗地亚语(Croatian)" value="hr"></el-option>
-                                                    <el-option label="海地克里奥尔语(Haitian Creole)" value="ht"></el-option>
-                                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
-                                                    <el-option label="亚美尼亚语(Armenian)" value="hy"></el-option>
-                                                    <el-option label="印尼语(Indonesian)" value="id"></el-option>
-                                                    <el-option label="冰岛语(Icelandic)" value="is"></el-option>
-                                                    <el-option label="意大利语(Italian)" value="it"></el-option>
-                                                    <el-option label="日语(Japanese)" value="ja"></el-option>
-                                                    <el-option label="爪哇语(Javanese)" value="jw"></el-option>
-                                                    <el-option label="格鲁吉亚语(Georgian)" value="ka"></el-option>
-                                                    <el-option label="哈萨克语(Kazakh)" value="kk"></el-option>
-                                                    <el-option label="高棉语(Khmer)" value="km"></el-option>
-                                                    <el-option label="卡纳达语(Kannada)" value="kn"></el-option>
-                                                    <el-option label="韩语(Korean)" value="ko"></el-option>
-                                                    <el-option label="拉丁语(Latin)" value="la"></el-option>
-                                                    <el-option label="卢森堡语(Luxembourgish)" value="lb"></el-option>
-                                                    <el-option label="林加拉语(Lingala)" value="ln"></el-option>
-                                                    <el-option label="老挝语(Lao)" value="lo"></el-option>
-                                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
-                                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option>
-                                                    <el-option label="马达加斯加语(Malagasy)" value="mg"></el-option>
-                                                    <el-option label="毛利语(Maori)" value="mi"></el-option>
-                                                    <el-option label="马其顿语(Macedonian)" value="mk"></el-option>
-                                                    <el-option label="马拉雅拉姆语(Malayalam)" value="ml"></el-option>
-                                                    <el-option label="蒙古语(Mongolian)" value="mn"></el-option>
-                                                    <el-option label="马拉提语(Marathi)" value="mr"></el-option>
-                                                    <el-option label="马来语(Malay)" value="ms"></el-option>
-                                                    <el-option label="马耳他语(Maltese)" value="mt"></el-option>
-                                                    <el-option label="缅甸语(Burmese)" value="my"></el-option>
-                                                    <el-option label="尼泊尔语(Nepali)" value="ne"></el-option>
-                                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
-                                                    <el-option label="尼诺尔斯克语(Nynorsk)" value="nn"></el-option>
-                                                    <el-option label="挪威语(Norwegian)" value="no"></el-option>
-                                                    <el-option label="奥克语(Occitan)" value="oc"></el-option>
-                                                    <el-option label="旁遮普语(Punjabi)" value="pa"></el-option>
-                                                    <el-option label="波兰语(Polish)" value="pl"></el-option>
-                                                    <el-option label="普什图语(Pashto)" value="ps"></el-option>
-                                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option>
-                                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option>
-                                                    <el-option label="俄语(Russian)" value="ru"></el-option>
-                                                    <el-option label="梵语(Sanskrit)" value="sa"></el-option>
-                                                    <el-option label="信德语(Sindhi)" value="sd"></el-option>
-                                                    <el-option label="僧伽罗语(Sinhala)" value="si"></el-option>
-                                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option>
-                                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
-                                                    <el-option label="修纳语(Shona)" value="sn"></el-option>
-                                                    <el-option label="索马里语(Somali)" value="so"></el-option>
-                                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
-                                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option>
-                                                    <el-option label="巽他语(Sundanese)" value="su"></el-option>
-                                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option>
-                                                    <el-option label="斯瓦希里语(Swahili)" value="sw"></el-option>
-                                                    <el-option label="泰米尔语(Tamil)" value="ta"></el-option>
-                                                    <el-option label="泰卢固语(Telugu)" value="te"></el-option>
-                                                    <el-option label="塔吉克语(Tajik)" value="tg"></el-option>
-                                                    <el-option label="泰语(Thai)" value="th"></el-option>
-                                                    <el-option label="土库曼语(Turkmen)" value="tk"></el-option>
-                                                    <el-option label="他加禄语(Tagalog)" value="tl"></el-option>
-                                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option>
-                                                    <el-option label="鞑靼语(Tatar)" value="tt"></el-option>
-                                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option>
-                                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option>
-                                                    <el-option label="乌兹别克语 (Uzbek)" value="uz"></el-option>
-                                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option>
-                                                    <el-option label="依地语(Yiddish)" value="yi"></el-option>
-                                                    <el-option label="约鲁巴语(Yoruba)" value="yo"></el-option>
-                                                    <el-option label="粤语(Cantonese)" value="yue"></el-option>
-                                                    <el-option label="简体中文(Chinese Simplified)" value="zh"></el-option>
-                                                    <el-option label="繁體中文(Chinese Traditional)" value="zt"></el-option>
+                                                    <el-option v-for="item in recognizeLanguageOption" :key="item.value"
+                                                        :label="item.label" :value="item.value"></el-option>
                                                 </el-select>
                                             </el-tooltip>
                                         </el-form-item>
@@ -245,54 +146,9 @@
                                             <el-tooltip class="box-item" effect="dark" content="如果翻译时报错请检查服务端是否支持"
                                                 placement="right">
                                                 <el-select v-model="data.config.targetTranslationLanguage">
-                                                    <el-option label="阿拉伯语(Arabic)" value="ar"></el-option>
-                                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option>
-                                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option>
-                                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option>
-                                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option>
-                                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
-                                                    <el-option label="丹麦语(Danish)" value="da"></el-option>
-                                                    <el-option label="德语(German)" value="de"></el-option>
-                                                    <el-option label="希腊语(Greek)" value="el"></el-option>
-                                                    <el-option label="英语(English)" value="en"></el-option>
-                                                    <el-option label="世界语(Esperanto)" value="eo"></el-option>
-                                                    <el-option label="西班牙语(Spanish)" value="es"></el-option>
-                                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
-                                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
-                                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
-                                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option>
-                                                    <el-option label="法语(French)" value="fr"></el-option>
-                                                    <el-option label="爱尔兰语(Irish)" value="ga"></el-option>
-                                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
-                                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option>
-                                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
-                                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
-                                                    <el-option label="印尼语(Indonesian)" value="id"></el-option>
-                                                    <el-option label="意大利语(Italian)" value="it"></el-option>
-                                                    <el-option label="日语(Japanese)" value="ja"></el-option>
-                                                    <el-option label="韩语(Korean)" value="ko"></el-option>
-                                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
-                                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option>
-                                                    <el-option label="马来语(Malay)" value="ms"></el-option>
-                                                    <el-option label="挪威语(Bokmål)" value="nb"></el-option>
-                                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
-                                                    <el-option label="波兰语(Polish)" value="pl"></el-option>
-                                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option>
-                                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option>
-                                                    <el-option label="俄语(Russian)" value="ru"></el-option>
-                                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option>
-                                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
-                                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
-                                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option>
-                                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option>
-                                                    <el-option label="泰语(Thai)" value="th"></el-option>
-                                                    <el-option label="塔加洛语(Tagalog)" value="tl"></el-option>
-                                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option>
-                                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option>
-                                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option>
-                                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option>
-                                                    <el-option label="中文(Chinese)" value="zh"></el-option>
-                                                    <el-option label="繁体中文(Chinese)" value="zt"></el-option>
+                                                    <el-option v-for="item in computedTranslateLanguage"
+                                                        :key="item.value" :label="item.label"
+                                                        :value="item.value"></el-option>
                                                 </el-select>
                                             </el-tooltip>
                                         </el-form-item>
@@ -301,54 +157,9 @@
                                                 placement="right">
                                                 <el-select v-model="data.config.targetTranslationLanguage2">
                                                     <el-option label="关闭" value="none"></el-option>
-                                                    <el-option label="阿拉伯语(Arabic)" value="ar"></el-option>
-                                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option>
-                                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option>
-                                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option>
-                                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option>
-                                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
-                                                    <el-option label="丹麦语(Danish)" value="da"></el-option>
-                                                    <el-option label="德语(German)" value="de"></el-option>
-                                                    <el-option label="希腊语(Greek)" value="el"></el-option>
-                                                    <el-option label="英语(English)" value="en"></el-option>
-                                                    <el-option label="世界语(Esperanto)" value="eo"></el-option>
-                                                    <el-option label="西班牙语(Spanish)" value="es"></el-option>
-                                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
-                                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
-                                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
-                                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option>
-                                                    <el-option label="法语(French)" value="fr"></el-option>
-                                                    <el-option label="爱尔兰语(Irish)" value="ga"></el-option>
-                                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
-                                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option>
-                                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
-                                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
-                                                    <el-option label="印尼语(Indonesian)" value="id"></el-option>
-                                                    <el-option label="意大利语(Italian)" value="it"></el-option>
-                                                    <el-option label="日语(Japanese)" value="ja"></el-option>
-                                                    <el-option label="韩语(Korean)" value="ko"></el-option>
-                                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
-                                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option>
-                                                    <el-option label="马来语(Malay)" value="ms"></el-option>
-                                                    <el-option label="挪威语(Bokmål)" value="nb"></el-option>
-                                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
-                                                    <el-option label="波兰语(Polish)" value="pl"></el-option>
-                                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option>
-                                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option>
-                                                    <el-option label="俄语(Russian)" value="ru"></el-option>
-                                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option>
-                                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
-                                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
-                                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option>
-                                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option>
-                                                    <el-option label="泰语(Thai)" value="th"></el-option>
-                                                    <el-option label="塔加洛语(Tagalog)" value="tl"></el-option>
-                                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option>
-                                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option>
-                                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option>
-                                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option>
-                                                    <el-option label="中文(Chinese)" value="zh"></el-option>
-                                                    <el-option label="繁体中文(Chinese)" value="zt"></el-option>
+                                                    <el-option v-for="item in computedTranslateLanguage"
+                                                        :key="item.value" :label="item.label"
+                                                        :value="item.value"></el-option>
                                                 </el-select>
                                             </el-tooltip>
                                         </el-form-item>
@@ -357,54 +168,9 @@
                                                 placement="right">
                                                 <el-select v-model="data.config.targetTranslationLanguage3">
                                                     <el-option label="关闭" value="none"></el-option>
-                                                    <el-option label="阿拉伯语(Arabic)" value="ar"></el-option>
-                                                    <el-option label="阿塞拜疆语(Azerbaijani)" value="az"></el-option>
-                                                    <el-option label="保加利亚语(Bulgarian)" value="bg"></el-option>
-                                                    <el-option label="孟加拉语(Bengali)" value="bn"></el-option>
-                                                    <el-option label="加泰罗尼亚语(Catalan)" value="ca"></el-option>
-                                                    <el-option label="捷克语(Czech)" value="cs"></el-option>
-                                                    <el-option label="丹麦语(Danish)" value="da"></el-option>
-                                                    <el-option label="德语(German)" value="de"></el-option>
-                                                    <el-option label="希腊语(Greek)" value="el"></el-option>
-                                                    <el-option label="英语(English)" value="en"></el-option>
-                                                    <el-option label="世界语(Esperanto)" value="eo"></el-option>
-                                                    <el-option label="西班牙语(Spanish)" value="es"></el-option>
-                                                    <el-option label="爱沙尼亚语(Estonian)" value="et"></el-option>
-                                                    <el-option label="巴斯克语(Basque)" value="eu"></el-option>
-                                                    <el-option label="波斯语(Persian)" value="fa"></el-option>
-                                                    <el-option label="芬兰语(Finnish)" value="fi"></el-option>
-                                                    <el-option label="法语(French)" value="fr"></el-option>
-                                                    <el-option label="爱尔兰语(Irish)" value="ga"></el-option>
-                                                    <el-option label="加利西亚语(Galician)" value="gl"></el-option>
-                                                    <el-option label="希伯来语(Hebrew)" value="he"></el-option>
-                                                    <el-option label="印地语(Hindi)" value="hi"></el-option>
-                                                    <el-option label="匈牙利语(Hungarian)" value="hu"></el-option>
-                                                    <el-option label="印尼语(Indonesian)" value="id"></el-option>
-                                                    <el-option label="意大利语(Italian)" value="it"></el-option>
-                                                    <el-option label="日语(Japanese)" value="ja"></el-option>
-                                                    <el-option label="韩语(Korean)" value="ko"></el-option>
-                                                    <el-option label="立陶宛语(Lithuanian)" value="lt"></el-option>
-                                                    <el-option label="拉脱维亚语(Latvian)" value="lv"></el-option>
-                                                    <el-option label="马来语(Malay)" value="ms"></el-option>
-                                                    <el-option label="挪威语(Bokmål)" value="nb"></el-option>
-                                                    <el-option label="荷兰语(Dutch)" value="nl"></el-option>
-                                                    <el-option label="波兰语(Polish)" value="pl"></el-option>
-                                                    <el-option label="葡萄牙语(Portuguese)" value="pt"></el-option>
-                                                    <el-option label="罗马尼亚语(Romanian)" value="ro"></el-option>
-                                                    <el-option label="俄语(Russian)" value="ru"></el-option>
-                                                    <el-option label="斯洛伐克语(Slovak)" value="sk"></el-option>
-                                                    <el-option label="斯洛文尼亚语(Slovenian)" value="sl"></el-option>
-                                                    <el-option label="阿尔巴尼亚语(Albanian)" value="sq"></el-option>
-                                                    <el-option label="塞尔维亚语(Serbian)" value="sr"></el-option>
-                                                    <el-option label="瑞典语(Swedish)" value="sv"></el-option>
-                                                    <el-option label="泰语(Thai)" value="th"></el-option>
-                                                    <el-option label="塔加洛语(Tagalog)" value="tl"></el-option>
-                                                    <el-option label="土耳其语(Turkish)" value="tr"></el-option>
-                                                    <el-option label="乌克兰语(Ukrainian)" value="uk"></el-option>
-                                                    <el-option label="乌尔都语(Urdu)" value="ur"></el-option>
-                                                    <el-option label="越南语(Vietnamese)" value="vi"></el-option>
-                                                    <el-option label="中文(Chinese)" value="zh"></el-option>
-                                                    <el-option label="繁体中文(Chinese)" value="zt"></el-option>
+                                                    <el-option v-for="item in computedTranslateLanguage"
+                                                        :key="item.value" :label="item.label"
+                                                        :value="item.value"></el-option>
                                                 </el-select>
                                             </el-tooltip>
                                         </el-form-item>
@@ -594,7 +360,8 @@
                                         </el-form-item>
                                         <el-space fill>
                                             <el-alert type="info" show-icon :closable="true">
-                                                <p>下方{translatedText}会被替换为译文，{text}会被替换为原文,{translatedText2}为第二语言译文，{translatedText3}为第三语言译文</p>
+                                                <p>下方{translatedText}会被替换为译文，{text}会被替换为原文,{translatedText2}为第二语言译文，{translatedText3}为第三语言译文
+                                                </p>
                                             </el-alert>
                                             <el-form-item label="VRC文本框输出样式">
                                                 <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
@@ -713,7 +480,7 @@
                         <el-row>
                             <el-col :span="8">
                                 <el-text class="mx-1">显示日期数：</el-text>
-                                <el-input-number v-model="data.local.logDayNum" :min="1"/>
+                                <el-input-number v-model="data.local.logDayNum" :min="1" />
                             </el-col>
                             <el-col :span="8">
                                 <el-radio-group v-model="counter_mode" @change="fetchData">
@@ -728,7 +495,7 @@
                         </el-row>
 
                         <el-table :data="statsData" v-loading="loading" height="60vh" style="width: 100%">
-                            <el-table-column prop="date" label="日期" >
+                            <el-table-column prop="date" label="日期">
                                 <template #default="{ row }">
                                     {{ formatDate(row.date) }}
                                 </template>
@@ -941,7 +708,7 @@ import sideInfo from './side-info.vue'
 import sideInfoFour from './side-info-four.vue'
 import axios from 'axios';
 import { io } from 'socket.io-client'
-import { ElMessage, ElMessageBox,ElNotification  } from 'element-plus'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import {
     Delete, Plus
 } from '@element-plus/icons-vue'
@@ -955,7 +722,7 @@ import useClipboard from 'vue-clipboard3';
 
 const socket = io()
 socket.on('log', (log) => {
-    if(log.level=='error'){
+    if (log.level == 'error') {
         ElNotification({
             title: '发生错误',
             message: log.text,
@@ -990,11 +757,10 @@ const handleRowClick = async (row) => {
 };
 const micName = ref([]);
 const outputName = ref([]);
-const testuserInfo={
-}
+
 let data = reactive({
     local: {
-        configGetOK:false,
+        configGetOK: false,
         defaultScriptsAction: 'sendText',
         item1: '',
         scriptClick: 0,
@@ -1006,7 +772,9 @@ let data = reactive({
         desktopInfo: [],
         micInfo: [],
         versionstr: '',
-        logDayNum:7
+        logDayNum: 7,
+
+
     },
     config: {
     },
@@ -1017,8 +785,8 @@ let data = reactive({
         "filePath": ""
     }
 })
-watch(()=> data.config, () => {
-    if(data.local.configGetOK){
+watch(() => data.config, () => {
+    if (data.local.configGetOK) {
         saveconfig();
     }
 }, { deep: true })
@@ -1081,7 +849,7 @@ const formatDate = (dateString) => {
 // 获取数据
 const fetchData = async () => {
     try {
-        const response = await axios.get('/api/stats', { params: { 'mode': counter_mode.value,'dayNum':data.local.logDayNum } })
+        const response = await axios.get('/api/stats', { params: { 'mode': counter_mode.value, 'dayNum': data.local.logDayNum } })
         statsData.value = response.data//.reverse()  转为日期升序排列
     } catch (err) {
         error.value = `数据加载失败: ${err.message}`
@@ -1093,7 +861,7 @@ watch(() => data.config.Separate_Self_Game_Mic, () => { getCapture() })
 function getconfig() {
     axios.get('/api/getConfig').then(response => {
         data.config = response.data;
-        data.local.configGetOK=true
+        data.local.configGetOK = true
         ElMessage({
             message: '配置信息获取成功',
             type: 'success',
@@ -1122,15 +890,15 @@ function saveconfig() {
         }
     }).then(response => {
         if (response.status == 401) {
-            ElMessage({message: response.data['text'],type: 'error',})
+            ElMessage({ message: response.data['text'], type: 'error', })
         }
         if (response.status == 200) {
-            ElMessage({message: '配置保存完毕,重启服务后生效',type: 'success',})
+            ElMessage({ message: '配置保存完毕,重启服务后生效', type: 'success', })
         }
         if (response.status == 220) {
-            ElMessage({message: '配置保存完毕,请关闭整个程序后再重启程序',type: 'warning',})
+            ElMessage({ message: '配置保存完毕,请关闭整个程序后再重启程序', type: 'warning', })
         }
-        
+
     })
 }
 function saveAndBoot() {
@@ -1226,7 +994,171 @@ function getAvatarParameters() {
         data.avatarInfo = response.data.avatarInfo
     });
 }
+const recognizeLanguageOption = [
+    { label: '阿非利堪斯语(Afrikaans)', value: 'af' },
+    { label: '阿姆哈拉语(Amharic)', value: 'am' },
+    { label: '阿拉伯语(Arabic)', value: 'ar' },
+    { label: '阿萨姆语(Assamese)', value: 'as' },
+    { label: '阿塞拜疆语(Azerbaijani)', value: 'az' },
+    { label: '巴什基尔语(Bashkir)', value: 'ba' },
+    { label: '白俄罗斯语(Belarusian)', value: 'be' },
+    { label: '保加利亚语(Bulgarian)', value: 'bg' },
+    { label: '孟加拉语(Bengali)', value: 'bn' },
+    { label: '藏语(Tibetan)', value: 'bo' },
+    { label: '布雷顿语(Breton)', value: 'br' },
+    { label: '波斯尼亚语(Bosnian)', value: 'bs' },
+    { label: '加泰罗尼亚语(Catalan)', value: 'ca' },
+    { label: '捷克语(Czech)', value: 'cs' },
+    { label: '威尔士语(Welsh)', value: 'cy' },
+    { label: '丹麦语(Danish)', value: 'da' },
+    { label: '德语(German)', value: 'de' },
+    { label: '希腊语(Greek)', value: 'el' },
+    { label: '英语(English)', value: 'en' },
+    { label: '西班牙语(Spanish)', value: 'es' },
+    { label: '爱沙尼亚语(Estonian)', value: 'et' },
+    { label: '巴斯克语(Basque)', value: 'eu' },
+    { label: '波斯语(Persian)', value: 'fa' },
+    { label: '芬兰语(Finnish)', value: 'fi' },
+    { label: '法罗语(Faroese)', value: 'fo' },
+    { label: '法语(French)', value: 'fr' },
+    { label: '加利西亚语(Galician)', value: 'gl' },
+    { label: '古吉拉特语(Gujarati)', value: 'gu' },
+    { label: '豪萨语(Hausa)', value: 'ha' },
+    { label: '夏威夷语(Hawaiian)', value: 'haw' },
+    { label: '希伯来语(Hebrew)', value: 'he' },
+    { label: '印地语(Hindi)', value: 'hi' },
+    { label: '克罗地亚语(Croatian)', value: 'hr' },
+    { label: '海地克里奥尔语(Haitian Creole)', value: 'ht' },
+    { label: '匈牙利语(Hungarian)', value: 'hu' },
+    { label: '亚美尼亚语(Armenian)', value: 'hy' },
+    { label: '印尼语(Indonesian)', value: 'id' },
+    { label: '冰岛语(Icelandic)', value: 'is' },
+    { label: '意大利语(Italian)', value: 'it' },
+    { label: '日语(Japanese)', value: 'ja' },
+    { label: '爪哇语(Javanese)', value: 'jw' },
+    { label: '格鲁吉亚语(Georgian)', value: 'ka' },
+    { label: '哈萨克语(Kazakh)', value: 'kk' },
+    { label: '高棉语(Khmer)', value: 'km' },
+    { label: '卡纳达语(Kannada)', value: 'kn' },
+    { label: '韩语(Korean)', value: 'ko' },
+    { label: '拉丁语(Latin)', value: 'la' },
+    { label: '卢森堡语(Luxembourgish)', value: 'lb' },
+    { label: '林加拉语(Lingala)', value: 'ln' },
+    { label: '老挝语(Lao)', value: 'lo' },
+    { label: '立陶宛语(Lithuanian)', value: 'lt' },
+    { label: '拉脱维亚语(Latvian)', value: 'lv' },
+    { label: '马达加斯加语(Malagasy)', value: 'mg' },
+    { label: '毛利语(Maori)', value: 'mi' },
+    { label: '马其顿语(Macedonian)', value: 'mk' },
+    { label: '马拉雅拉姆语(Malayalam)', value: 'ml' },
+    { label: '蒙古语(Mongolian)', value: 'mn' },
+    { label: '马拉提语(Marathi)', value: 'mr' },
+    { label: '马来语(Malay)', value: 'ms' },
+    { label: '马耳他语(Maltese)', value: 'mt' },
+    { label: '缅甸语(Burmese)', value: 'my' },
+    { label: '尼泊尔语(Nepali)', value: 'ne' },
+    { label: '荷兰语(Dutch)', value: 'nl' },
+    { label: '尼诺尔斯克语(Nynorsk)', value: 'nn' },
+    { label: '挪威语(Norwegian)', value: 'no' },
+    { label: '奥克语(Occitan)', value: 'oc' },
+    { label: '旁遮普语(Punjabi)', value: 'pa' },
+    { label: '波兰语(Polish)', value: 'pl' },
+    { label: '普什图语(Pashto)', value: 'ps' },
+    { label: '葡萄牙语(Portuguese)', value: 'pt' },
+    { label: '罗马尼亚语(Romanian)', value: 'ro' },
+    { label: '俄语(Russian)', value: 'ru' },
+    { label: '梵语(Sanskrit)', value: 'sa' },
+    { label: '信德语(Sindhi)', value: 'sd' },
+    { label: '僧伽罗语(Sinhala)', value: 'si' },
+    { label: '斯洛伐克语(Slovak)', value: 'sk' },
+    { label: '斯洛文尼亚语(Slovenian)', value: 'sl' },
+    { label: '修纳语(Shona)', value: 'sn' },
+    { label: '索马里语(Somali)', value: 'so' },
+    { label: '阿尔巴尼亚语(Albanian)', value: 'sq' },
+    { label: '塞尔维亚语(Serbian)', value: 'sr' },
+    { label: '巽他语(Sundanese)', value: 'su' },
+    { label: '瑞典语(Swedish)', value: 'sv' },
+    { label: '斯瓦希里语(Swahili)', value: 'sw' },
+    { label: '泰米尔语(Tamil)', value: 'ta' },
+    { label: '泰卢固语(Telugu)', value: 'te' },
+    { label: '塔吉克语(Tajik)', value: 'tg' },
+    { label: '泰语(Thai)', value: 'th' },
+    { label: '土库曼语(Turkmen)', value: 'tk' },
+    { label: '他加禄语(Tagalog)', value: 'tl' },
+    { label: '土耳其语(Turkish)', value: 'tr' },
+    { label: '鞑靼语(Tatar)', value: 'tt' },
+    { label: '乌克兰语(Ukrainian)', value: 'uk' },
+    { label: '乌尔都语(Urdu)', value: 'ur' },
+    { label: '乌兹别克语 (Uzbek)', value: 'uz' },
+    { label: '越南语(Vietnamese)', value: 'vi' },
+    { label: '依地语(Yiddish)', value: 'yi' },
+    { label: '约鲁巴语(Yoruba)', value: 'yo' },
+    { label: '粤语(Cantonese)', value: 'yue' },
+    { label: '简体中文(Chinese Simplified)', value: 'zh' },
+    { label: '繁體中文(Chinese Traditional)', value: 'zt' }
+]
 
+const translateLanguageOption = [
+    { label: '阿拉伯语(Arabic)', value: 'ar' },
+    { label: '阿塞拜疆语(Azerbaijani)', value: 'az' },
+    { label: '保加利亚语(Bulgarian)', value: 'bg' },
+    { label: '孟加拉语(Bengali)', value: 'bn' },
+    { label: '加泰罗尼亚语(Catalan)', value: 'ca' },
+    { label: '捷克语(Czech)', value: 'cs' },
+    { label: '丹麦语(Danish)', value: 'da' },
+    { label: '德语(German)', value: 'de' },
+    { label: '希腊语(Greek)', value: 'el' },
+    { label: '英语(English)', value: 'en' },
+    { label: '世界语(Esperanto)', value: 'eo' },
+    { label: '西班牙语(Spanish)', value: 'es' },
+    { label: '爱沙尼亚语(Estonian)', value: 'et' },
+    { label: '巴斯克语(Basque)', value: 'eu' },
+    { label: '波斯语(Persian)', value: 'fa' },
+    { label: '芬兰语(Finnish)', value: 'fi' },
+    { label: '法语(French)', value: 'fr' },
+    { label: '爱尔兰语(Irish)', value: 'ga' },
+    { label: '加利西亚语(Galician)', value: 'gl' },
+    { label: '希伯来语(Hebrew)', value: 'he' },
+    { label: '印地语(Hindi)', value: 'hi' },
+    { label: '匈牙利语(Hungarian)', value: 'hu' },
+    { label: '印尼语(Indonesian)', value: 'id' },
+    { label: '意大利语(Italian)', value: 'it' },
+    { label: '日语(Japanese)', value: 'ja' },
+    { label: '韩语(Korean)', value: 'ko' },
+    { label: '立陶宛语(Lithuanian)', value: 'lt' },
+    { label: '拉脱维亚语(Latvian)', value: 'lv' },
+    { label: '马来语(Malay)', value: 'ms' },
+    { label: '挪威语(Bokmål)', value: 'nb' },
+    { label: '荷兰语(Dutch)', value: 'nl' },
+    { label: '波兰语(Polish)', value: 'pl' },
+    { label: '葡萄牙语(Portuguese)', value: 'pt' },
+    { label: '罗马尼亚语(Romanian)', value: 'ro' },
+    { label: '俄语(Russian)', value: 'ru' },
+    { label: '斯洛伐克语(Slovak)', value: 'sk' },
+    { label: '斯洛文尼亚语(Slovenian)', value: 'sl' },
+    { label: '阿尔巴尼亚语(Albanian)', value: 'sq' },
+    { label: '塞尔维亚语(Serbian)', value: 'sr' },
+    { label: '瑞典语(Swedish)', value: 'sv' },
+    { label: '泰语(Thai)', value: 'th' },
+    { label: '塔加洛语(Tagalog)', value: 'tl' },
+    { label: '土耳其语(Turkish)', value: 'tr' },
+    { label: '乌克兰语(Ukrainian)', value: 'uk' },
+    { label: '乌尔都语(Urdu)', value: 'ur' },
+    { label: '越南语(Vietnamese)', value: 'vi' },
+    { label: '中文(Chinese)', value: 'zh' },
+    { label: '繁体中文(Chinese)', value: 'zt' }
+]
+const computedTranslateLanguage = computed(() => {
+
+    if (data.config.sourceLanguage != 'zh' && data.config.sourceLanguage != 'zt') {
+        return translateLanguageOption.filter(item => item.value != data.config.sourceLanguage)
+    }
+    else {
+        return translateLanguageOption.filter(item => item.value != 'zh' && item.value != 'zt' )
+    }
+
+
+})
 </script>
 
 <style scoped>
