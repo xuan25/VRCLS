@@ -416,7 +416,7 @@ if __name__ == '__main__':
         queue=Queue(-1)
         copyQueue=Queue(-1)
         socketQueue=Queue(-1)
-        VERSION_NUM='v0.5.4-fix1'
+        VERSION_NUM='v0.5.5'
         listener_thread=None
         startUp=None
         manager = Manager()
