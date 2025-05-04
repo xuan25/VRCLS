@@ -415,14 +415,15 @@ if __name__ == '__main__':
     
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
-        queue=Queue(-1)
-        copyQueue=Queue(-1)
-        socketQueue=Queue(-1)
+
         VERSION_NUM='v0.5.5'
         listener_thread=None
         startUp=None
         manager = Manager()
         params=manager.dict()
+        queue=manager.Queue(-1)
+        copyQueue=manager.Queue(-1)
+        socketQueue=manager.Queue(-1)
         params["opencopybox"] = False
         params["running"] = True
         params["micStopped"] = False
@@ -556,7 +557,7 @@ if __name__ == '__main__':
         time.sleep(3)
     finally:
         params["running"]=False
-        
+        socketio.stop()
         
         
         # logger_thread.terminate()
@@ -575,7 +576,6 @@ if __name__ == '__main__':
             #     try:steamvrThread.terminate()
             #     except:traceback.print_exc()
         
-        socketio.stop()
         if stop_for_except:
             print("press any key to exit||任意键退出...")
         else:
