@@ -384,8 +384,11 @@ def ws_log_sender():
                 socketio.emit(msg.get('type'), {
                     'text': msg['text'],
                 })
+        except OSError as e:
+            print(f"ws管道已结束:{str(e)}")
+            return
         except Exception as e:
-            print(f"WS发送异常: {str(e)}")
+            print(f"WS发送异常: {traceback.format_exc()}")
 
 @socketio.on('connect')
 def handle_connect():
@@ -405,12 +408,11 @@ if __name__ == '__main__':
     
     print('''
           检测到vebview环境
-          本窗口将自动关闭，程序将在10s内启动......
+          本窗口将自动关闭，程序启动......
 
           ''')
-    time.sleep(3)
     show_console = '--show-console' in sys.argv
-    toggle_console(show_console)
+    
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
         queue=Queue(-1)
@@ -428,7 +430,7 @@ if __name__ == '__main__':
         stop_for_except=True
 
 
-        logger_thread = Process(target=logger_process,daemon=True,args=(queue,copyQueue,params,socketQueue))
+        logger_thread = td.Thread(target=logger_process,daemon=True,args=(queue,copyQueue,params,socketQueue))
         logger_thread.start()
         ws_thread = td.Thread(target=ws_log_sender, daemon=True)
         ws_thread.start()
@@ -517,7 +519,7 @@ if __name__ == '__main__':
         # start listening in the background (note that we don't have to do this inside a `with` statement)
         # this is called from the background thread
         if startUp.config.get("textInSteamVR"):
-            steamvrThread=Process(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params))
+            steamvrThread=td.Thread(target=steamvr_process,daemon=True,args=(queue,steamvrQueue,params))
             steamvrThread.start()
         if startUp.config.get("localizedSpeech"):
             listener_thread = Process(target=sherpa_onnx_run,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
@@ -546,17 +548,18 @@ if __name__ == '__main__':
             width=1200,
             height=800
         )
-        
+        toggle_console(show_console)
         webview.start()
         
     except Exception as e:
         queue.put({'text':traceback.format_exc(),'level':'error'})
         time.sleep(3)
     finally:
-        socketio.stop()
         params["running"]=False
         
-        logger_thread.terminate()
+        
+        
+        # logger_thread.terminate()
         
         if listener_thread:
             try:
@@ -568,11 +571,11 @@ if __name__ == '__main__':
                 try:
                     listener_thread1.terminate()
                 except:traceback.print_exc()
-            if startUp.config.get("textInSteamVR"):
-                try:steamvrThread.terminate()
-                except:traceback.print_exc()
+            # if startUp.config.get("textInSteamVR"):
+            #     try:steamvrThread.terminate()
+            #     except:traceback.print_exc()
         
-
+        socketio.stop()
         if stop_for_except:
             print("press any key to exit||任意键退出...")
         else:
