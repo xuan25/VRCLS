@@ -12,7 +12,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
     from ..module.translate import other_trasnlator
-    
+    import struct
+    from io import BytesIO
 
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,params=params)
@@ -31,9 +32,22 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             sourceLanguage=params["sourceLanguage"]
             
             audio=audioQueue.get()
+
             st=time.time()
-            
-            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕","level":"info"})
+            wav_bytes =audio.get_wav_data()
+            # 解析 WAV 头部信息
+            with BytesIO(wav_bytes) as wav_file:
+                # 读取前 44 字节的 WAV 头部
+                header = wav_file.read(44)
+                
+                # 提取关键参数（偏移量参考标准 WAV 格式）
+                channels = struct.unpack('<H', header[22:24])[0]  # 声道数
+                sample_rate = struct.unpack('<I', header[24:28])[0]  # 采样率
+                data_size = struct.unpack('<I', header[40:44])[0]  # 音频数据总字节数
+
+            # 计算时长（单位：秒）
+            duration = data_size / (sample_rate * channels * 2)  # 2 表示 16-bit（2字节）采样
+            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕, 音频长度：{round(duration,2)} s","level":"info"})
             
             if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
                 url=baseurl+"/whisper/multitranscription"
@@ -51,7 +65,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                 params["runmode"] = "control"
                 url = baseurl+"/whisper/multitranscription"
             logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
-            files = {'file': ('filename', audio.get_wav_data(), 'audio/wav')}
+            
+            files = {'file': ('filename', wav_bytes , 'audio/wav')}
             
             data = {'targetLanguage': tragetTranslateLanguage,
                     'targetLanguage2': tragetTranslateLanguage2,
@@ -125,7 +140,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                 if params["runmode"] == "control":avatar.handle(res)
                 if params["runmode"] == "bitMapLed":bitMapLed.handle(res,params=params)
             et=time.time()
-            logger.put({"text":f"服务器识别总用时：{round(et-st,2)}s","level":"debug"})
+
+            logger.put({"text":f"服务器识别总用时：{round(et-st,2)}s, 音频长度：{duration} s","level":"debug"})
 
         except requests.JSONDecodeError:
             logger.put({"text":"json解析异常,code:"+str(response.status_code)+" info:"+response.text,"level":"warning"})
