@@ -42,6 +42,7 @@ defaultConfig={
     "translateRegion":'CN',
     "oscShutdown":False,
     "VRCChatboxformat_new":"{translatedText}\n{translatedText2}\n{translatedText3}\n{text}",
+    "VRCChatboxformat_text":"{text}",
     "realtimeOutputDelay":-1.0,
     "micPressingKey":'v',
     "capPressingKey":'b',

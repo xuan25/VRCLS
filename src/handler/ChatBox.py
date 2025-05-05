@@ -27,9 +27,11 @@ class ChatboxHandler(BaseHandler):
     def sendTextFunction(self,res:str):
         text=res['text']
         self.logger.put({"text":f"{Colors.CYAN}输出文字: {text}{Colors.END}","level":"info"})
+        tempalte=self.params['config']['VRCChatboxformat_text']
+        output=self.replace_multiple_placeholders(tempalte,res)
         while True:
             try:
-                self.osc_client.send_message("/chatbox/input",[ f'{text}', True, False])   
+                self.osc_client.send_message("/chatbox/input",[ output, True, False])   
                 break
             except OSError:
                 time.sleep(0.1)

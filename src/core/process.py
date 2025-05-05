@@ -383,7 +383,8 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
                     logger=logger,
                     micIndex=micIndex,
                     params=params,
-                    silence_threshold=int(energy_threshold)
+                    silence_threshold=int(energy_threshold),
+                    maxAudioLen=10.0
                 )
                 count=0
             except sr.WaitTimeoutError:  # listening timed out, just try again

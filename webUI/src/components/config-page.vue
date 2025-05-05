@@ -363,9 +363,13 @@
                                                 <p>下方{translatedText}会被替换为译文，{text}会被替换为原文,{translatedText2}为第二语言译文，{translatedText3}为第三语言译文
                                                 </p>
                                             </el-alert>
-                                            <el-form-item label="VRC文本框输出样式">
+                                            <el-form-item label="翻译模式VRC文本框输出样式">
                                                 <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
                                                     v-model="data.config.VRCChatboxformat_new"></el-input>
+                                            </el-form-item>
+                                            <el-form-item label="文本发送模式VRC文本框输出样式">
+                                                <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
+                                                    v-model="data.config.VRCChatboxformat_text"></el-input>
                                             </el-form-item>
                                         </el-space>
 
