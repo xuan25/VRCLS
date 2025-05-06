@@ -46,6 +46,10 @@ defaultConfig={
     "realtimeOutputDelay":-1.0,
     "micPressingKey":'v',
     "capPressingKey":'b',
+    "enableOscServer":False,
+    "oscServerIp":'127.0.0.1',
+    "oscServerPort":9003,
+    "chatboxOscMixTemplate":r'{clientdata}{serverdata}',
     "defaultScripts": [
         {
             "action": "sendText",

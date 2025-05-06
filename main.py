@@ -6,6 +6,7 @@ from src.core.avatar import avatar
 from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.process import logger_process,selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter,steamvr_process,copyBox_process
 from src.module.sherpaOnnx import sherpa_onnx_run,sherpa_onnx_run_local,sherpa_onnx_run_mic
+from src.module.oscserver import startServer
 import time
 import json,os,traceback,sys
 import webbrowser
@@ -126,6 +127,9 @@ def rebootJob():
     elif startUp.config.get("Separate_Self_Game_Mic")==2:
         listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread1.start()
+    if startUp.config.get('enableOscServer'):
+        oscServerTread=td.Thread(target=startServer,args=(params,queue),daemon=True)
+        oscServerTread.start()
 
 
 
@@ -133,6 +137,8 @@ def rebootJob():
     params["running"] = True
     params["micStopped"] = False
     params["gameStopped"] = False
+    params['serverdata']=''
+    params['clientdata']=''
     params["tragetTranslateLanguage"]=startUp.config.get("targetTranslationLanguage")
     params["sourceLanguage"]=startUp.config.get("sourceLanguage")
     params["localizedCapture"]=startUp.config['localizedCapture']
@@ -428,6 +434,8 @@ if __name__ == '__main__':
         params["running"] = True
         params["micStopped"] = False
         params["gameStopped"] = False
+        params['serverdata']=''
+        params['clientdata']=''
         stop_for_except=True
 
 
@@ -533,7 +541,9 @@ if __name__ == '__main__':
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
             listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
-
+        if startUp.config.get('enableOscServer'):
+            oscServerTread=td.Thread(target=startServer,args=(params,queue),daemon=True)
+            oscServerTread.start()
 
             
         

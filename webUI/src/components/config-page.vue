@@ -258,13 +258,24 @@
                                                 <el-option label="其他" value="EN"></el-option>
                                             </el-select>
                                         </el-form-item>
-                                        <el-form-item label="暂停osc输出">
+                                        <el-form-item label="osc输出">
                                             <el-select v-model="data.config.oscShutdown">
+                                                <el-option label="暂停" :value="true"></el-option>
+                                                <el-option label="开启" :value="false"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <el-form-item label="外源OSC服务端端口">
+                                            <el-select v-model="data.config.enableOscServer">
                                                 <el-option label="开启" :value="true"></el-option>
                                                 <el-option label="关闭" :value="false"></el-option>
                                             </el-select>
                                         </el-form-item>
-
+                                        <el-form-item label="接收外源OSC服务端 端口">
+                                            <el-input type="number" v-model="data.config['oscServerPort']"></el-input>
+                                        </el-form-item>
+                                        <el-form-item label="接收外源OSC服务端 IP地址">
+                                            <el-input v-model="data.config['oscServerIp']"></el-input>
+                                        </el-form-item>
                                     </el-form>
                                 </el-card>
 
@@ -371,7 +382,16 @@
                                                 <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
                                                     v-model="data.config.VRCChatboxformat_text"></el-input>
                                             </el-form-item>
+                                            <el-alert type="info" show-icon :closable="true">
+                                                <p>下方{clientdata}会被替换为本软件输出内容，{serverdata}会被替换为外部osc接收内容的文本框内容
+                                                </p>
+                                            </el-alert>
+                                            <el-form-item label="外源文本框文字嵌入模板">
+                                                <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
+                                                    v-model="data.config.VRCChatboxformat_text"></el-input>
+                                            </el-form-item>
                                         </el-space>
+
 
                                         <el-form-item label="点阵屏行列数">
                                             <el-row>
@@ -408,8 +428,6 @@
                                         </el-form-item>
                                     </el-form>
                                 </el-card>
-
-
 
                                 <el-card style="margin-bottom: 20px;">
                                     <template #header>

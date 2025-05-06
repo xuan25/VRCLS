@@ -17,7 +17,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
 
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,params=params)
-    chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,params=params)
+    if mode=="mic":chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,params=params)
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
     tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
