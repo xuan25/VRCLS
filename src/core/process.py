@@ -58,6 +58,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                     tragetTranslateLanguage=tmp
                 if params["config"]["translationServer"] == "libre":
                     url=baseurl+"/func/multitranslateToOtherLanguage" if params["config"].get("translateService")=="developer" else baseurl+"/whisper/multitranscription"
+                elif params["config"]["translationServer"] == "vllm":
+                    url=baseurl+"/func/vllmTest"
                 else:
                     url=baseurl+"/func/doubleTransciption"
             else: 
@@ -83,7 +85,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                 continue
             # 解析JSON响应
             res = response.json()
-            
+            logger.put({"text":f"返回数据信息：{res}","level":"debug"})
             if res["text"] =="":
                 logger.put({"text":"返回值过滤-服务端规则","level":"info"})
                 continue
@@ -239,7 +241,7 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
             while params["running"]:
                 if not params["voiceKeyRun"]:continue
                 try:  # listen for 1 second, then check again if the stop function has been called
-                    audio = r.listen(s, 10,30)
+                    audio = r.listen(s, 10,10)
                     count=0
                 except sr.WaitTimeoutError:  # listening timed out, just try again
                     if params["runmode"] == "bitMapLed":
@@ -320,7 +322,7 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
             while params["running"]:
                 if not params["gameVoiceKeyRun"]:continue
                 try:  # listen for 1 second, then check again if the stop function has been called
-                    audio = r.listen(s, 10,30)
+                    audio = r.listen(s, 10,10)
                     count=0
                 except sr.WaitTimeoutError:  # listening timed out, just try again
                     if params["runmode"] == "bitMapLed":
@@ -584,7 +586,7 @@ def steamvr_process(logger, queue, params):
                                 
 
                             if not current_status:
-                                logger.put({"text":"控制器连接状态异常，尝试恢复...","level":"warning"})
+                                logger.put({"text":"控制器连接状态异常，尝试恢复...","level":"debug"})
                                 textOverlay.overlay.hideOverlay(textOverlay.overlay_handle)
                                 if is_two_hand:textOverlay.overlay.hideOverlay(textOverlay.overlay_handle_1)
                                 time.sleep(1)
@@ -616,17 +618,17 @@ def steamvr_process(logger, queue, params):
                                     error=200
                                     break
                                 except openvr.openvr.error_code.OverlayError_RequestFailed:
-                                    logger.put({"text":f"OpenVR错误: {str(type(oe))}，尝试恢复初始化,{error}","level":"error"})
+                                    logger.put({"text":f"[steamvr异常]OpenVR错误: {str(type(oe))}，尝试恢复初始化,{error}","level":"debug"})
                                     safe_shutdown()
                                     time.sleep(5)
                                     if not textOverlay.initialize(logger, params):
-                                        raise RuntimeError("SteamVR初始化失败")
+                                        raise RuntimeError("[steamvr异常]SteamVR初始化失败")
                                     time.sleep(1)
                                     textOverlay._create_text_texture()  # 重新创建纹理
                                     time.sleep(1)
                                 except openvr.error_code.OverlayError as oe:
                                     error+=1
-                                    logger.put({"text":f"OpenVR错误: {str(type(oe))}，尝试恢复...,{error}","level":"error"})
+                                    logger.put({"text":f"[steamvr异常]OpenVR错误: {str(type(oe))}，尝试恢复...,{error}","level":"debug"})
                                     textOverlay._create_text_texture()  # 重新创建纹理
                                     time.sleep(1)
                                     
@@ -643,9 +645,9 @@ def steamvr_process(logger, queue, params):
 
                     except Exception as inner_e:
                         error_count += 1
-                        logger.put({"text":f"[运行时错误] {str(type(inner_e))} ({error_count}/{MAX_ERRORS})","level":"error"})
+                        logger.put({"text":f"[steamvr异常][运行时错误] {str(type(inner_e))} ({error_count}/{MAX_ERRORS})","level":"debug"})
                         if error_count >= MAX_ERRORS:
-                            logger.put({"text":"达到最大错误次数，尝试重新初始化...","level":"critical"})
+                            logger.put({"text":"[steamvr异常]达到最大错误次数，尝试重新初始化...","level":"error"})
                             safe_shutdown()
                             time.sleep(5)
                             break  # 退出内层循环进行重新初始化
@@ -656,15 +658,15 @@ def steamvr_process(logger, queue, params):
 
             except Exception as init_e:
                 retry_count += 1
-                logger.put({"text":f"初始化失败 ({retry_count}/{MAX_RETRIES}): {str(type(init_e))}","level":"error"})
+                logger.put({"text":f"[steamvr异常]初始化失败 ({retry_count}/{MAX_RETRIES}): {str(type(init_e))}","level":"error"})
                 safe_shutdown()
                 time.sleep(5)  # 指数退避
                 
         if retry_count >= MAX_RETRIES:
-            logger.put({"text":"达到最大重试次数，SteamVR功能终止","level":"error"})
+            logger.put({"text":"[steamvr异常]达到最大重试次数，SteamVR功能终止","level":"error"})
 
     except Exception as outer_e:
-        logger.put({"text":f"[未捕获的异常] {str(type(outer_e))}|| {str(outer_e)}","level":"error"})
+        logger.put({"text":f"[steamvr异常][未捕获的异常] {str(type(outer_e))}|| {str(outer_e)}","level":"error"})
     finally:
         safe_shutdown()
         # 确保释放所有VR资源

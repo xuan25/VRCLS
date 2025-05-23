@@ -143,12 +143,25 @@ class TTSHandler:
                 logger.put({"text":"无法找到指定输出，使用系统默认麦克风","level":"info"})
                 self.deviceindex=None
         self.p=pyaudio.PyAudio()            # 初始化 PyAudio 实例
-    def __delattr__(self, name):
-        self.p.terminate()
+    # def __delattr__(self, name):
+    #     self.p.terminate()
+    def __del__(self): # Use __del__ for cleanup
+        if hasattr(self, 'p') and self.p:
+            self.p.terminate()
+            self.logger.put({"text": "PyAudio instance terminated.", "level": "debug"})
     def tts_audio(self, text, language='zh'):
         # TODO 增加按键切换开关
         self.logger.put({"text": f"{self.baseurl}/func/tts", "level": "debug"})
-
+        audio_stream = None
+        mp3_buffer = bytearray()
+        
+        # Track the total number of PCM samples (individual float/int values, not frames)
+        # that have been decoded from the mp3_buffer and sent to PyAudio.
+        total_pcm_samples_forwarded = 0
+        
+        # Assuming 16-bit signed PCM, so 2 bytes per sample.
+        # This will be confirmed once we decode the first chunk.
+        bytes_per_sample = 2 # Default, will be updated
         try:
             response = requests.post(
                 self.baseurl + '/func/tts',
@@ -158,7 +171,8 @@ class TTSHandler:
                     "speed": 1.2
                 },
                 headers=self.header,
-                stream=True
+                stream=True,
+                timeout=30 # Add a timeout for the request
             )
 
             # 先检查响应状态码
@@ -173,74 +187,80 @@ class TTSHandler:
 
 
 
-            stream = None
-            decoder = None
-
-            # 创建字节缓冲区
-            mp3_buffer = bytearray()
-
             # 逐块接收并解码 MP3 数据
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    mp3_buffer.extend(chunk)
-                    
-                    # 尝试解码缓冲区中的 MP3 数据
-                    if not decoder:
-                        try:
-                            # 初始化解码器（需要至少包含 MP3 文件头的数据）
-                            decoder = miniaudio.decode(
-                                bytes(mp3_buffer),
-                                output_format=miniaudio.SampleFormat.SIGNED16
-                            )
-                            # 清空缓冲区（已处理数据）
-                            mp3_buffer = bytearray()
-                            # 获取音频参数
-                            sample_rate = decoder.sample_rate
-                            nchannels = decoder.nchannels
-                            
-                            # 初始化音频输出流
-                            stream = self.p.open(
-                                format=pyaudio.paInt16,
-                                channels=nchannels,
-                                rate=sample_rate,
-                                output=True,
-                                output_device_index=self.deviceindex
-                            )
-                            # 播放已解码的第一块数据
-                            stream.write(decoder.samples.tobytes())
-                        except miniaudio.DecodeError:
-                            # 缓冲区数据不足，继续接收
-                            continue
-                    else:
-                        # 继续解码后续数据块
-                        try:
-                            decoded = miniaudio.decode(
-                                bytes(mp3_buffer),
-                                output_format=miniaudio.SampleFormat.SIGNED16
-                            )
-                            mp3_buffer = bytearray()
-                            stream.write(decoded.samples.tobytes())
-                            
-                        except miniaudio.DecodeError:
-                            continue
-
-            # 处理剩余未解码数据
-            if decoder and mp3_buffer:
+            for chunk in response.iter_content(chunk_size=4096): # Can be adjusted
+                if not chunk:
+                    continue
+                
+                mp3_buffer.extend(chunk)
+                
                 try:
-                    decoded = miniaudio.decode(
-                        bytes(mp3_buffer),
+                    # Attempt to decode the entire current mp3_buffer
+                    # We expect SIGNED16 output, which matches pyaudio.paInt16
+                    decoded_result = miniaudio.decode(
+                        bytes(mp3_buffer), # Decode the whole buffer so far
                         output_format=miniaudio.SampleFormat.SIGNED16
                     )
-                    stream.write(decoded.samples.tobytes())
-                except miniaudio.DecodeError:
-                    pass
+                    
+                    # decoded_result.samples is a flat memoryview of interleaved PCM samples
+                    all_decoded_pcm_samples = decoded_result.samples
+                    num_total_decoded_samples = len(all_decoded_pcm_samples)
 
+                    if not audio_stream: # First successful decode
+                        sample_rate = decoded_result.sample_rate
+                        nchannels = decoded_result.nchannels
+                        
+                        # Determine PyAudio format from miniaudio's sample_width
+                        # miniaudio.SampleFormat.SIGNED16 implies sample_width of 2
+                        pyaudio_format = self.p.get_format_from_width(decoded_result.sample_width)
+                        bytes_per_sample = decoded_result.sample_width # Should be 2 for SIGNED16
+
+                        self.logger.put({
+                            "text": f"音频参数: SR={sample_rate}, Channels={nchannels}, Format={pyaudio_format}, BytesPerSample={bytes_per_sample}",
+                            "level": "debug"
+                        })
+
+                        audio_stream = self.p.open(
+                            format=pyaudio_format,
+                            channels=nchannels,
+                            rate=sample_rate,
+                            output=True,
+                            output_device_index=self.deviceindex,
+                            frames_per_buffer=2048 # PyAudio internal buffer
+                        )
+                    
+                    # Only play the samples that are new since the last write
+                    if num_total_decoded_samples > total_pcm_samples_forwarded:
+                        # samples_to_play_now is a memoryview slice
+                        samples_to_play_now_mv = all_decoded_pcm_samples[total_pcm_samples_forwarded:]
+                        
+                        # Convert the memoryview slice to bytes for PyAudio
+                        audio_stream.write(samples_to_play_now_mv.tobytes())
+                        
+                        # Update the count of forwarded samples
+                        total_pcm_samples_forwarded = num_total_decoded_samples
+                                
+                except miniaudio.DecodeError:
+                    # Not enough data in mp3_buffer to form a complete decodable unit yet,
+                    # or the stream is malformed at this point.
+                    # Continue accumulating data.
+                    self.logger.put({"text": "miniaudio.DecodeError: 数据不足或格式问题，继续缓冲...", "level": "trace"}) # Use trace or debug
+                    continue
+                except Exception as e_decode:
+                    self.logger.put({"text": f"解码或播放时发生错误: {e_decode}", "level": "error"})
+                    # Decide if we should break or try to continue
+                    break # For now, break on other errors
+
+            # After the loop, there's no explicit "finalize" for miniaudio.decode().
+            # The last successful decode should have processed all valid data from mp3_buffer.
+            # If the loop ended and mp3_buffer still had data that caused DecodeError on the last attempt,
+            # that partial data might be lost with this approach.
         except Exception as e:
             self.logger.put({"text": f"流式播放异常: {str(e)}", "level": "error"})
         finally:
-            if stream:
-                stream.stop_stream()
-                stream.close()
+            if audio_stream:
+                audio_stream.stop_stream()
+                audio_stream.close()
             self.logger.put({"text": "TTS流式播放完成", "level": "debug"})
 
 

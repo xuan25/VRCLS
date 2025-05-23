@@ -388,7 +388,7 @@
                                             </el-alert>
                                             <el-form-item label="外源文本框文字嵌入模板">
                                                 <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 5 }"
-                                                    v-model="data.config.VRCChatboxformat_text"></el-input>
+                                                    v-model="data.config.chatboxOscMixTemplate"></el-input>
                                             </el-form-item>
                                         </el-space>
 
@@ -748,7 +748,7 @@ socket.on('log', (log) => {
         ElNotification({
             title: '发生错误',
             message: log.text,
-            duration: 0,
+            duration: log.text.includes("[steamvr异常]")?4500:0,
             type: 'error',
         })
     }

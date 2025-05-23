@@ -422,7 +422,7 @@ if __name__ == '__main__':
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
-        VERSION_NUM='v0.5.5'
+        VERSION_NUM='v0.5.7'
         listener_thread=None
         startUp=None
         manager = Manager()
