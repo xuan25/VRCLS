@@ -9,6 +9,7 @@ def sendClientMessage(params,oscClient,logger):
     while params['running']:
         serverdata=params.get('serverdata','')
         clientdata=params.get('clientdata','')
+        
         if serverdata!='' or clientdata!='':
             if serverdata!='' and oldserverdata!=serverdata:
                 oldserverdata=serverdata
@@ -32,6 +33,8 @@ def sendClientMessage(params,oscClient,logger):
                 except OSError:
                     logger.put({"text":f"文本框osc发送异常:{traceback.format_exc()}","level":"debug"})
                     time.sleep(1)
+        else:time.sleep(0.2)
+            
 class ChatboxHandler(BaseHandler):
     def __init__(self,logger, osc_client,params):
         import threading
