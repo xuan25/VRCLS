@@ -18,6 +18,153 @@ import requests
 import threading as td
 from engineio.async_drivers import threading
 from flask_socketio import SocketIO, emit
+import win32api
+import win32com.client
+import subprocess
+import ctypes
+import os
+def is_admin():
+    """检查当前脚本是否以管理员权限运行"""
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+    
+
+def kill_other_vrcls():
+
+    current_pid = win32api.GetCurrentProcessId()
+    print(f"当前脚本进程 PID: {current_pid}")
+
+    wmi = None
+    service = None
+    
+    try:
+        wmi = win32com.client.Dispatch("WbemScripting.SWbemLocator")
+        service = wmi.ConnectServer(".", "root\\cimv2")
+    except Exception as e:
+        print(f"错误：连接 WMI 服务失败: {e}")
+        return
+
+    processes_to_check = []
+    try:
+        # 获取所有vrcls.exe进程信息
+        query = f"SELECT ProcessId, Name FROM Win32_Process WHERE Name='VRCLS.exe'"
+        found_processes = service.ExecQuery(query)
+
+        if not found_processes: # WMI ExecQuery 返回的是一个集合，可以直接判断
+             print("信息：没有找到名为 'VRCLS.exe' 的正在运行的进程。")
+             return
+        
+        for proc_info in found_processes:
+            processes_to_check.append(proc_info) # proc_info 是一个 SWbemObject
+
+    except Exception as e:
+        print(f"错误：查询 'VRCLS.exe' 进程列表时出错: {str(e)}")
+        if wmi: del wmi
+        if service: del service
+        return
+
+    if not processes_to_check:
+        print("信息：没有找到名为 'VRCLS.exe' 的正在运行的进程。")
+        if wmi: del wmi
+        if service: del service
+        return
+        
+    other_vrcls_pids = []
+    is_current_vrcls = False
+    for proc_obj in processes_to_check:
+        if proc_obj.ProcessId == current_pid:
+            print(f"信息：当前脚本 (PID: {current_pid}, 名称: {proc_obj.Name}) 是 VRCLS.exe，将被保留。")
+            is_current_vrcls = True
+        else:
+            other_vrcls_pids.append(proc_obj.ProcessId)
+
+    if not other_vrcls_pids:
+        if is_current_vrcls:
+            print("信息：没有其他 'VRCLS.exe' 进程需要终止，仅当前脚本实例运行。")
+        else:
+            print("信息：没有其他 'VRCLS.exe' 进程需要终止。(当前脚本非VRCLS.exe)")
+        if wmi: del wmi
+        if service: del service
+        return
+
+    print(f"准备终止以下 'VRCLS.exe' 进程 PID: {other_vrcls_pids}")
+    
+    killed_count = 0
+    failed_count = 0
+
+    for pid_to_kill in other_vrcls_pids:
+        print(f"尝试终止进程 PID: {pid_to_kill}...")
+        
+        # 方案1: 使用 WMI Terminate (原始方法)
+        terminated_by_wmi = False
+        # 需要重新获取 WMI 对象才能调用 Terminate 方法，或者在上面循环时就尝试
+        # 为了简化，我们直接用 taskkill，如果需要 WMI Terminate，可以这样：
+        # for proc_obj in processes_to_check:
+        #     if proc_obj.ProcessId == pid_to_kill: # 确保是我们要杀的那个
+        #         try:
+        #             result_code = proc_obj.Terminate() # Terminate 返回 0 表示成功
+        #             if result_code == 0:
+        #                 print(f"  WMI 成功终止进程: {pid_to_kill}")
+        #                 killed_count += 1
+        #                 terminated_by_wmi = True
+        #             else:
+        #                 print(f"  WMI 终止进程 {pid_to_kill} 失败，返回码: {result_code}. 尝试使用 taskkill...")
+        #         except Exception as e_wmi:
+        #             print(f"  WMI 终止进程 {pid_to_kill} 异常: {str(e_wmi)}. 尝试使用 taskkill...")
+        #         break # 找到了就跳出内部循环
+
+        # if terminated_by_wmi:
+        #     continue
+
+        # 方案2: 使用 taskkill (更强制)
+        try:
+            # CREATE_NO_WINDOW 防止 taskkill 命令执行时弹出命令行窗口
+            # text=True (或 universal_newlines=True) 使 stdout/stderr 为字符串
+            # check=False 让我们手动检查 returncode
+            result = subprocess.run(
+                ["taskkill", "/F", "/PID", str(pid_to_kill)],
+                capture_output=True,
+                text=True,
+                check=False,
+                creationflags=subprocess.CREATE_NO_WINDOW 
+            )
+            
+            if result.returncode == 0:
+                print(f"  成功: 进程 {pid_to_kill} 已通过 taskkill 终止。")
+                killed_count += 1
+            else:
+                # taskkill 常见错误码:
+                # 128: 进程未找到 (可能在你尝试终止它之前就已经退出了)
+                # 1:   拒绝访问 (权限问题) 或其他操作失败
+                error_message = f"  失败: 无法通过 taskkill 终止进程 {pid_to_kill}。"
+                if result.stderr:
+                    error_message += f" 原因: {result.stderr.strip()}"
+                elif result.stdout: # 有时错误信息在 stdout
+                     error_message += f" 输出: {result.stdout.strip()}"
+                else:
+                    error_message += f" taskkill 返回码: {result.returncode}"
+                print(error_message)
+                failed_count += 1
+                
+        except FileNotFoundError:
+            print(f"  错误: 'taskkill' 命令未找到。请确保它在系统 PATH 中。")
+            failed_count += 1 # 计为失败
+        except Exception as e_taskkill:
+            print(f"  错误: 使用 taskkill 终止进程 {pid_to_kill} 时发生意外: {str(e_taskkill)}")
+            failed_count += 1
+
+    print(f"\n总结：")
+    print(f"  成功终止 {killed_count} 个进程。")
+    if failed_count > 0:
+        print(f"  未能终止 {failed_count} 个进程。请检查上面的错误信息和脚本权限。")
+    
+    # 显式释放COM对象
+    if service:
+        del service
+    if wmi:
+        del wmi
 class stopSignal(Exception):
 
     pass
@@ -406,6 +553,15 @@ def run_server(app,host,port):
     print('server exit')
 if __name__ == '__main__':
     freeze_support()
+    if not is_admin():
+        print("警告: 程序未以管理员权限运行。可能会出现问题。")
+        print("请尝试右键单击脚本，选择“以管理员身份运行”。或者勾选程序属性-兼容性-以管理员身份启动此程序\n")
+        input('可以直接关闭当前脚本或按任意键继续。。。。。。')
+        # 可以选择在这里直接退出，或者继续尝试但提示可能失败
+        # return
+    
+    
+    
     if not check_webview2_registry():
         arch = get_system_arch()
         url_webview = download_webview2_runtime(arch)
@@ -418,7 +574,7 @@ if __name__ == '__main__':
 
           ''')
     show_console = '--show-console' in sys.argv
-    
+    kill_other_vrcls()
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
