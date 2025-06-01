@@ -34,21 +34,33 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             audio=audioQueue.get()
 
             st=time.time()
-            wav_bytes =audio.get_wav_data()
-            # 解析 WAV 头部信息
-            with BytesIO(wav_bytes) as wav_file:
-                # 读取前 44 字节的 WAV 头部
-                header = wav_file.read(44)
-                
-                # 提取关键参数（偏移量参考标准 WAV 格式）
-                channels = struct.unpack('<H', header[22:24])[0]  # 声道数
-                sample_rate = struct.unpack('<I', header[24:28])[0]  # 采样率
-                data_size = struct.unpack('<I', header[40:44])[0]  # 音频数据总字节数
-
-            # 计算时长（单位：秒）
-            duration = data_size / (sample_rate * channels * 2)  # 2 表示 16-bit（2字节）采样
-            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕, 音频长度：{round(duration,2)} s","level":"info"})
             
+            changed_rate=16000
+            raw_pcm_data = audio.get_raw_data(convert_rate=changed_rate)
+            sample_width = audio.sample_width
+            
+            data_size = len(raw_pcm_data)
+            duration = data_size / (changed_rate * 1 * sample_width)
+            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕, opus音频长度：{round(duration,2)} s","level":"info"})
+            
+            opus_bytes=pcm_to_packaged_opus_stream_opuslib(raw_pcm_data,1,sample_width,changed_rate)
+            files = {'file': ('filename', opus_bytes , 'audio/opus')}
+            # else:
+            #     wav_bytes =audio.get_wav_data()
+            #     # 解析 WAV 头部信息
+            #     with BytesIO(wav_bytes) as wav_file:
+            #         # 读取前 44 字节的 WAV 头部
+            #         header = wav_file.read(44)
+                    
+            #         # 提取关键参数（偏移量参考标准 WAV 格式）
+            #         channels = struct.unpack('<H', header[22:24])[0]  # 声道数
+            #         sample_rate = struct.unpack('<I', header[24:28])[0]  # 采样率
+            #         data_size = struct.unpack('<I', header[40:44])[0]  # 音频数据总字节数
+
+            #     # 计算时长（单位：秒）
+            #     duration = data_size / (sample_rate * channels * 2)  # 2 表示 16-bit（2字节）采样
+            #     logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕, wav音频长度：{round(duration,2)} s","level":"info"})
+            #     files = {'file': ('filename', wav_bytes , 'audio/wav')}
             if params["runmode"] == "control" or params["runmode"] == "text" or params["runmode"] == "bitMapLed":
                 url=baseurl+"/whisper/multitranscription"
             elif params["runmode"] == "translation":
@@ -68,7 +80,6 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                 url = baseurl+"/whisper/multitranscription"
             logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
             
-            files = {'file': ('filename', wav_bytes , 'audio/wav')}
             
             data = {'targetLanguage': tragetTranslateLanguage,
                     'targetLanguage2': tragetTranslateLanguage2,
@@ -250,6 +261,9 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
                             pt.start()
                         else:count+=1
                 else:
+                    # with open(f'{time.time()}-file.wav', 'wb') as file:
+                    #     file.write(audio.get_raw_data())
+                        
                     if params["running"] and  (params["voiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
     finally:
         p.terminate()
@@ -688,3 +702,117 @@ def copyBox_process(queue):
     # 绑定关闭事件
     root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
+
+import opuslib,io,struct
+def pcm_to_packaged_opus_stream_opuslib(
+    pcm_bytes,
+    channels: int,
+    sample_width:int,
+    sample_rate:int,
+    frame_duration_ms: int = 20,
+    opus_application: int = opuslib.APPLICATION_AUDIO
+) -> bytes:
+    """
+    将 speech_recognition.AudioData 对象中的 PCM 数据编码为
+    带长度前缀的 Opus 包的单一字节流，使用 opuslib。
+
+    每个 Opus 包前会有一个4字节的大端序无符号整数表示该包的长度。
+
+    参数:
+        audio_data (speech_recognition.AudioData): 包含 PCM 数据的 AudioData 对象。
+        channels (int): 音频的通道数 (1 表示单声道, 2 表示立体声)。
+                        AudioData 对象不包含此信息，必须由调用者提供。
+        frame_duration_ms (int): Opus 编码器的帧时长，单位毫秒 (例如 20, 40, 60)。
+                                 有效值: 2.5, 5, 10, 20, 40, 60。
+        opus_application (int): Opus 应用类型 (例如 opuslib.APPLICATION_AUDIO,
+                                opuslib.APPLICATION_VOIP,
+                                opuslib.APPLICATION_RESTRICTED_LOWDELAY)。
+
+    返回:
+        bytes: 包含多个[长度+Opus包]序列的单一字节流。
+               如果编码失败或无数据，可能返回空字节串。
+    """
+
+    # --- 参数校验 ---
+    if not pcm_bytes:
+        print("警告: AudioData 不包含原始 PCM 数据。")
+        return b''
+    if channels not in [1, 2]:
+        raise ValueError("通道数必须是 1 (单声道) 或 2 (立体声)。")
+    if sample_width != 2:
+        # Opus C API (以及 opuslib) 期望的是 16-bit PCM。
+        # speech_recognition.AudioData 通常是 sample_width=2。
+        raise ValueError(f"Opuslib 需要 16-bit PCM 数据 (sample_width=2)，但 AudioData 的 sample_width 是 {sample_width}。")
+    if sample_rate not in [8000, 12000, 16000, 24000, 48000]:
+        raise ValueError(f"不支持的采样率: {sample_rate} Hz。Opus 支持 8, 12, 16, 24, 48 kHz。")
+    if frame_duration_ms not in [2.5, 5, 10, 20, 40, 60]:
+        raise ValueError(f"不支持的帧时长: {frame_duration_ms} ms。")
+    valid_applications = [
+        opuslib.APPLICATION_VOIP,
+        opuslib.APPLICATION_AUDIO,
+        opuslib.APPLICATION_RESTRICTED_LOWDELAY
+    ]
+    if opus_application not in valid_applications:
+        raise ValueError(f"不支持的 Opus 应用类型: {opus_application}")
+
+    # --- 初始化 Opus 编码器 ---
+    try:
+        encoder = opuslib.Encoder(sample_rate, channels, opus_application)
+    except opuslib.OpusError as e:
+        raise RuntimeError(f"创建 opuslib.Encoder 失败: {e}")
+    except Exception as e: # 捕获其他可能的初始化错误
+        raise RuntimeError(f"创建 opuslib.Encoder 时发生未知错误: {e}")
+
+    # --- 计算帧参数 ---
+    # Opus 编码器期望的每帧每通道的样本数
+    samples_per_channel_per_frame = int(sample_rate * frame_duration_ms / 1000)
+    # Opus 编码器期望的每帧 PCM 数据的总字节数
+    # (每样本字节数 sample_width 已经确认是 2)
+    pcm_bytes_per_opus_frame = samples_per_channel_per_frame * channels * sample_width
+
+    # --- 编码过程 ---
+    packaged_opus_stream = io.BytesIO()
+    offset = 0
+    while offset < len(pcm_bytes):
+        # 获取当前帧的 PCM 数据
+        frame_pcm_segment = pcm_bytes[offset : offset + pcm_bytes_per_opus_frame]
+
+        # 如果是最后一帧且数据不足，需要用静音数据填充到完整帧大小
+        if len(frame_pcm_segment) < pcm_bytes_per_opus_frame:
+            # 确保不是因为已经处理完所有数据而 frame_pcm_segment 为空
+            if not frame_pcm_segment and offset >= len(pcm_bytes):
+                break # 所有数据已处理完毕
+            
+            padding_needed = pcm_bytes_per_opus_frame - len(frame_pcm_segment)
+            frame_pcm_segment += b'\x00' * padding_needed # 使用静音填充
+        
+        # 如果在填充后仍然为空（不太可能发生，除非原始数据为空或计算错误），则跳过
+        if not frame_pcm_segment:
+            break
+
+        try:
+            # 使用 opuslib 进行编码
+            # encoder.encode() 的第二个参数是 samples_per_frame (即 samples_per_channel_per_frame)
+            encoded_opus_packet = encoder.encode(frame_pcm_segment, samples_per_channel_per_frame)
+
+            # 将 Opus 包的长度（4字节，大端序无符号整数）和包数据写入流
+            packaged_opus_stream.write(struct.pack('>I', len(encoded_opus_packet)))
+            packaged_opus_stream.write(encoded_opus_packet)
+
+        except opuslib.OpusError as e:
+            # 发生编码错误，可以选择记录并跳过此帧，或直接抛出异常
+            print(f"警告: Opus 编码错误 (跳过帧): {e}. PCM 段长度: {len(frame_pcm_segment)}")
+            # 若要更健壮，可以考虑如何处理这种情况，例如是否停止整个过程
+        except Exception as e:
+            print(f"警告: Opus 编码时发生未知错误 (跳过帧): {e}")
+
+        offset += pcm_bytes_per_opus_frame
+        # 如果最后一帧被填充，并且我们已经处理了所有原始数据，就结束
+        if len(frame_pcm_segment) == pcm_bytes_per_opus_frame and offset >= len(pcm_bytes) and \
+           pcm_bytes[offset-pcm_bytes_per_opus_frame:] == frame_pcm_segment[:len(pcm_bytes)- (offset-pcm_bytes_per_opus_frame)]:
+             pass # 刚好处理完
+        elif offset >= len(pcm_bytes) and len(frame_pcm_segment) < pcm_bytes_per_opus_frame: # 处理了最后一小段
+            break
+
+
+    return packaged_opus_stream.getvalue()
