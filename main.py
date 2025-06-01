@@ -578,7 +578,7 @@ if __name__ == '__main__':
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
-        VERSION_NUM='v0.5.7'
+        VERSION_NUM='v0.5.8'
         listener_thread=None
         startUp=None
         manager = Manager()
@@ -626,7 +626,7 @@ if __name__ == '__main__':
         欢迎大家加入qq群1011986554获取最新资讯
 
         默认使用开发者云服务器免费测试账户,
-        器限制每日800次请求.每分钟4次请求,
+        器限制每日800次请求.每分钟8次请求,
         可通过爱发电支持服务器运维提升日请求上限,
         并解锁请求速率限制,发电方式请加qq群查看群公告
 
