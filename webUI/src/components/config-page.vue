@@ -1,8 +1,19 @@
 <template>
 
     <el-container>
-        <el-header height="10vh">
-            <h1>VRCLS</h1>
+        <el-header height="10vh" class="custom-header">
+            <el-text tag="b" class="header-title">VRCLS</el-text>
+            <el-switch
+            v-model="isDark"
+            inline-prompt
+            :active-icon="MoonIcon"
+            :inactive-icon="SunIcon"
+            active-color="#2c2c2c"
+            inactive-color="#f2f2f2"
+            border-color="#dcdfe6"
+            style="margin-left: 20px;"
+            @change="toggleDark"
+            />
         </el-header>
         <el-container>
             <el-aside width="200">
@@ -725,6 +736,10 @@
 </template>
 
 <script setup>
+import { useDark, useToggle } from '@vueuse/core'
+import { Moon as MoonIcon, Sunny as SunIcon } from '@element-plus/icons-vue'; // Element Plus 图标
+const isDark = useDark()
+const toggleDark = useToggle(isDark)
 import { marked } from 'marked';
 import sideInfo from './side-info.vue'
 import sideInfoFour from './side-info-four.vue'
@@ -1196,4 +1211,24 @@ const computedTranslateLanguage = computed(() => {
     margin: 10px 0;
     /* 调整段落之间的间距 */
 }
+.custom-header {
+  display: flex;
+  align-items: center; /* 垂直居中所有子元素 */
+  /* background-color: #f5f7fa;  可选：给头部一个背景色 */
+  /* border-bottom: 1px solid #e4e7ed; 可选：添加一个下边框 */
+}
+
+.header-title {
+  flex-grow: 1; /* 标题占据剩余空间 */
+  text-align: center; /* 文本在自己的空间内居中 */
+  margin: 0; /* 移除 h1 的默认 margin */
+  font-size: 24px; /* 可调整字体大小 */
+  /*color: #303133; /* 默认文字颜色 */
+}
+
+/* 如果你使用了 @vueuse/core 并且配置了 'dark' class 在 html 元素上 */
+/* 暗黑模式下的标题颜色 
+:global(html.dark) .header-title {
+  color: #e5eaf3;
+}*/
 </style>

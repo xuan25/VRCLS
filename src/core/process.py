@@ -551,6 +551,8 @@ def logger_process(queue, copyqueue, params, socketQueue):
         logger.error(f'日志进程报错：{traceback.format_exc()}')
 
 def steamvr_process(logger, queue, params):
+    import pythoncom
+    pythoncom.CoInitializeEx(pythoncom.COINIT_MULTITHREADED)
     import time
     import openvr
     from ..module.steamvr import VRTextOverlay
