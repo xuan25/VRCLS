@@ -50,6 +50,8 @@ defaultConfig={
     "oscServerIp":'127.0.0.1',
     "oscServerPort":9003,
     "chatboxOscMixTemplate":r'{clientdata}{serverdata}',
+    "darkmode":False,
+    "filteremoji":"false",
     "defaultScripts": [
         {
             "action": "sendText",

@@ -19,4 +19,4 @@ translators
 miniaudio
 py7zr
 flask_socketio
-pyopus
+opuslib

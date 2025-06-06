@@ -84,7 +84,9 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             data = {'targetLanguage': tragetTranslateLanguage,
                     'targetLanguage2': tragetTranslateLanguage2,
                     'targetLanguage3': tragetTranslateLanguage3,
-                    'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage}
+                    'sourceLanguage': "zh" if sourceLanguage=="zt" else  sourceLanguage,
+                    'emojiOutput': params["config"].get("filteremoji","true")
+                    }
             response = requests.post(url, files=files, data=data, headers=params['headers'])
             # 检查响应状态码
             if response.status_code != 200:
@@ -466,16 +468,21 @@ def logger_process(queue, copyqueue, params, socketQueue):
     infoType={
         "麦克风识别结果：":'mic',
         "桌面音频识别结果：":'cap',
+        '文字发送识别结果：':'mic',
         "桌面音频请求过于频繁,可以尝试更换其他翻译引擎,触发规则":'cap',
         "麦克风请求过于频繁,可以尝试更换其他翻译引擎,触发规则":'mic',
+        "文字发送请求过于频繁,可以尝试更换其他翻译引擎,触发规则":'mic',
         '桌面音频请求过于频繁,触发规则':'cap',
         "麦克风请求过于频繁,触发规则":'mic',
         '桌面音频本地识别服务器翻译数据接收异常:':'cap',
         '麦克风本地识别服务器翻译数据接收异常:':'mic',
+        '文字发送翻译数据接收异常:':'mic',
         '桌面音频服务器数据接收异常:':'cap',
         '麦克风服务器数据接收异常:':'mic',
         'TTS请求过于频繁,触发规则':'mic',
-        "TTS数据接收异常:":'mic'
+        "TTS数据接收异常:":'mic',
+        
+        
     }
     try:
         while True:

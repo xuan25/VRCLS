@@ -1,19 +1,25 @@
 <template>
 
     <el-container>
-        <el-header height="10vh" class="custom-header">
-            <el-text tag="b" class="header-title">VRCLS</el-text>
-            <el-switch
-            v-model="isDark"
-            inline-prompt
-            :active-icon="MoonIcon"
-            :inactive-icon="SunIcon"
-            active-color="#2c2c2c"
-            inactive-color="#f2f2f2"
-            border-color="#dcdfe6"
-            style="margin-left: 20px;"
-            @change="toggleDark"
-            />
+        <el-header height="10vh" class="custom-header pywebview-drag-region">
+            <!-- 居中的标题，使用绝对定位 -->
+            <el-text tag="b" class="header-title-centered">VRCLS面板</el-text>
+
+            <!-- 右侧控件组 -->
+            <div class="header-actions">
+                <el-switch v-model="isDark" inline-prompt :active-icon="MoonIcon" :inactive-icon="SunIcon"
+                    active-color="#2c2c2c" inactive-color="#f2f2f2" border-color="#dcdfe6" style="margin-right: 15px;"
+                    @change="changeDark" />
+                <el-tooltip content="最小化" placement="bottom">
+                    <el-button :icon="MinusIcon" circle @click="handleMinimize" />
+                </el-tooltip>
+                <el-tooltip :content="data.local.maximized ? '退出最大化' : '最大化'" placement="bottom">
+                    <el-button :icon="data.local.maximized ? RankIcon : FullScreenIcon" circle @click="toggleFullScreen" />
+                </el-tooltip>
+                <el-tooltip content="关闭" placement="bottom">
+                    <el-button :icon="CloseIcon" circle @click="handleClose" />
+                </el-tooltip>
+            </div>
         </el-header>
         <el-container>
             <el-aside width="200">
@@ -73,37 +79,53 @@
                 <div v-if="data.local.clickedMenuItem == 1">
 
                     <el-row :gutter="20">
+                        <el-col :span="20">
+                            <el-row :gutter="20">
 
-                        <el-col :span="data.config.Separate_Self_Game_Mic == 0 ? 20 : 10">
-                            <el-card class="log-container">
-                                <template #header>
-                                    <div class="card-header">
-                                        <span>麦克风识别结果</span>
-                                    </div>
+
+                                <el-col :span="data.config.Separate_Self_Game_Mic == 0 ? 24 : 12">
+                                    <el-card class="log-container">
+                                        <template #header>
+                                            <div class="card-header">
+                                                <span>麦克风识别结果</span>
+                                            </div>
+                                        </template>
+                                        <el-table :data="data.local.micInfo" :show-header="false" height="65vh"
+                                            @row-click="handleRowClick">
+                                            <el-table-column prop="text" label="文本" />
+                                        </el-table>
+                                    </el-card>
+                                </el-col>
+                                <el-col :span="12" v-if="data.config.Separate_Self_Game_Mic != 0">
+                                    <el-card class="log-container">
+                                        <template #header>
+                                            <div class="card-header">
+                                                <span>桌面音频识别结果</span>
+                                            </div>
+                                        </template>
+                                        <el-table :data="data.local.desktopInfo" :show-header="false" height="65vh"
+                                            @row-click="handleRowClick">
+                                            <el-table-column prop="text" label="文本" />
+                                        </el-table>
+                                    </el-card>
+
+                                </el-col>
+                            </el-row>
+                            <div style="margin-top: 2vh;">
+
+                            </div>
+                            <el-input v-model="data.local.sendText" placeholder="请输入需要翻译的文字" @keyup.enter="sendText">
+
+                                <template #append>
+                                    <el-button type="primary" @click="sendText">发送</el-button>
                                 </template>
-                                <el-table :data="data.local.micInfo" :show-header="false" height="70vh"
-                                    @row-click="handleRowClick">
-                                    <el-table-column prop="text" label="文本" />
-                                </el-table>
-                            </el-card>
-                        </el-col>
-                        <el-col :span="10" v-if="data.config.Separate_Self_Game_Mic != 0">
-                            <el-card class="log-container">
-                                <template #header>
-                                    <div class="card-header">
-                                        <span>桌面音频识别结果</span>
-                                    </div>
-                                </template>
-                                <el-table :data="data.local.desktopInfo" :show-header="false" height="70vh"
-                                    @row-click="handleRowClick">
-                                    <el-table-column prop="text" label="文本" />
-                                </el-table>
-                            </el-card>
+                            </el-input>
                         </el-col>
                         <el-col :span="4">
                             <sideInfo />
                         </el-col>
                     </el-row>
+
                 </div>
 
                 <el-card class="log-container" v-if="data.local.clickedMenuItem == 5">
@@ -273,6 +295,12 @@
                                             <el-select v-model="data.config.oscShutdown">
                                                 <el-option label="暂停" :value="true"></el-option>
                                                 <el-option label="开启" :value="false"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <el-form-item label="情绪识别emoji输出">
+                                            <el-select v-model="data.config.filteremoji">
+                                                <el-option label="关闭" value="true"></el-option>
+                                                <el-option label="开启" value="false"></el-option>
                                             </el-select>
                                         </el-form-item>
                                         <el-form-item label="外源OSC服务端端口">
@@ -737,9 +765,22 @@
 
 <script setup>
 import { useDark, useToggle } from '@vueuse/core'
-import { Moon as MoonIcon, Sunny as SunIcon } from '@element-plus/icons-vue'; // Element Plus 图标
+// import { Moon as MoonIcon, Sunny as SunIcon } from '@element-plus/icons-vue'; // Element Plus 图标
+import {
+    Moon as MoonIcon,
+    Sunny as SunIcon,
+    Minus as MinusIcon,
+    FullScreen as FullScreenIcon,
+    Close as CloseIcon,
+    Rank as RankIcon, // 用于退出全屏的图标，也可以选择其他
+} from '@element-plus/icons-vue';
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
+
+const changeDark = () => {
+    toggleDark(!data.config.darkmode)
+    data.config.darkmode = (!data.config.darkmode)
+}
 import { marked } from 'marked';
 import sideInfo from './side-info.vue'
 import sideInfoFour from './side-info-four.vue'
@@ -763,7 +804,7 @@ socket.on('log', (log) => {
         ElNotification({
             title: '发生错误',
             message: log.text,
-            duration: log.text.includes("[steamvr异常]")?4500:0,
+            duration: log.text.includes("[steamvr异常]") ? 4500 : 0,
             type: 'error',
         })
     }
@@ -810,6 +851,8 @@ let data = reactive({
         micInfo: [],
         versionstr: '',
         logDayNum: 7,
+        sendText: '',
+        maximized:false
 
 
     },
@@ -838,6 +881,7 @@ onMounted(() => {
     getconfig()
     fetchData()
     getUpdate()
+
     axios.get('/api/verion').then(response => {
         data.local.versionstr = response.data['text'];
     });
@@ -865,6 +909,7 @@ const getUpdate = () => {
     });
 
 }
+
 const upgrade = () => {
     axios.get('/api/upgrade').then(response => {
         if (response.status == 401) {
@@ -903,7 +948,9 @@ function getconfig() {
             message: '配置信息获取成功',
             type: 'success',
         })
+        toggleDark(data.config['darkmode'])
     });
+
     axios.get('/api/getMics').then(response => {
         micName.value = response.data;
         ElMessage({
@@ -938,6 +985,33 @@ function saveconfig() {
 
     })
 }
+function sendText() {
+    axios.post('/api/sendTextandTranslate', { 'text': data.local.sendText }, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        if (response.status == 401) {
+            ElMessage({ message: response.data['text'], type: 'error', })
+        }
+        if (response.status == 200) {
+            ElMessage({ message: '文字翻译发送成功', type: 'success', })
+            data.local.sendText = ''
+        }
+    })
+}
+function handleClose(){
+    axios.get('/api/closewindow')
+}
+function toggleFullScreen(){
+    if(data.local.maximized)axios.get('/api/windowrestore') 
+    else axios.get('/api/maximize')
+    data.local.maximized= !data.local.maximized
+}
+function handleMinimize(){
+    axios.get('/api/minimize')
+}
+
 function saveAndBoot() {
     saveconfig()
     reboot()
@@ -1191,7 +1265,7 @@ const computedTranslateLanguage = computed(() => {
         return translateLanguageOption.filter(item => item.value != data.config.sourceLanguage)
     }
     else {
-        return translateLanguageOption.filter(item => item.value != 'zh' && item.value != 'zt' )
+        return translateLanguageOption.filter(item => item.value != 'zh' && item.value != 'zt')
     }
 
 
@@ -1211,24 +1285,52 @@ const computedTranslateLanguage = computed(() => {
     margin: 10px 0;
     /* 调整段落之间的间距 */
 }
+
 .custom-header {
-  display: flex;
-  align-items: center; /* 垂直居中所有子元素 */
-  /* background-color: #f5f7fa;  可选：给头部一个背景色 */
-  /* border-bottom: 1px solid #e4e7ed; 可选：添加一个下边框 */
+    position: relative; /* 关键：为绝对定位的子元素提供定位上下文 */
+    display: flex;
+    align-items: center; /* 垂直居中 header-actions 里的内容 */
+    justify-content: flex-end; /* 将 header-actions 推到最右边 */
+    background-color: #f5f7fa;
+    border-bottom: 1px solid #e4e7ed;
+    padding: 0 20px; /* 给头部一些内边距 */
+    box-sizing: border-box; /* 确保 padding 不会影响宽度计算导致内容溢出 */
+
 }
 
-.header-title {
-  flex-grow: 1; /* 标题占据剩余空间 */
-  text-align: center; /* 文本在自己的空间内居中 */
-  margin: 0; /* 移除 h1 的默认 margin */
-  font-size: 24px; /* 可调整字体大小 */
-  /*color: #303133; /* 默认文字颜色 */
+/* 暗黑模式下的头部样式 */
+.dark .custom-header {
+    background-color: #141414;
+    border-bottom: 1px solid #303030;
 }
 
-/* 如果你使用了 @vueuse/core 并且配置了 'dark' class 在 html 元素上 */
-/* 暗黑模式下的标题颜色 
-:global(html.dark) .header-title {
-  color: #e5eaf3;
-}*/
+.header-title-centered {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%); /* 水平垂直居中 */
+    font-size: 20px;
+    font-weight: bold; /* el-text tag="b" 的效果 */
+    color: #303133; /* 浅色模式下的标题颜色 */
+    /* 如果 el-text 自动处理暗色模式颜色，则下面这行可能不需要 */
+    /* 或者如果需要强制指定，则取消注释 */
+}
+
+.dark .header-title-centered {
+    color: #e0e0e0; /* 暗黑模式下的标题颜色 */
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    /* z-index: 1; */ /* 如果标题覆盖了按钮，可以尝试给 actions 加一个 z-index */
+}
+
+.header-actions .el-button {
+    margin-left: 10px; /* 按钮之间的间距 */
+}
+
+.header-actions .el-button:hover {
+    color: var(--el-color-primary);
+}
 </style>

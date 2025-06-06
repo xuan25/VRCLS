@@ -293,7 +293,7 @@ def rebootJob():
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
-    global queue,params,listener_thread,startUp,sendClient
+    global queue,params,listener_thread,startUp,sendClient,window
     data=request.get_json()
     queue.put({"text":"/saveandreboot","level":"debug"})
     try:
@@ -301,6 +301,8 @@ def saveConfig():
             f.write(file.read())
         with open('client.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
+        # if startUp.config.get("darkmode") != data["config"].get("darkmode"):
+        #     set_window_frame_color_windows(window.hwnd,data["config"].get("darkmode"))
         if startUp.config.get("Separate_Self_Game_Mic") != data["config"].get("Separate_Self_Game_Mic"):
             queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
             return jsonify({"text":"请关闭整个程序后再重启程序"}),220
@@ -337,7 +339,28 @@ def getConfig():
     global startUp,queue
     queue.put({"text":"/getConfig","level":"debug"})
     return jsonify(startUp.config),200
+@app.route('/api/closewindow', methods=['get'])
+def closewindow():
+    global window
+    window.destroy()
+    return 'ok',200
 
+@app.route('/api/maximize', methods=['get'])
+def fullscreen():
+    global window
+    window.maximize()
+    return 'ok',200
+@app.route('/api/minimize', methods=['get'])
+def minimize():
+    global window
+    window.minimize()
+    return 'ok',200
+
+@app.route('/api/windowrestore', methods=['get'])
+def windowrestore():
+    global window
+    window.restore()
+    return 'ok',200
 
 @app.route('/api/reboot', methods=['get'])
 def reboot():
@@ -355,6 +378,77 @@ def update_config():
     config=saveConfig()
     rebootJob() 
     return jsonify(config),200
+@app.route('/api/sendTextandTranslate', methods=['post'])
+def sendTextandTranslate():
+    import html
+    import translators
+    from hanziconv import HanziConv
+    from src.module.translate import other_trasnlator
+    from src.handler.SelfRead import SelfReadHandler
+    def replace_multiple_placeholders(template: str, replacements: dict) -> str:
+        """通过字典替换多个占位符"""
+        return template.format(**replacements)
+    global params,queue,steamvrQueue,sendClient
+    res=request.get_json(silent=True)
+    logger=queue
+    selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
+    baseurl=params["config"].get('baseurl')
+    translator=params["config"].get('translateService')
+    tragetTranslateLanguage2=params["config"].get("targetTranslationLanguage2")
+    tragetTranslateLanguage3=params["config"].get("targetTranslationLanguage3")
+    tragetTranslateLanguage=params["tragetTranslateLanguage"]
+    sourceLanguage=params["sourceLanguage"]
+    if params["config"].get("translateService")!="developer":
+        res['translatedText2']=''
+        res['translatedText3']=''
+        try:
+            res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
+        except Exception as e:
+            if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
+                logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
+                res['translatedText']=res["text"]
+            else:
+                logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{str(e)}","level":"error"})
+                logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
+                res['translatedText']=''
+                return '翻译异常',401
+    else:
+        url=baseurl+'/func/webtranslate'
+        data = {"text":res['text'],
+                "targetLanguage": tragetTranslateLanguage,
+                'targetLanguage2': tragetTranslateLanguage2,
+                'targetLanguage3': tragetTranslateLanguage3,
+                "sourceLanguage": "zh" if sourceLanguage=="zt" else  sourceLanguage}
+        logger.put({"text":f"url:{url},tragetTranslateLanguage:{tragetTranslateLanguage}","level":"debug"})
+        response=requests.post(url, json=data, headers=params['headers'])
+        
+                    # 检查响应状态码
+        if response.status_code != 200:
+            if response.status_code == 430:
+                res=response.json()
+                logger.put({"text":f"文字发送请翻译过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+            else:    
+                logger.put({"text":f"文字发送翻译数据接收异常:{response.text}","level":"warning"})
+            return '翻译异常',401
+        # 解析JSON响应
+        res = response.json()
+        logger.put({"text":f"服务器翻译成功：","level":"debug"})
+
+    if  params["runmode"] == "translation" and params["config"].get("translateService")!="developer":        
+        # 第二语言
+        if  tragetTranslateLanguage2!="none":
+                res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+        # 第三语言
+        if  tragetTranslateLanguage3!="none":
+                res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                
+        
+    if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
+    elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
+    selfRead.handle(res,"文字发送",params["steamReady"])
+    output=replace_multiple_placeholders(params['config']['VRCChatboxformat_new'],res)
+    params['clientdata']=output
+    return 'ok',200
 @app.route('/api/getAvatarParameters', methods=['get'])
 def getAvatarParameters():
     try:
@@ -550,7 +644,7 @@ def handle_connect():
 def run_server(app,host,port):
     global socketio
     socketio.run(app=app,debug=False, host=host, port=port,allow_unsafe_werkzeug=True)
-    print('server exit')
+    print('server exit')   
 if __name__ == '__main__':
     freeze_support()
     if not is_admin():
@@ -578,7 +672,7 @@ if __name__ == '__main__':
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
-        VERSION_NUM='v0.5.8'
+        VERSION_NUM='v0.5.9'
         listener_thread=None
         startUp=None
         manager = Manager()
@@ -713,10 +807,11 @@ if __name__ == '__main__':
             'VRCLS控制面板', 
             f'http://{startUp.config['api-ip']}:{startUp.config['api-port']}',
             width=1200,
-            height=800
+            height=900,frameless=True, easy_drag=False,resizable=True
         )
         toggle_console(show_console)
         webview.start()
+        
         
     except Exception as e:
         queue.put({'text':traceback.format_exc(),'level':'error'})
