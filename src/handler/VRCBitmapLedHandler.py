@@ -2,7 +2,7 @@ from time import sleep
 from typing import List
 from .base_handler import BaseHandler
 import uuid
-from..core.bitLedColor import find_nearest_foreground
+from..module.bitLedColor import find_nearest_foreground
 import random
 def half_to_full(half_str):
     full_str = ''
