@@ -6,6 +6,7 @@ from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.serverListener import selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter
 from src.core.logger import logger_process
 from src.core.steamvrProcess import steamvr_process
+from src.module.sherpaOnnx import sherpa_onnx_run,sherpa_onnx_run_local,sherpa_onnx_run_mic
 from src.module.oscserver import startServer
 import time
 import json,os,traceback,sys
