@@ -340,6 +340,7 @@
                                                 <el-option label="持续开启" :value="0"></el-option>
                                                 <el-option label="按键切换" :value="1"></el-option>
                                                 <el-option label="按住说话" :value="2"></el-option>
+                                                <el-option label="随VRC开关(0.2s延迟)" :value="3"></el-option>
                                             </el-select>
                                         </el-form-item>
 
@@ -373,6 +374,7 @@
                                                 <el-option label="持续开启" :value="0"></el-option>
                                                 <el-option label="按键切换" :value="1"></el-option>
                                                 <el-option label="按住开启" :value="2"></el-option>
+                                                <el-option label="随VRC开关(0.2s延迟)" :value="3"></el-option>
                                             </el-select>
                                         </el-form-item>
                                         <el-form-item label="桌面音频自定义阈值">

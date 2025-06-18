@@ -5,6 +5,7 @@ import requests
 import time
 import pyaudio
 import os
+import shutil
 
 from ..handler.tts import whisper_voice_mapping,libretranslate_voice_mapping
 # import os,sys
@@ -20,11 +21,24 @@ class StartUp:
         self.loopbackIndexList=[]
         self.defautMicIndex=0
         self.defautOutPutIndex=0
+        docs_dir = os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS')
+        self.path_dict={
+            'client.json':os.path.join(docs_dir,'client.json'),
+            'filter.json':os.path.join(docs_dir,'filter.json'),
+            'ttsConfig.json':os.path.join(docs_dir,'ttsConfig.json'),
+            'customEmoji.json':os.path.join(docs_dir,'customEmoji.json')
+        }
+        os.makedirs(docs_dir, exist_ok=True)
+        for i in ['client.json','filter.json','ttsConfig.json','customEmoji.json']: 
+            if os.path.exists(i) and not os.path.exists(self.path_dict[i]):
+                shutil.move(i, self.path_dict[i])
+                
+                
         try:
-            with open('client.json', 'r',encoding='utf-8') as file:
+            with open(self.path_dict["client.json"], 'r',encoding='utf-8') as file:
                 self.config:dict = json.load(file)
         except FileNotFoundError:
-            with open('client.json', 'w', encoding="utf8") as f:
+            with open(self.path_dict["client.json"], 'w', encoding="utf8") as f:
                 f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
                 self.config=defaultConfig
         except json.JSONDecodeError as e:
@@ -32,10 +46,10 @@ class StartUp:
             raise e
         
         try:
-            with open('filter.json', 'r',encoding='utf-8') as file:
+            with open(self.path_dict['filter.json'], 'r',encoding='utf-8') as file:
                 self.filter:list = json.load(file)
         except FileNotFoundError:
-            with open('filter.json', 'w', encoding="utf8") as f:
+            with open(self.path_dict['filter.json'], 'w', encoding="utf8") as f:
                 f.write(json.dumps(defaultFilter,ensure_ascii=False, indent=4))
                 self.filter=defaultFilter
         except json.JSONDecodeError as e:
@@ -43,10 +57,10 @@ class StartUp:
             raise e
         
         try:
-            with open('ttsConfig.json', 'r',encoding='utf-8') as file:
+            with open(self.path_dict['ttsConfig.json'], 'r',encoding='utf-8') as file:
                 self.ttsVoice:list = json.load(file)
         except FileNotFoundError:
-            with open('ttsConfig.json', 'w', encoding="utf8") as f:
+            with open(self.path_dict['ttsConfig.json'], 'w', encoding="utf8") as f:
                 f.write(json.dumps({"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping},ensure_ascii=False, indent=4))
                 self.ttsVoice={"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping}
         except json.JSONDecodeError as e:
@@ -54,10 +68,10 @@ class StartUp:
             raise e
         
         try:
-            with open('customEmoji.json', 'r',encoding='utf-8') as file:
+            with open(self.path_dict['customEmoji.json'], 'r',encoding='utf-8') as file:
                 self.customEmoji:list = json.load(file)
         except FileNotFoundError:
-            with open('customEmoji.json', 'w', encoding="utf8") as f:
+            with open(self.path_dict['customEmoji.json'], 'w', encoding="utf8") as f:
                 defaultCustomEmoji={"测试惊讶":"・ࡇ・","测试心碎":"💔"}
                 f.write(json.dumps(defaultCustomEmoji,ensure_ascii=False, indent=4))
                 self.customEmoji=defaultCustomEmoji
@@ -89,14 +103,14 @@ class StartUp:
         return None
     def configCheck(self):
         try:
-            with open('client.json', 'r',encoding='utf-8') as file:
+            with open(self.path_dict['client.json'], 'r',encoding='utf-8') as file:
                 self.config:dict = json.load(file)
                 configDiff=list(set(defaultConfig.keys())-set(self.config.keys()))
             if configDiff != []:
                 self.logger.put({'text':"配置文件更新,增加条目："+str(configDiff),"level":"info"})
                 for newConfig in configDiff:
                     self.config[newConfig]=defaultConfig[newConfig]
-                with open('client.json', 'w', encoding="utf8") as file:
+                with open(self.path_dict['client.json'], 'w', encoding="utf8") as file:
                     file.write(json.dumps(self.config,ensure_ascii=False, indent=4))
             configDefaultScripts=[script["action"] for script in self.config["defaultScripts"]]
             defaultScriptsDiff=[script for script in defaultConfig["defaultScripts"] if script["action"] not in configDefaultScripts]
@@ -104,7 +118,7 @@ class StartUp:
                 self.logger.put({'text':"配置文件更新,增加默认指令条目："+str(defaultScriptsDiff),"level":"info"})
                 for newConfig in defaultScriptsDiff:
                     self.config["defaultScripts"].append(newConfig)
-                with open('client.json', 'w', encoding="utf8") as file:
+                with open(self.path_dict['client.json'], 'w', encoding="utf8") as file:
                     file.write(json.dumps(self.config,ensure_ascii=False, indent=4))
         except json.JSONDecodeError as e:
             self.logger.put({'text':"client.json配置文件解析异常,详情："+str(e),"level":"error"})

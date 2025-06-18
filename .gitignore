@@ -1,4 +1,5 @@
-
+extracted_chat_bubbles
+testScripts/*.png
 *.log
 *.log.*
 *.spec

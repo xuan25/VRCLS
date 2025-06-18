@@ -1,7 +1,8 @@
 from flask import Flask, request, render_template, url_for,jsonify,send_from_directory
 from src.core.startup import StartUp
 from src.core.update import main_update
-from src.core.avatar import avatar
+from src.core.OSCListener import OSCListener
+from src.core.OSCListenerThread import micStatusListenerThread
 from multiprocessing import Process,Manager,freeze_support,Queue
 from src.core.serverListener import selfMic_listen,gameMic_listen_capture,gameMic_listen_VoiceMeeter
 from src.core.logger import logger_process
@@ -453,7 +454,7 @@ def sendTextandTranslate():
 @app.route('/api/getAvatarParameters', methods=['get'])
 def getAvatarParameters():
     try:
-        avatarInfo=avatar()
+        avatarInfo=OSCListener()
     except Exception as e:
         queue.put({"text":"未成功检测到vrchat",'level':'warning'})
     avatarID=avatarInfo.getAvatarID()
@@ -669,7 +670,7 @@ if __name__ == '__main__':
 
           ''')
     show_console = '--show-console' in sys.argv
-    kill_other_vrcls()
+    # kill_other_vrcls()
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
@@ -746,6 +747,7 @@ if __name__ == '__main__':
         params["localizedSpeech"]=startUp.config['localizedSpeech']
         params["TTSToggle"]=startUp.config['TTSToggle']
         params["updateInfo"]={'version':'None'}
+        params["vrcMuteSelf"]=False
         if getattr(sys, 'frozen', False):
             queue.put({'text':"update check||开始版本更新检查",'level':'warning'})
             response = requests.get(startUp.config['baseurl']+"/latestVersionInfo")
@@ -795,7 +797,10 @@ if __name__ == '__main__':
         if startUp.config.get('enableOscServer'):
             oscServerTread=td.Thread(target=startServer,args=(params,queue),daemon=True)
             oscServerTread.start()
-
+        if startUp.config.get('voiceMode')==3 or startUp.config.get('gameVoiceMode')==3:
+            queue.put({'text':"micStatusListenerThread start",'level':'info'})
+            vrcListenThread=td.Thread(target=micStatusListenerThread,args=(queue,params),daemon=True)
+            vrcListenThread.start()
             
         
         queue.put({'text':"api ok||api就绪",'level':'info'})

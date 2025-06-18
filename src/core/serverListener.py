@@ -68,7 +68,8 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
         keyThread = VKeyHandler(params,"voiceKeyRun")
         keyThread.start()
         logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
-    
+
+
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
         logger.put({"text":"开始音量测试","level":"info"})
         with m as source:
@@ -87,7 +88,8 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
     try:
         with m as s:
             while params["running"]:
-                if not params["voiceKeyRun"]:continue
+                ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["voiceKeyRun"]
+                if ifcontinue:continue
                 try:  # listen for 1 second, then check again if the stop function has been called
                     audio = r.listen(s, 10,10)
                     count=0
@@ -101,7 +103,7 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
                     # with open(f'{time.time()}-file.wav', 'wb') as file:
                     #     file.write(audio.get_raw_data())
                         
-                    if params["running"] and  (params["voiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
+                    if params["running"] and  (not ifcontinue or voiceMode==2 ) and not (voiceMode==3 and params["vrcMuteSelf"]):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
@@ -171,7 +173,8 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
     try:
         with m as s:
             while params["running"]:
-                if not params["gameVoiceKeyRun"]:continue
+                ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"]
+                if ifcontinue:continue
                 try:  # listen for 1 second, then check again if the stop function has been called
                     audio = r.listen(s, 10,10)
                     count=0
@@ -182,7 +185,7 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
                             pt.start()
                         else:count+=1
                 else:
-                    if params["running"] and  (params["gameVoiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
+                    if params["running"] and  (not ifcontinue or voiceMode==2 ) and not (voiceMode==3 and params["vrcMuteSelf"]):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
@@ -246,7 +249,8 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
     p.start()
     try:
         while params["running"]:
-            if not params["gameVoiceKeyRun"]:continue
+            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"]
+            if ifcontinue:continue
             try:  # listen for 1 second, then check again if the stop function has been called
                 audio = voice_activation_stream(
                     logger=logger,
@@ -263,7 +267,7 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
                         pt.start()
                     else:count+=1
             else:
-                    if params["running"] and (params["gameVoiceKeyRun"] or voiceMode==2 ):audioQueue.put(audio)
+                    if params["running"] and (params["gameVoiceKeyRun"] or voiceMode==2 ) and not (voiceMode==3 and params["vrcMuteSelf"]):audioQueue.put(audio)
     finally:
         p.terminate()
         while p.is_alive():time.sleep(0.5)
