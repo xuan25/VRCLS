@@ -299,7 +299,7 @@ def saveConfig():
     data=request.get_json()
     queue.put({"text":"/saveandreboot","level":"debug"})
     try:
-        with open('client.json', 'r',encoding='utf8') as file, open('client-back.json', 'w', encoding="utf8") as f:
+        with open(startUp.path_dict['client.json'], 'r',encoding='utf8') as file, open(startUp.path_dict['client-back.json'], 'w', encoding="utf8") as f:
             f.write(file.read())
         with open('client.json', 'w', encoding="utf8") as f:
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))

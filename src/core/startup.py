@@ -26,7 +26,8 @@ class StartUp:
             'client.json':os.path.join(docs_dir,'client.json'),
             'filter.json':os.path.join(docs_dir,'filter.json'),
             'ttsConfig.json':os.path.join(docs_dir,'ttsConfig.json'),
-            'customEmoji.json':os.path.join(docs_dir,'customEmoji.json')
+            'customEmoji.json':os.path.join(docs_dir,'customEmoji.json'),
+            'client-back.json':os.path.join(docs_dir,'client-back.json')
         }
         os.makedirs(docs_dir, exist_ok=True)
         for i in ['client.json','filter.json','ttsConfig.json','customEmoji.json']: 
