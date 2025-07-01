@@ -20,7 +20,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
     tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     baseurl=params["config"].get('baseurl')
-    translator=params["config"].get('translateService')
+    
 
     while params["running"]:
         try:
@@ -28,7 +28,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             tragetTranslateLanguage3=params["config"].get("targetTranslationLanguage3")
             tragetTranslateLanguage=params["tragetTranslateLanguage"]
             sourceLanguage=params["sourceLanguage"]
-            
+            translator=params["config"].get('translateService') if mode=="mic" else params["config"].get('translateServicecap')
             audio=audioQueue.get()
 
             st=time.time()

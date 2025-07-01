@@ -441,7 +441,6 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
     bitMapLed=VRCBitmapLedHandler(logger=logger,osc_client=sendClient,params=params)
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
     if params["config"].get("TTSToggle")!=0:tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
-    translator=params["config"].get('translateService')
     
     baseurl=params["config"].get('baseurl')
     while params["running"]:
@@ -450,6 +449,7 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
             tragetTranslateLanguage3=params["config"].get("targetTranslationLanguage3")
             tragetTranslateLanguage=params["tragetTranslateLanguage"]
             sourceLanguage=params["sourceLanguage"]
+            translator=params["config"].get('translateService') if mode=="mic" else params["config"].get('translateServicecap')
             res={}
             res['text']=result.get()
             st=time.time()

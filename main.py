@@ -293,6 +293,162 @@ def rebootJob():
     params["localizedCapture"]=startUp.config['localizedCapture']
     params["localizedSpeech"]=startUp.config['localizedSpeech']
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
+    
+@app.route('/api/vadCalibrate', methods=['get'])
+def calibrate_vad_threshold():
+    global queue,params,startUp,socketio
+    import pyaudiowpatch as pyaudio
+    import math
+    import audioop
+    
+    """
+    测量背景噪音和说话音量，并计算VAD能量阈值。
+    阈值 = 背景噪音能量 + (说话音量 - 背景噪音能量) / 5
+    """
+    micmode=request.args.get('mode')
+    if micmode=="mic":
+        if params["config"].get("micName")== "" or params["config"].get("micName") is None or params["config"].get("micName")== "default":
+            queue.put({"text":"使用系统默认麦克风","level":"info"})
+            micIndex=startUp.defautMicIndex
+        else:
+            try:
+                micIndex=startUp.micList.index(params["config"].get("micName"))
+            except ValueError:
+                queue.put({"text":"无法找到指定游戏麦克风，使用系统默认麦克风","level":"info"})
+                micIndex=startUp.defautMicIndex
+    elif micmode=='cap':
+        if params["config"].get("gameMicName")== "" or params["config"].get("gameMicName") is None or params["config"].get("gameMicName")== "default":
+            queue.put({"text":"使用系统默认桌面音频","level":"info"})
+            micIndex=None
+        else:
+            device_index=False
+            for i in startUp.loopbackIndexList:
+                if params["config"].get("gameMicName")==i.get("name"):
+                    device_index=True
+                    micIndex=i.get('index')
+                    queue.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
+                    break
+            
+            
+            if not device_index:
+                queue.put({"text":"无法找到指定桌面音频，使用系统默认桌面音频","level":"info"})
+                micIndex=None
+    else:
+        return '错误',401
+    p_cal = pyaudio.PyAudio() # 使用不同的PyAudio实例，避免潜在冲突
+    stream_cal = None
+    # 音频参数 (可以根据需要调整)
+    FORMAT = pyaudio.paInt16  # 采样格式，16位整数
+    CHANNELS = 1              # 单声道
+    RATE = 16000              # 采样率 (Hz)，16kHz 是常见的语音采样率
+    CHUNK = 1024              # 每次读取的帧数 (缓冲区大小)
+    SAMPLE_WIDTH = pyaudio.get_sample_size(FORMAT) # 每个样本的字节数 (paInt16 为 2)
+
+    # 测量持续时间 (秒)
+    NOISE_DURATION_S = 3      # 测量背景噪音的持续时间
+    SPEAKING_DURATION_S = 5   # 测量说话音量的持续时间
+    try:
+        device_info = p_cal.get_default_wasapi_loopback() if micIndex is None else p_cal.get_device_info_by_index(micIndex)
+        stream_cal = p_cal.open(format=FORMAT,
+                                channels=CHANNELS,
+                                rate=RATE,
+                                input=True,
+                                frames_per_buffer=CHUNK)
+        
+        # 1. 测量背景噪音能量
+        queue.put({"text":f"[阈值校准显示]2s准备测量背景噪音，请保持安静{NOISE_DURATION_S}秒...","level":"info"})
+        socketQueue.put({'type':"noiceIssue",'text':f'2s准备测量背景噪音，请保持安静{NOISE_DURATION_S}秒...'})
+        time.sleep(2) 
+        
+        noise_energies = []
+        num_noise_chunks = math.ceil(16000 / 1024 * NOISE_DURATION_S)
+        
+        queue.put({"text":"[阈值校准显示]开始测量噪音...","level":"info"})
+        socketQueue.put({'type':"startNoice",'text':f'开始测量噪音...'})
+        for i in range(num_noise_chunks):
+            try:
+                data = stream_cal.read(CHUNK, exception_on_overflow=False)
+                rms = audioop.rms(data, SAMPLE_WIDTH)
+                noise_energies.append(rms)
+                queue.put({"text":f"[阈值校准]噪音采样: {i+1}/{num_noise_chunks}, 当前RMS: {rms:<5}","level":"debug"})
+            except IOError as e:
+                if e.errno == pyaudio.paInputOverflowed: # paInputOverflowed value might differ based on pyaudio/portaudio version
+                    queue.put({"text":f"[阈值校准]警告: 输入溢出，忽略此块数据。","level":"warning"})
+                    continue 
+                else:
+                    raise 
+        queue.put({"text":"[阈值校准显示]噪音测量完成。","level":"info"})
+
+        if not noise_energies:
+            queue.put({"text":"[阈值校准]错误：未能采集到背景噪音样本。请检查麦克风设置。","level":"error"})
+            return None
+        
+        avg_noise_energy = sum(noise_energies) / len(noise_energies)
+        queue.put({"text":f"[阈值校准]平均背景噪音能量 (RMS): {avg_noise_energy:.2f}","level":"debug"})
+        socketQueue.put({'type':"noiseLevel",'text':f'平均背景噪音能量 (RMS): {avg_noise_energy:.3f}'})
+        time.sleep(3)
+        # 2. 测量说话音量
+        queue.put({"text":f"[阈值校准显示]准备测量说话音量，请在提示后用正常音量说话，持续 {SPEAKING_DURATION_S} 秒...","level":"info"})
+        socketQueue.put({'type':"speekIssue",'text':f"准备测量说话音量，请在提示后用正常音量说话，持续 {SPEAKING_DURATION_S} 秒..."})
+        time.sleep(2)
+        
+        speaking_energies = []
+        num_speaking_chunks = math.ceil(RATE / CHUNK * SPEAKING_DURATION_S)
+        
+        queue.put({"text":"[阈值校准显示]请开始说话！","level":"info"})
+        socketQueue.put({'type':"startSpeek",'text':f'请开始说话！'})
+        for i in range(num_speaking_chunks):
+            try:
+                data = stream_cal.read(CHUNK, exception_on_overflow=False)
+                rms = audioop.rms(data, SAMPLE_WIDTH)
+                speaking_energies.append(rms)
+                queue.put({"text":f"[阈值校准]说话采样: {i+1}/{num_speaking_chunks}, 当前RMS: {rms:<5}","level":"debug"})
+            except IOError as e:
+                if e.errno == pyaudio.paInputOverflowed:
+                    queue.put({"text":"[阈值校准]警告: 输入溢出，忽略此块数据。","level":"warning"})
+                    continue
+                else:
+                    raise
+        queue.put({"text":"[阈值校准显示]说话测量完成。","level":"info"})
+        
+        if not speaking_energies:
+            queue.put({"text":"[阈值校准]错误：未能采集到说话样本。请确保在提示时说话。","level":"warning"})
+            return None
+
+        valid_speaking_energies = [e for e in speaking_energies if e > avg_noise_energy * 1.2]
+        
+        if not valid_speaking_energies:
+            queue.put({"text":"[阈值校准]警告：采集到的说话音量较低或与噪音难以区分。将使用所有采集到的说话样本进行计算。","level":"warning"})
+            avg_speaking_energy = sum(speaking_energies) / len(speaking_energies) if speaking_energies else avg_noise_energy * 2
+        else:
+            avg_speaking_energy = sum(valid_speaking_energies) / len(valid_speaking_energies)
+            
+        queue.put({"text":f"[阈值校准]平均说话音量 (RMS, 过滤后): {avg_speaking_energy:.3f}","level":"debug"})
+        socketQueue.put({'type':"speekLevel",'text':f'{avg_speaking_energy:.3f}'})
+        # 3. 计算VAD阈值
+        if avg_speaking_energy <= avg_noise_energy:
+            queue.put({"text":"[阈值校准]警告：说话音量低于或等于背景噪音。阈值可能不准确。","level":"warning"})
+            queue.put({"text":"[阈值校准]建议重新校准，确保说话时音量足够大且清晰。","level":"warning"})
+            vad_threshold = avg_noise_energy * 1.5 
+        else:
+            vad_threshold = avg_noise_energy + (avg_speaking_energy - avg_noise_energy) / 5.0
+        
+        queue.put({"text":f"[阈值校准显示]计算得到的 VAD 能量阈值: {vad_threshold:.3f}","level":"info"})
+        reslevel=vad_threshold/32768.0
+        socketQueue.put({'type':"vadLevel",'text':f'{reslevel:.3f}'})
+        params["config"]['customThreshold' if micmode=="mic" else 'gameCustomThreshold']=reslevel
+        return reslevel
+
+    except Exception as e:
+        queue.put({"text":f"[阈值校准]在校准过程中发生错误: {e}","level":"error"})
+        return None
+    finally:
+        if stream_cal:
+            stream_cal.stop_stream()
+            stream_cal.close()
+        p_cal.terminate()
+        queue.put({"text":"[阈值校准]校准音频资源已释放。","level":"error"})
+
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
     global queue,params,listener_thread,startUp,sendClient,window
@@ -301,7 +457,7 @@ def saveConfig():
     try:
         with open(startUp.path_dict['client.json'], 'r',encoding='utf8') as file, open(startUp.path_dict['client-back.json'], 'w', encoding="utf8") as f:
             f.write(file.read())
-        with open('client.json', 'w', encoding="utf8") as f:
+        with open(startUp.path_dict['client.json'], 'w', encoding="utf8") as f:
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
         # if startUp.config.get("darkmode") != data["config"].get("darkmode"):
         #     set_window_frame_color_windows(window.hwnd,data["config"].get("darkmode"))

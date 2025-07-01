@@ -38,11 +38,11 @@ def logger_process(queue, copyqueue, params, socketQueue):
     import sqlite3
     import datetime
     import traceback
-
+    import os
     logger = MyLogger().logger
 
     # 初始化数据库连接
-    conn = sqlite3.connect('log_statistics.db', check_same_thread=False)
+    conn = sqlite3.connect(os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS','log_statistics.db'), check_same_thread=False)
     cursor = conn.cursor()
     
     # 创建统计表（如果不存在）

@@ -52,6 +52,7 @@ defaultConfig={
     "chatboxOscMixTemplate":r'{clientdata}{serverdata}',
     "darkmode":False,
     "filteremoji":"false",
+    "translateServicecap":'developer',
     "defaultScripts": [
         {
             "action": "sendText",

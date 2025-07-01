@@ -151,6 +151,7 @@ class VRTextOverlay:
         # 计算目标行宽（20个中文的像素宽度）
         sample_text = "中" * max_chinese_chars
         target_width = font.getlength(sample_text)
+        s=s[8:] if s.startswith("麦克风") else s[9:]
         
         # 按段落处理
         paragraphs = s.split('\n')
