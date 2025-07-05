@@ -141,7 +141,7 @@ def sherpa_onnx_run_local(sendClient,params,logger,micList:list,defautMicIndex,f
     lastSendTime=time.time()
     try:
         while params["running"]:
-            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"]
+            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"] or params["gameStopped"]
             if ifcontinue:
                 if not audio_stream.is_stopped():audio_stream.stop_stream()
             else:
@@ -260,7 +260,7 @@ def sherpa_onnx_run(sendClient,params,logger,micList:list,defautMicIndex,filter,
     
     try:
         while params["running"]:
-            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["voiceKeyRun"]
+            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["voiceKeyRun"] or params["micStopped"]
             if ifcontinue:
                 if not audio_stream.is_stopped():audio_stream.stop_stream()
                 continue
@@ -377,7 +377,7 @@ def sherpa_onnx_run_mic(sendClient,params,logger,micList:list,defautMicIndex,fil
     lastSendTime=time.time()
     try:
         while params["running"]:
-            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"]
+            ifcontinue=params["vrcMuteSelf"] if voiceMode == 3 else not params["gameVoiceKeyRun"] or params["gameStopped"]
             if ifcontinue:continue
             # 读取音频数据
             data = audio_stream.read(samples_per_read)

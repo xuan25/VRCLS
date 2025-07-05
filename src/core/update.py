@@ -10,6 +10,55 @@ from tqdm import tqdm
 import subprocess
 import hashlib
 
+def validate_installer(exe_path: Path) -> bool:
+    """验证下载的文件是否为有效的安装程序"""
+    try:
+        # 检查文件是否存在
+        if not exe_path.exists():
+            return False
+        
+        # 检查文件扩展名
+        if exe_path.suffix.lower() != '.exe':
+            return False
+        
+        # 检查文件大小（至少1MB）
+        if exe_path.stat().st_size < 1024 * 1024:
+            return False
+        
+        # 尝试获取文件版本信息（Windows）
+        try:
+            import win32api
+            info = win32api.GetFileVersionInfo(str(exe_path), "\\")
+            return True
+        except:
+            # 如果无法获取版本信息，至少检查文件头
+            with open(exe_path, 'rb') as f:
+                header = f.read(2)
+                return header == b'MZ'  # PE文件头
+                
+    except Exception:
+        return False
+
+def launch_installer(exe_path: Path, silent_mode: bool = False) -> bool:
+    """启动安装程序"""
+    try:
+        if silent_mode:
+            # 静默安装模式
+            subprocess.Popen([str(exe_path), "/S", "/D=" + str(Path.cwd())], 
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+            print("✅ 静默安装程序已启动")
+        else:
+            # 交互式安装模式
+            subprocess.Popen([str(exe_path)], 
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+            print("✅ 安装程序已启动，请按照安装向导完成更新")
+        
+        return True
+        
+    except Exception as e:
+        print(f"🚨 启动安装程序失败: {str(e)}")
+        return False
+
 def fast_download(url: str, save_path: Path, workers=8) -> bool:
     """增强版多线程下载"""
     try:
@@ -219,25 +268,57 @@ def unzip_and_replace(zip_path: Path, install_dir: Path) -> None:
 
 
 
-def main_update(url: str, install_dir: Path) -> None:
+def main_update(url: str, install_dir: Path, silent_mode: bool = False) -> bool:
+    """下载并启动安装exe文件"""
     # 创建下载目录
     download_dir = Path.cwd() / "cache"
     download_dir.mkdir(exist_ok=True)
 
     # 生成保存路径
     file_name = Path(urlparse(url).path).name
-    zip_path = download_dir / file_name
+    exe_path = download_dir / file_name
 
-    # 执行更新流程
-    if not fast_download(url, zip_path):return False
-    print(r'''
+    # 执行下载流程
+    if not fast_download(url, exe_path):
+        return False
+    
+    # 验证下载的安装程序
+    if not validate_installer(exe_path):
+        print("🚨 下载的文件不是有效的安装程序")
+        if exe_path.exists():
+            exe_path.unlink()
+        return False
+    
+    if silent_mode:
+        print(r'''
               
-              >>>>> 新版本文件解压安装中，窗户将自动关闭，请在窗口关闭10s后重新启动程序 <<<<<
+              >>>>> 新版本安装程序下载完成，即将启动静默安装 <<<<<
             
 ''')
-    time.sleep(3)
-    return unzip_and_replace(zip_path, install_dir)
-    # restart_application()
+    else:
+        print(r'''
+              
+              >>>>> 新版本安装程序下载完成，即将启动安装程序 <<<<<
+            
+''')
+    time.sleep(2)
+    
+    try:
+        # 启动安装程序
+        if not launch_installer(exe_path, silent_mode):
+            return False
+        
+        print("✅ 安装程序已启动，请按照安装向导完成更新")
+        print("📝 安装完成后，程序会在下次启动时自动清理安装包")
+        
+        return True
+        
+    except Exception as e:
+        print(f"🚨 启动安装程序失败: {str(e)}")
+        if exe_path.exists():
+            exe_path.unlink()
+        return False
+
 def module_download(url: str, install_dir: Path) -> bool:
     import os
     import shutil
@@ -326,6 +407,63 @@ if __name__ == "__main__":
 
     # 压缩包内目标文件夹的路径（注意末尾斜杠）
     target_in_zip = "VRCLS本地识别模型包/sherpa-onnx-models/"
+
+def check_for_updates(update_url: str, current_version: str = "1.0.0") -> bool:
+    """检查是否有可用更新"""
+    try:
+        # 这里可以添加版本检查逻辑
+        # 例如从服务器获取最新版本信息
+        print(f"当前版本: {current_version}")
+        print("正在检查更新...")
+        
+        # 模拟检查更新（实际使用时应该从服务器获取版本信息）
+        return True
+        
+    except Exception as e:
+        print(f"检查更新失败: {str(e)}")
+        return False
+
+def auto_update(update_url: str, install_dir: Path = None, silent_mode: bool = False) -> bool:
+    """自动更新主函数"""
+    if install_dir is None:
+        install_dir = Path.cwd()
+    
+    print("🔄 开始自动更新...")
+    
+    # 检查更新
+    if not check_for_updates(update_url):
+        print("❌ 无法检查更新或无需更新")
+        return False
+    
+    # 执行更新
+    success = main_update(update_url, install_dir, silent_mode)
+    
+    if success:
+        print("✅ 更新流程已启动")
+    else:
+        print("❌ 更新失败")
+    
+    return success
+
+def cleanup_installer_files():
+    """清理下载的安装包文件"""
+    try:
+        cache_dir = Path.cwd() / "cache"
+        if cache_dir.exists():
+            # 查找并删除exe安装包文件
+            for exe_file in cache_dir.glob("*.exe"):
+                try:
+                    exe_file.unlink()
+                    print(f"🗑️ 已清理安装包: {exe_file.name}")
+                except Exception as e:
+                    print(f"清理文件失败 {exe_file.name}: {str(e)}")
+        
+        print("✅ 安装包清理完成")
+        return True
+        
+    except Exception as e:
+        print(f"清理安装包失败: {str(e)}")
+        return False
 
 
     

@@ -338,21 +338,23 @@ def calibrate_vad_threshold():
     p_cal = pyaudio.PyAudio() # 使用不同的PyAudio实例，避免潜在冲突
     stream_cal = None
     # 音频参数 (可以根据需要调整)
-    FORMAT = pyaudio.paInt16  # 采样格式，16位整数
-    CHANNELS = 1              # 单声道
-    RATE = 16000              # 采样率 (Hz)，16kHz 是常见的语音采样率
-    CHUNK = 1024              # 每次读取的帧数 (缓冲区大小)
-    SAMPLE_WIDTH = pyaudio.get_sample_size(FORMAT) # 每个样本的字节数 (paInt16 为 2)
+
 
     # 测量持续时间 (秒)
     NOISE_DURATION_S = 3      # 测量背景噪音的持续时间
     SPEAKING_DURATION_S = 5   # 测量说话音量的持续时间
     try:
         device_info = p_cal.get_default_wasapi_loopback() if micIndex is None else p_cal.get_device_info_by_index(micIndex)
+        FORMAT = pyaudio.paInt16  # 采样格式，16位整数
+        CHANNELS = 1              # 单声道
+        RATE = int(device_info["defaultSampleRate"])              # 采样率 (Hz)，16kHz 是常见的语音采样率
+        CHUNK = 1024              # 每次读取的帧数 (缓冲区大小)
+        SAMPLE_WIDTH = pyaudio.get_sample_size(FORMAT) # 每个样本的字节数 (paInt16 为 2)
         stream_cal = p_cal.open(format=FORMAT,
                                 channels=CHANNELS,
                                 rate=RATE,
                                 input=True,
+                                input_device_index=device_info["index"],
                                 frames_per_buffer=CHUNK)
         
         # 1. 测量背景噪音能量
@@ -381,7 +383,7 @@ def calibrate_vad_threshold():
 
         if not noise_energies:
             queue.put({"text":"[阈值校准]错误：未能采集到背景噪音样本。请检查麦克风设置。","level":"error"})
-            return None
+            return jsonify({"success": False, "error": "未能采集到背景噪音样本"}), 500
         
         avg_noise_energy = sum(noise_energies) / len(noise_energies)
         queue.put({"text":f"[阈值校准]平均背景噪音能量 (RMS): {avg_noise_energy:.2f}","level":"debug"})
@@ -413,7 +415,7 @@ def calibrate_vad_threshold():
         
         if not speaking_energies:
             queue.put({"text":"[阈值校准]错误：未能采集到说话样本。请确保在提示时说话。","level":"warning"})
-            return None
+            return jsonify({"success": False, "error": "未能采集到说话样本"}), 500
 
         valid_speaking_energies = [e for e in speaking_energies if e > avg_noise_energy * 1.2]
         
@@ -431,7 +433,7 @@ def calibrate_vad_threshold():
             queue.put({"text":"[阈值校准]建议重新校准，确保说话时音量足够大且清晰。","level":"warning"})
             vad_threshold = avg_noise_energy * 1.5 
         else:
-            vad_threshold = avg_noise_energy + (avg_speaking_energy - avg_noise_energy) / 5.0
+            vad_threshold = avg_noise_energy + (avg_speaking_energy - avg_noise_energy) * 0.8
         
         queue.put({"text":f"[阈值校准显示]计算得到的 VAD 能量阈值: {vad_threshold:.3f}","level":"info"})
         reslevel=vad_threshold/32768.0
@@ -441,13 +443,14 @@ def calibrate_vad_threshold():
 
     except Exception as e:
         queue.put({"text":f"[阈值校准]在校准过程中发生错误: {e}","level":"error"})
-        return None
+        return jsonify({"success": False, "error": str(e)}), 500
     finally:
         if stream_cal:
             stream_cal.stop_stream()
             stream_cal.close()
         p_cal.terminate()
-        queue.put({"text":"[阈值校准]校准音频资源已释放。","level":"error"})
+        queue.put({"text":"[阈值校准]校准音频资源已释放。","level":"info"})
+        return jsonify({"success": True, "threshold": reslevel}), 200
 
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
@@ -525,8 +528,8 @@ def reboot():
     rebootJob()
     return jsonify({'message':'sound process restart complete|| 程序完成重启'}),200
  
-@app.route('/api/verion', methods=['get'])
-def verion():
+@app.route('/api/version', methods=['get'])
+def version():
     return jsonify({'text':VERSION_NUM}),200
 # 处理表单提交
 @app.route('/api/saveandreboot', methods=['post'])
@@ -719,7 +722,11 @@ def open_web(host,port):
         
 
 def get_db_connection():
-    conn = sqlite3.connect('log_statistics.db')
+    import os
+    db_dir = os.path.join(os.environ['USERPROFILE'], 'Documents', 'VRCLS')
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, 'log_statistics.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -736,9 +743,9 @@ def get_stats():
         end_date = datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.now() - timedelta(days=int(dayNum))).strftime("%Y-%m-%d")
         
-        # 查询最近7天数据（包含没有记录的日期）
+        # 查询指定天数数据（包含没有记录的日期）
         cursor.execute(f'''
-            WITH dates(date) AS (
+            WITH RECURSIVE dates(date) AS (
                 VALUES (date(?))
                 UNION ALL
                 SELECT date(date, '+1 day')
@@ -749,8 +756,7 @@ def get_stats():
             FROM dates
             LEFT JOIN {database} ON dates.date = {database}.date
             ORDER BY dates.date DESC
-            LIMIT ?
-        ''', (start_date, end_date,dayNum))
+        ''', (start_date, end_date))
         
         result = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -758,6 +764,38 @@ def get_stats():
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/api/toggleMicAudio', methods=['get'])
+def toggleMicAudio():
+    global queue, params
+    enabled = request.args.get('enabled', 'true').lower() == 'true'
+    queue.put({"text":f"/api/toggleMicAudio - enabled: {enabled}","level":"debug"})
+    
+    # 更新麦克风状态
+    params["micStopped"] = not enabled
+    
+    if enabled:
+        queue.put({"text":"麦克风音频已启用","level":"info"})
+    else:
+        queue.put({"text":"麦克风音频已弃用","level":"info"})
+    
+    return jsonify({"message": "麦克风音频状态已更新", "enabled": enabled}), 200
+
+@app.route('/api/toggleDesktopAudio', methods=['get'])
+def toggleDesktopAudio():
+    global queue, params
+    enabled = request.args.get('enabled', 'true').lower() == 'true'
+    queue.put({"text":f"/api/toggleDesktopAudio - enabled: {enabled}","level":"debug"})
+    
+    # 更新桌面音频状态
+    params["gameStopped"] = not enabled
+    
+    if enabled:
+        queue.put({"text":"桌面音频已启用","level":"info"})
+    else:
+        queue.put({"text":"桌面音频已弃用","level":"info"})
+    
+    return jsonify({"message": "桌面音频状态已更新", "enabled": enabled}), 200
+
 @app.route('/api/upgrade', methods=['get'])
 def upgrade():
     toggle_console(True)
