@@ -6,9 +6,94 @@ import requests
 from pathlib import Path
 from urllib.parse import urlparse
 import concurrent.futures
-from tqdm import tqdm
 import subprocess
 import hashlib
+
+class LoggerProgressBar:
+    """使用日志系统显示下载进度的进度条类"""
+    
+    def __init__(self, total=None, unit='B', unit_scale=True, desc="下载进度", logger=None):
+        self.total = total
+        self.unit = unit
+        self.unit_scale = unit_scale
+        self.desc = desc
+        self.logger = logger
+        self.current = 0
+        self.last_log_time = time.time()
+        self.last_log_percentage = 0
+        self.log_interval = 1.5  # 每1.5秒更新一次进度，更频繁的反馈
+        self.start_time = time.time()
+        
+    def update(self, n=1):
+        """更新进度"""
+        self.current += n
+        current_time = time.time()
+        
+        # 计算进度百分比
+        if self.total and self.total > 0:
+            percentage = (self.current / self.total) * 100
+        else:
+            percentage = 0
+            
+        # 计算下载速度
+        elapsed_time = current_time - self.start_time
+        if elapsed_time > 0:
+            speed = self.current / elapsed_time
+            speed_text = self._format_size(speed) + "/s"
+        else:
+            speed_text = "0B/s"
+            
+        # 格式化文件大小
+        current_size = self._format_size(self.current)
+        total_size = self._format_size(self.total) if self.total else "未知"
+        
+        # 控制日志频率，避免过于频繁的日志输出
+        if (current_time - self.last_log_time >= self.log_interval or 
+            percentage - self.last_log_percentage >= 10 or  # 每10%更新一次
+            self.current == self.total):  # 完成时更新
+            
+            if self.total and self.total > 0:
+                progress_text = f"{self.desc}: {current_size}/{total_size} ({percentage:.1f}%) - {speed_text}"
+            else:
+                progress_text = f"{self.desc}: {current_size} - {speed_text}"
+                
+            if self.logger:
+                self.logger.put({"text": progress_text, "level": "info"})
+            else:
+                print(progress_text)
+                
+            self.last_log_time = current_time
+            self.last_log_percentage = percentage
+    
+    def _format_size(self, size):
+        """格式化文件大小显示"""
+        if size is None:
+            return "未知"
+            
+        if self.unit_scale:
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f}{unit}"
+                size /= 1024.0
+            return f"{size:.1f}TB"
+        else:
+            return f"{size}{self.unit}"
+    
+    def close(self):
+        """关闭进度条"""
+        if self.current > 0:
+            final_size = self._format_size(self.current)
+            total_time = time.time() - self.start_time
+            if total_time > 0:
+                avg_speed = self._format_size(self.current / total_time) + "/s"
+                completion_text = f"{self.desc}完成: {final_size} (用时: {total_time:.1f}s, 平均速度: {avg_speed})"
+            else:
+                completion_text = f"{self.desc}完成: {final_size}"
+                
+            if self.logger:
+                self.logger.put({"text": completion_text, "level": "info"})
+            else:
+                print(completion_text)
 
 def validate_installer(exe_path: Path) -> bool:
     """验证下载的文件是否为有效的安装程序"""
@@ -59,15 +144,19 @@ def launch_installer(exe_path: Path, silent_mode: bool = False) -> bool:
         print(f"🚨 启动安装程序失败: {str(e)}")
         return False
 
-def fast_download(url: str, save_path: Path, workers=8) -> bool:
+def fast_download(url: str, save_path: Path, workers=8, logger=None) -> bool:
     """增强版多线程下载"""
     try:
         # 验证服务器支持分块下载
         with requests.head(url, timeout=10) as r:
             if r.headers.get('Accept-Ranges') != 'bytes':
-                print(r.headers)
-                print("⚠️ 服务器不支持多线程下载，切换为单线程模式")
-                return _single_download_optimized(url, save_path)
+                if logger:
+                    logger.put({"text": str(r.headers), "level": "debug"})
+                    logger.put({"text": "⚠️ 服务器不支持多线程下载，切换为单线程模式", "level": "warning"})
+                else:
+                    print(r.headers)
+                    print("⚠️ 服务器不支持多线程下载，切换为单线程模式")
+                return _single_download_optimized(url, save_path, logger)
                 
             total_size = int(r.headers.get('content-length', 0))
             if not total_size:
@@ -81,13 +170,13 @@ def fast_download(url: str, save_path: Path, workers=8) -> bool:
         # 智能分块策略（自动减少worker数量）
         max_workers = min(workers, total_size // (1024*1024))  # 1MB以下不分块
         if max_workers < 1:
-            return _single_download_optimized(url, save_path)
+            return _single_download_optimized(url, save_path, logger)
 
         chunk_size = total_size // max_workers
         ranges = [(i*chunk_size, (i+1)*chunk_size-1) for i in range(max_workers-1)]
         ranges.append((ranges[-1][1]+1, total_size-1))  # 修正最后一块
 
-        progress = tqdm(total=total_size, unit='B', unit_scale=True)
+        progress = LoggerProgressBar(total=total_size, unit='B', unit_scale=True, desc="模型下载进度", logger=logger)
 
         # 带校验的分块下载
         def download_chunk(start, end):
@@ -129,12 +218,15 @@ def fast_download(url: str, save_path: Path, workers=8) -> bool:
         return True
 
     except Exception as e:
-        print(f"🚨 下载失败: {str(e)}")
+        if logger:
+            logger.put({"text": f"🚨 下载失败: {str(e)}", "level": "error"})
+        else:
+            print(f"🚨 下载失败: {str(e)}")
         if save_path.exists():
             save_path.unlink()
         return False
 
-def _single_download_optimized(url: str, save_path: Path) -> bool:
+def _single_download_optimized(url: str, save_path: Path, logger=None) -> bool:
     """修复进度条问题的单线程下载"""
     try:
         session = requests.Session()
@@ -145,9 +237,9 @@ def _single_download_optimized(url: str, save_path: Path) -> bool:
             total_size = int(r.headers.get('content-length', 0))
             if total_size == 0:
                 # 当服务器未提供大小时采用动态更新模式
-                progress = tqdm(unit='B', unit_scale=True, desc="下载进度")
+                progress = LoggerProgressBar(unit='B', unit_scale=True, desc="本地识别模型下载进度", logger=logger)
             else:
-                progress = tqdm(total=total_size, unit='B', unit_scale=True, desc="下载进度")
+                progress = LoggerProgressBar(total=total_size, unit='B', unit_scale=True, desc="本地识别模型下载进度", logger=logger)
 
             buffer_size = 1024 * 1024 * 4  # 优化为4MB缓冲
             buffer = bytearray()
@@ -180,7 +272,10 @@ def _single_download_optimized(url: str, save_path: Path) -> bool:
     except Exception as e:
         if 'progress' in locals():
             progress.close()
-        print(f"下载失败: {str(e)}")
+        if logger:
+            logger.put({"text": f"下载失败: {str(e)}", "level": "error"})
+        else:
+            print(f"下载失败: {str(e)}")
         if save_path.exists():
             save_path.unlink()
         return False
@@ -201,7 +296,7 @@ def get_file_info(folder):
             file_dict[rel_file] = file_hash
     return file_dict
 
-def copy_new_files(src_folder, dst_folder):
+def copy_new_files(src_folder, dst_folder, logger=None):
     """复制源文件夹中存在但目标文件夹缺失的文件"""
     src_files = get_file_info(src_folder)
     dst_files = get_file_info(dst_folder)
@@ -212,9 +307,15 @@ def copy_new_files(src_folder, dst_folder):
             src_file_path = os.path.join(src_folder, rel_file)
             os.makedirs(os.path.dirname(dst_file_path), exist_ok=True)
             shutil.copy2(src_file_path, dst_file_path)
-            print(f'Copied: {rel_file}')
+            if logger:
+                logger.put({"text": f'Copied: {rel_file}', "level": "debug"})
+            else:
+                print(f'Copied: {rel_file}')
         elif src_files[rel_file] != dst_files[rel_file]:  # 内容不同的文件
-            print(f'Modified (not copied): {rel_file}')
+            if logger:
+                logger.put({"text": f'Modified (not copied): {rel_file}', "level": "debug"})
+            else:
+                print(f'Modified (not copied): {rel_file}')
 
 
 def create_restarter(temp_dir: Path, install_dir: Path):
@@ -319,7 +420,7 @@ def main_update(url: str, install_dir: Path, silent_mode: bool = False) -> bool:
             exe_path.unlink()
         return False
 
-def module_download(url: str, install_dir: Path) -> bool:
+def module_download(url: str, install_dir: Path, logger=None) -> bool:
     import os
     import shutil
     import py7zr
@@ -330,8 +431,15 @@ def module_download(url: str, install_dir: Path) -> bool:
         file_name = Path(urlparse(url).path).name
         zip_path = download_dir / file_name
 
-        if not fast_download(url, zip_path):return False
-        print(r'''
+        if not fast_download(url, zip_path, logger=logger):return False
+        if logger:
+            logger.put({"text": r'''
+              
+              >>>>> 模型包文件解压安装中，请勿关闭窗口 <<<<<
+            
+''', "level": "info"})
+        else:
+            print(r'''
               
               >>>>> 模型包文件解压安装中，请勿关闭窗口 <<<<<
             
@@ -344,8 +452,12 @@ def module_download(url: str, install_dir: Path) -> bool:
             os.makedirs(extract_root, exist_ok=True)
 
             # 解压整个压缩包
+            if logger:
+                logger.put({"text": "开始解压模型包文件...", "level": "info"})
             with py7zr.SevenZipFile(zip_path, mode='r') as z:
                 z.extractall(path=extract_root)
+            if logger:
+                logger.put({"text": "模型包文件解压完成", "level": "info"})
 
             # 定位目标文件夹路径
             source_folder = os.path.join(
@@ -362,28 +474,46 @@ def module_download(url: str, install_dir: Path) -> bool:
 
             # 如果目标文件夹已存在则删除
             if os.path.exists(final_output_dir):
+                if logger:
+                    logger.put({"text": "删除旧版本模型文件夹...", "level": "info"})
                 shutil.rmtree(final_output_dir)
 
             # 移动目标文件夹到最终位置
+            if logger:
+                logger.put({"text": "移动模型文件到目标位置...", "level": "info"})
             shutil.move(source_folder, final_output_dir)
 
-            print(f"成功提取文件夹到: {os.path.abspath(final_output_dir)}")
+            if logger:
+                logger.put({"text": f"成功提取文件夹到: {os.path.abspath(final_output_dir)}", "level": "info"})
+            else:
+                print(f"成功提取文件夹到: {os.path.abspath(final_output_dir)}")
 
         finally:
             # 清理临时文件
             if os.path.exists(extract_root):
+                if logger:
+                    logger.put({"text": "清理临时文件...", "level": "info"})
                 shutil.rmtree(extract_root)
 
         # 验证结果
         if os.path.exists(final_output_dir):
-            print("操作成功完成！\n")
+            if logger:
+                logger.put({"text": "操作成功完成！\n", "level": "info"})
+            else:
+                print("操作成功完成！\n")
         else:
-            print("操作失败，最终文件夹未生成\n")
+            if logger:
+                logger.put({"text": "操作失败，最终文件夹未生成\n", "level": "error"})
+            else:
+                print("操作失败，最终文件夹未生成\n")
 
         return True
 
     except Exception as e:
-        print(f"🚨 模型下载失败: {str(e)}")
+        if logger:
+            logger.put({"text": f"🚨 模型下载失败: {str(e)}", "level": "error"})
+        else:
+            print(f"🚨 模型下载失败: {str(e)}")
         if 'zip_path' in locals() and zip_path.exists():
             zip_path.unlink()
         return False
@@ -445,7 +575,7 @@ def auto_update(update_url: str, install_dir: Path = None, silent_mode: bool = F
     
     return success
 
-def cleanup_installer_files():
+def cleanup_installer_files(logger=None):
     """清理下载的安装包文件"""
     try:
         cache_dir = Path.cwd() / "cache"
@@ -454,15 +584,27 @@ def cleanup_installer_files():
             for exe_file in cache_dir.glob("*.exe"):
                 try:
                     exe_file.unlink()
-                    print(f"🗑️ 已清理安装包: {exe_file.name}")
+                    if logger:
+                        logger.put({"text": f"🗑️ 已清理安装包: {exe_file.name}", "level": "info"})
+                    else:
+                        print(f"🗑️ 已清理安装包: {exe_file.name}")
                 except Exception as e:
-                    print(f"清理文件失败 {exe_file.name}: {str(e)}")
+                    if logger:
+                        logger.put({"text": f"清理文件失败 {exe_file.name}: {str(e)}", "level": "error"})
+                    else:
+                        print(f"清理文件失败 {exe_file.name}: {str(e)}")
         
-        print("✅ 安装包清理完成")
+        if logger:
+            logger.put({"text": "✅ 安装包清理完成", "level": "info"})
+        else:
+            print("✅ 安装包清理完成")
         return True
         
     except Exception as e:
-        print(f"清理安装包失败: {str(e)}")
+        if logger:
+            logger.put({"text": f"清理安装包失败: {str(e)}", "level": "error"})
+        else:
+            print(f"清理安装包失败: {str(e)}")
         return False
 
 

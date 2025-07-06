@@ -36,7 +36,7 @@ def create_recognizer(logger,source):
     if not os.path.exists(onnx_bin):
         logger.put({"text": f"模型路径不存在：{onnx_bin},\n开始自动下载模型", "level": "error"})
         from ..core.update import module_download
-        if not module_download('https://cloudflarestorage.boyqiu001.top/VRCLS本地识别模型包.7z',Path(base_dir)):
+        if not module_download('https://cloudflarestorage.boyqiu001.top/VRCLS本地识别模型包.7z',Path(base_dir), logger):
             logger.put({"text": f"模型自动下载失败,可以尝试重启程序再次安装，\n也可以去qq群1011986554或github文档页面下载并手动安装VRCLS本地识别模型包", "level": "error"})
             return None
     # Please replace the model files if needed.
@@ -463,7 +463,11 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
                     res['translatedText2']=''
                     res['translatedText3']=''
                     try:
-                        res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
+                        if translator == "openai":
+                            from src.module.translate import openai_translator
+                            res['translatedText'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage, res, params)
+                        else:
+                            res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
                     except Exception as e:
                         if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
                             logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
@@ -497,10 +501,18 @@ def sherpa_once(result,sendClient,params,logger,filter,mode,steamvrQueue,customE
             if  params["runmode"] == "translation" and  mode=='mic' and params["config"].get("translateService")!="developer":        
                 # 第二语言
                 if  tragetTranslateLanguage2!="none":
-                        res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                        if translator == "openai":
+                            from src.module.translate import openai_translator
+                            res['translatedText2'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage2, res, params)
+                        else:
+                            res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
                 # 第三语言
                 if  tragetTranslateLanguage3!="none":
-                        res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                        if translator == "openai":
+                            from src.module.translate import openai_translator
+                            res['translatedText3'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage3, res, params)
+                        else:
+                            res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
                         
                 
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])

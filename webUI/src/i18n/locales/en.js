@@ -80,7 +80,11 @@ export default {
     emotionRecognitionEmojiOutput: 'Emotion Recognition Emoji Output',
     externalOscServerPort: 'External OSC Server Port',
     receiveExternalOscServerPort: 'Receive External OSC Server Port',
-    receiveExternalOscServerIpAddress: 'Receive External OSC Server IP Address'
+    receiveExternalOscServerIpAddress: 'Receive External OSC Server IP Address',
+    openaiConfig: 'OpenAI Configuration',
+    openaiApiKey: 'API Key',
+    openaiApiUrl: 'API URL',
+    openaiModel: 'Model'
   },
   
   // Voice control config
@@ -144,7 +148,8 @@ export default {
     youdao: 'Youdao',
     iflyrec: 'iFlyrec',
     hujiang: 'Hujiang',
-    yeekit: 'Yeekit'
+    yeekit: 'Yeekit',
+    openai: 'Custom AI Translation (OpenAI compatible interface)'
   },
   
   // Tooltips

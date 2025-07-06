@@ -80,7 +80,11 @@ export default {
     emotionRecognitionEmojiOutput: '情绪识别emoji输出',
     externalOscServerPort: '外源OSC服务端端口',
     receiveExternalOscServerPort: '接收外源OSC服务端 端口',
-    receiveExternalOscServerIpAddress: '接收外源OSC服务端 IP地址'
+    receiveExternalOscServerIpAddress: '接收外源OSC服务端 IP地址',
+    openaiConfig: 'OpenAI配置',
+    openaiApiKey: 'API密钥',
+    openaiApiUrl: 'API地址',
+    openaiModel: '模型'
   },
   
   // 语音控制配置
@@ -144,7 +148,8 @@ export default {
     youdao: '有道',
     iflyrec: '讯飞听见',
     hujiang: '沪江',
-    yeekit: '中译语通'
+    yeekit: '中译语通',
+    openai: '自定义AI翻译(openai兼容接口)'
   },
   
   // 工具提示

@@ -563,7 +563,11 @@ def sendTextandTranslate():
         res['translatedText2']=''
         res['translatedText3']=''
         try:
-            res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
+            if translator == "openai":
+                from src.module.translate import openai_translator
+                res['translatedText'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage, res, params)
+            else:
+                res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language="zh" if sourceLanguage=="zt" else  sourceLanguage,to_language=tragetTranslateLanguage))
         except Exception as e:
             if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
                 logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
@@ -598,10 +602,18 @@ def sendTextandTranslate():
     if  params["runmode"] == "translation" and params["config"].get("translateService")!="developer":        
         # 第二语言
         if  tragetTranslateLanguage2!="none":
-                res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                if translator == "openai":
+                    from src.module.translate import openai_translator
+                    res['translatedText2'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage2, res, params)
+                else:
+                    res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
         # 第三语言
         if  tragetTranslateLanguage3!="none":
-                res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                if translator == "openai":
+                    from src.module.translate import openai_translator
+                    res['translatedText3'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage3, res, params)
+                else:
+                    res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
                 
         
     if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
@@ -780,6 +792,18 @@ def toggleMicAudio():
     
     return jsonify({"message": "麦克风音频状态已更新", "enabled": enabled}), 200
 
+@app.route('/api/getMicStatus', methods=['get'])
+def getMicStatus():
+    global params
+    # 返回麦克风状态，micStopped为True表示麦克风已停止
+    micEnabled = not params.get("micStopped", False)
+    desktopEnabled = not params.get("gameStopped", False)
+    
+    return jsonify({
+        "micEnabled": micEnabled,
+        "desktopEnabled": desktopEnabled
+    }), 200
+
 @app.route('/api/toggleDesktopAudio', methods=['get'])
 def toggleDesktopAudio():
     global queue, params
@@ -800,11 +824,12 @@ def toggleDesktopAudio():
 def upgrade():
     toggle_console(True)
     from pathlib import Path
-    global queue,params,logger_thread,startUp,listener_thread1,steamvrThread,stop_for_except
+    global queue,params,logger_thread,startUp,listener_thread1,steamvrThread,stop_for_except,window
     queue.put({"text":"/api/upgrade","level":"debug"})
     if main_update(params["updateInfo"]['packgeURL'], Path(os.path.dirname(sys._MEIPASS))):
         stop_for_except=False
-        raise stopSignal
+        if window:
+            window.destroy()
     else:
         queue.put({"text":"请刷新配置网页重新开始更新任务","level":"warning"})
         return jsonify({"message":'请刷新配置网页重新开始更新任务'}),401
@@ -845,7 +870,7 @@ if __name__ == '__main__':
     freeze_support()
     if not is_admin():
         print("警告: 程序未以管理员权限运行。可能会出现问题。")
-        print("请尝试右键单击脚本，选择“以管理员身份运行”。或者勾选程序属性-兼容性-以管理员身份启动此程序\n")
+        print("请尝试右键单击脚本，选择\"以管理员身份运行\"。或者勾选程序属性-兼容性-以管理员身份启动此程序\n")
         input('可以直接关闭当前脚本或按任意键继续。。。。。。')
         # 可以选择在这里直接退出，或者继续尝试但提示可能失败
         # return
@@ -868,7 +893,7 @@ if __name__ == '__main__':
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
-        VERSION_NUM='v0.5.9'
+        VERSION_NUM='v0.6.0'
         listener_thread=None
         startUp=None
         manager = Manager()
@@ -1001,6 +1026,10 @@ if __name__ == '__main__':
         # open_web(startUp.config['api-ip'],startUp.config['api-port'])
         server_thread=td.Thread(target=run_server, daemon=True,args=(app,startUp.config['api-ip'],startUp.config['api-port']))
         server_thread.start()
+        
+        # 等待WebSocket服务器启动
+        time.sleep(2)
+        
         import webview
     
         window = webview.create_window(

@@ -12,7 +12,9 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     from ..handler.tts import TTSHandler
     from hanziconv import HanziConv
     from ..module.translate import other_trasnlator
-
+    from ..module.translate import openai_translator
+    
+    # 初始化处理器
     avatar=AvatarHandler(logger=logger,osc_client=sendClient,params=params)
     defaultCommand=DefaultCommand(logger=logger,osc_client=sendClient,params=params)
     if mode=="mic":chatbox=ChatboxHandler(logger=logger,osc_client=sendClient,params=params)
@@ -20,6 +22,130 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
     tts=TTSHandler(logger=logger,params=params,mode=mode,header=params['headers'],outputList=outputList,ttsVoice=ttsVoice)
     baseurl=params["config"].get('baseurl')
+    
+    # 初始化OpenAI客户端（只初始化一次）
+    openai_client = None
+    if params["config"].get('translateService') == "openai" or params["config"].get('translateServicecap') == "openai":
+        try:
+            from openai import OpenAI
+            openai_config = params["config"].get("openai_config", {})
+            api_key = openai_config.get("api_key", "")
+            base_url = openai_config.get("base_url", "https://open.bigmodel.cn/api/paas/v4/")
+            
+            if api_key:
+                openai_client = OpenAI(
+                    api_key=api_key,
+                    base_url=base_url
+                )
+                logger.put({"text": f"OpenAI客户端初始化成功，API地址: {base_url}", "level": "info"})
+            else:
+                logger.put({"text": "OpenAI API密钥未配置", "level": "warning"})
+        except Exception as e:
+            logger.put({"text": f"OpenAI客户端初始化失败: {str(e)}", "level": "error"})
+    
+    # 多语言翻译函数
+    def translate_multiple_languages(text, source_lang, target_langs, translator_type, openai_client=None):
+        """一次性翻译到多个目标语言"""
+        results = {}
+        
+        if translator_type == "openai" and openai_client:
+            try:
+                # 构建多语言翻译提示
+                target_lang_names = []
+                for lang in target_langs:
+                    if lang != "none":
+                        # 语言代码映射（简化版，可以根据需要扩展）
+                        lang_names = {
+                            'en': 'English', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian',
+                            'zh': 'Chinese', 'zt': 'Traditional Chinese', 'es': 'Spanish',
+                            'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese'
+                        }
+                        target_lang_names.append(lang_names.get(lang, lang))
+                
+                if not target_lang_names:
+                    return results
+                
+                # 构建翻译提示
+                system_prompt = f"""你是一个专业的翻译助手。请将以下文本翻译成多种语言。
+
+翻译要求：
+1. 保持原文的意思和语气
+2. 确保翻译准确、自然、流畅
+3. 如果是语音识别错误，请尝试修正并翻译
+4. 严格按照JSON格式返回结果
+
+请将以下文本翻译成：{', '.join(target_lang_names)}
+
+返回格式：
+{{
+    "translations": {{
+        "en": "英语翻译",
+        "ja": "日语翻译",
+        "ko": "韩语翻译"
+    }}
+}}
+
+原文："""
+
+                # 调用OpenAI API
+                model = params.get("openai_config", {}).get("model", "glm-4-flash")
+                completion = openai_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": text}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
+                )
+                
+                # 解析翻译结果
+                response_text = completion.choices[0].message.content.strip()
+                try:
+                    import json
+                    # 尝试解析JSON响应
+                    if response_text.startswith('{') and response_text.endswith('}'):
+                        parsed = json.loads(response_text)
+                        if 'translations' in parsed:
+                            for lang in target_langs:
+                                if lang != "none" and lang in parsed['translations']:
+                                    results[lang] = parsed['translations'][lang]
+                    else:
+                        # 如果不是JSON格式，按行分割处理
+                        lines = response_text.split('\n')
+                        for i, lang in enumerate(target_langs):
+                            if lang != "none" and i < len(lines):
+                                results[lang] = lines[i].strip()
+                except:
+                    # 如果解析失败，使用简单分割
+                    lines = response_text.split('\n')
+                    for i, lang in enumerate(target_langs):
+                        if lang != "none" and i < len(lines):
+                            results[lang] = lines[i].strip()
+                            
+            except Exception as e:
+                logger.put({"text": f"OpenAI多语言翻译异常：{str(e)}", "level": "error"})
+                # 降级到单语言翻译
+                for lang in target_langs:
+                    if lang != "none":
+                        try:
+                            results[lang] = openai_translator(logger, source_lang, lang, {"text": text}, params)
+                        except:
+                            results[lang] = ""
+        else:
+            # 使用其他翻译引擎
+            for lang in target_langs:
+                if lang != "none":
+                    try:
+                        results[lang] = html.unescape(translators.translate_text(
+                            text, translator=translator_type, 
+                            from_language=source_lang, to_language=lang
+                        ))
+                    except Exception as e:
+                        logger.put({"text": f"翻译到{lang}失败：{str(e)}", "level": "error"})
+                        results[lang] = ""
+        
+        return results
     
 
     while params["running"]:
@@ -67,7 +193,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                     sourceLanguage=tragetTranslateLanguage
                     tragetTranslateLanguage=tmp
                 if params["config"]["translationServer"] == "libre":
-                    url=baseurl+"/func/multitranslateToOtherLanguage" if params["config"].get("translateService")=="developer" else baseurl+"/whisper/multitranscription"
+                    url=baseurl+"/func/multitranslateToOtherLanguage" if translator=="developer" else baseurl+"/whisper/multitranscription"
                 elif params["config"]["translationServer"] == "vllm":
                     url=baseurl+"/func/vllmTest"
                 else:
@@ -107,12 +233,58 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             if sourceLanguage== "zh":res["text"]=HanziConv.toSimplified(res["text"])
             elif sourceLanguage=="zt":res["text"]=HanziConv.toTraditional(res["text"])
             et0=time.time()
-            if params["runmode"] == "translation" and params["config"].get("translateService")!="developer":
+            if params["runmode"] == "translation" and translator!="developer":
                 res['translatedText2']=''
                 res['translatedText3']=''
                 try:
                     logger.put({"text":f"restext:{res["text"]}","level":"debug"})
-                    res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
+                    
+                    # 收集需要翻译的目标语言
+                    target_langs = []
+                    if tragetTranslateLanguage != "none":
+                        target_langs.append(tragetTranslateLanguage)
+                    if mode == "mic":
+                        if tragetTranslateLanguage2 != "none":
+                            target_langs.append(tragetTranslateLanguage2)
+                        if tragetTranslateLanguage3 != "none":
+                            target_langs.append(tragetTranslateLanguage3)
+                    
+                    if translator == "openai" and openai_client and target_langs:
+                        # 使用批量翻译优化
+                        translations = translate_multiple_languages(
+                            res["text"], sourceLanguage, target_langs, translator, openai_client
+                        )
+                        
+                        # 分配翻译结果
+                        if tragetTranslateLanguage != "none":
+                            res['translatedText'] = translations.get(tragetTranslateLanguage, "")
+                        if mode == "mic":
+                            if tragetTranslateLanguage2 != "none":
+                                res['translatedText2'] = translations.get(tragetTranslateLanguage2, "")
+                            if tragetTranslateLanguage3 != "none":
+                                res['translatedText3'] = translations.get(tragetTranslateLanguage3, "")
+                    else:
+                        # 使用传统单语言翻译
+                        if tragetTranslateLanguage != "none":
+                            if translator == "openai":
+                                res['translatedText'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage, res, params)
+                            else:
+                                res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
+                        
+                        if mode == "mic":
+                            # 第二语言
+                            if tragetTranslateLanguage2 != "none":
+                                if translator == "openai":
+                                    res['translatedText2'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage2, res, params)
+                                else:
+                                    res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                            # 第三语言
+                            if tragetTranslateLanguage3 != "none":
+                                if translator == "openai":
+                                    res['translatedText3'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage3, res, params)
+                                else:
+                                    res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                                    
                 except Exception as e:
                     if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
                         logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
@@ -121,17 +293,9 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                         logger.put({"text":f"翻译异常,请尝试更换翻译引擎：{e};","level":"error"})
                         logger.put({"text":f"翻译异常：{traceback.format_exc()}","level":"debug"})
                         res['translatedText']=''
-
-            if params["runmode"] == "translation" and mode=="mic" and params["config"].get("translateService")!="developer":
-                # 第二语言
-                if  tragetTranslateLanguage2!="none":
-                    res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
-                # 第三语言
-                if tragetTranslateLanguage3!="none":
-                    res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
                         
             et=time.time()
-            if params["config"].get("translateService")!="developer":
+            if translator!="developer":
                 logger.put({"text":f"识别用时：{round(et0-st,2)}s，翻译用时：{round(et-et0,2)}s 识别结果: " + res["text"],"level":"info"})
             else:
                 logger.put({"text":f"服务器识别+翻译用时：{round(et-st,2)}s 识别结果: " + res["text"],"level":"info"})

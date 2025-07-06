@@ -53,6 +53,11 @@ defaultConfig={
     "darkmode":False,
     "filteremoji":"false",
     "translateServicecap":'developer',
+    "openai_config": {
+        "api_key": "",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+        "model": "glm-4-flash"
+    },
     "defaultScripts": [
         {
             "action": "sendText",

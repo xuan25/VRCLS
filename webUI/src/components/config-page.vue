@@ -643,6 +643,22 @@
                                                 <el-option :label="$t('config.other')" value="EN"></el-option>
                                             </el-select>
                                         </el-form-item>
+                                        
+                                        <!-- OpenAI配置 -->
+                                        <el-form-item v-if="data.config.translateService === 'openai' || data.config.translateServicecap === 'openai'" :label="$t('config.openaiConfig')">
+                                            <el-alert type="info" show-icon :closable="false" style="margin-bottom: 10px;">
+                                                <p>{{ $t('config.openaiConfig') }}</p>
+                                            </el-alert>
+                                            <el-form-item :label="$t('config.openaiApiKey')">
+                                                <el-input v-model="data.config.openai_config.api_key" type="password" :placeholder="$t('config.openaiApiKey')"></el-input>
+                                            </el-form-item>
+                                            <el-form-item :label="$t('config.openaiApiUrl')">
+                                                <el-input v-model="data.config.openai_config.base_url" placeholder="https://open.bigmodel.cn/api/paas/v4/"></el-input>
+                                            </el-form-item>
+                                            <el-form-item :label="$t('config.openaiModel')">
+                                                <el-input v-model="data.config.openai_config.model" placeholder="glm-4-flash"></el-input>
+                                            </el-form-item>
+                                        </el-form-item>
                                         <el-form-item :label="$t('config.oscOutput')">
                                             <el-select v-model="data.config.oscShutdown">
                                                 <el-option :label="$t('config.pause')" :value="true"></el-option>
@@ -1209,6 +1225,7 @@ const changeLocale = (newLocale) => {
 // 翻译引擎选项
 const translationEngines = computed(() => [
     { label: t('translationEngines.developerServer'), value: 'developer' },
+    { label: t('translationEngines.openai'), value: 'openai' },
     { label: t('translationEngines.alibaba'), value: 'alibaba' },
     { label: t('translationEngines.google'), value: 'google' },
     { label: t('translationEngines.myMemory'), value: 'myMemory' },
@@ -1230,6 +1247,7 @@ const translationEngines = computed(() => [
     { label: t('translationEngines.iflyrec'), value: 'iflyrec' },
     { label: t('translationEngines.hujiang'), value: 'hujiang' },
     { label: t('translationEngines.yeekit'), value: 'yeekit' }
+    
 ])
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
@@ -1542,6 +1560,17 @@ function getconfig() {
             type: 'success',
         })
     });
+    
+    // 获取麦克风状态
+    axios.get('/api/getMicStatus').then(response => {
+        if (response.status === 200) {
+            data.local.micEnabled = response.data.micEnabled;
+            data.local.desktopEnabled = response.data.desktopEnabled;
+        }
+    }).catch(error => {
+        console.error('获取麦克风状态失败:', error);
+    });
+    
     getCapture()
 }
 function saveconfig() {
@@ -1594,6 +1623,8 @@ function toggleMicAudio(enabled) {
         params: { enabled: enabled } 
     }).then(response => {
         if (response.status == 200) {
+            // 更新本地状态
+            data.local.micEnabled = enabled;
             ElMessage({
                 message: enabled ? '麦克风音频已启用' : '麦克风音频已弃用',
                 type: 'success',
@@ -1617,6 +1648,8 @@ function toggleDesktopAudio(enabled) {
         params: { enabled: enabled } 
     }).then(response => {
         if (response.status == 200) {
+            // 更新本地状态
+            data.local.desktopEnabled = enabled;
             ElMessage({
                 message: enabled ? '桌面音频已启用' : '桌面音频已弃用',
                 type: 'success',
