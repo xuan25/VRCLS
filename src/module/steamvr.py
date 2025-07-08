@@ -151,7 +151,8 @@ class VRTextOverlay:
         # 计算目标行宽（20个中文的像素宽度）
         sample_text = "中" * max_chinese_chars
         target_width = font.getlength(sample_text)
-        s=s[8:] if s.startswith("麦克风") else s[9:]
+        isMicMessage=s.startswith("麦克风")
+        s=s[8:] if isMicMessage else s[9:]
         
         # 按段落处理
         paragraphs = s.split('\n')
@@ -198,7 +199,7 @@ class VRTextOverlay:
             if current_line:
                 result.append(''.join(current_line))
             # self.textList.enqueue('\n'.join(result))
-            if s.startswith("麦克风"):
+            if isMicMessage:
                 self.textList_R.enqueue('\n'.join(result))
                 self.text_R =  f'                    麦克风\n----------------------------------------------\n'+'\n----------------------------------\n'.join(list(self.textList_R.queue))
             else : 
