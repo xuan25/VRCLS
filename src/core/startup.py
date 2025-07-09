@@ -1,4 +1,5 @@
 import json
+import sys
 from .defaultConfig import defaultConfig,defaultFilter
 from .osc_client import OSCClient
 import requests
@@ -44,7 +45,18 @@ class StartUp:
                 self.config=defaultConfig
         except json.JSONDecodeError as e:
             self.logger.put({'text':"client.json配置文件解析异常,详情："+str(e),"level":"error"})
-            raise e
+            self.logger.put({'text':"正在创建备份文件并重新生成配置文件","level":"warning"})
+            # 备份损坏的配置文件
+            backup_path = self.path_dict["client.json"] + ".backup"
+            try:
+                shutil.copy2(self.path_dict["client.json"], backup_path)
+                self.logger.put({'text':f"已备份损坏的配置文件到: {backup_path}","level":"info"})
+            except:
+                pass
+            # 重新生成默认配置文件
+            with open(self.path_dict["client.json"], 'w', encoding="utf8") as f:
+                f.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
+                self.config=defaultConfig
         
         try:
             with open(self.path_dict['filter.json'], 'r',encoding='utf-8') as file:
@@ -55,7 +67,18 @@ class StartUp:
                 self.filter=defaultFilter
         except json.JSONDecodeError as e:
             self.logger.put({'text':"filter.json配置文件解析异常,详情："+str(e),"level":"error"})
-            raise e
+            self.logger.put({'text':"正在创建备份文件并重新生成配置文件","level":"warning"})
+            # 备份损坏的配置文件
+            backup_path = self.path_dict['filter.json'] + ".backup"
+            try:
+                shutil.copy2(self.path_dict['filter.json'], backup_path)
+                self.logger.put({'text':f"已备份损坏的配置文件到: {backup_path}","level":"info"})
+            except:
+                pass
+            # 重新生成默认配置文件
+            with open(self.path_dict['filter.json'], 'w', encoding="utf8") as f:
+                f.write(json.dumps(defaultFilter,ensure_ascii=False, indent=4))
+                self.filter=defaultFilter
         
         try:
             with open(self.path_dict['ttsConfig.json'], 'r',encoding='utf-8') as file:
@@ -66,7 +89,18 @@ class StartUp:
                 self.ttsVoice={"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping}
         except json.JSONDecodeError as e:
             self.logger.put({'text':"ttsConfig.json配置文件解析异常,详情："+str(e),"level":"error"})
-            raise e
+            self.logger.put({'text':"正在创建备份文件并重新生成配置文件","level":"warning"})
+            # 备份损坏的配置文件
+            backup_path = self.path_dict['ttsConfig.json'] + ".backup"
+            try:
+                shutil.copy2(self.path_dict['ttsConfig.json'], backup_path)
+                self.logger.put({'text':f"已备份损坏的配置文件到: {backup_path}","level":"info"})
+            except:
+                pass
+            # 重新生成默认配置文件
+            with open(self.path_dict['ttsConfig.json'], 'w', encoding="utf8") as f:
+                f.write(json.dumps({"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping},ensure_ascii=False, indent=4))
+                self.ttsVoice={"libretranslate_voice_mapping":libretranslate_voice_mapping,"whisper_voice_mapping":whisper_voice_mapping}
         
         try:
             with open(self.path_dict['customEmoji.json'], 'r',encoding='utf-8') as file:
@@ -78,7 +112,19 @@ class StartUp:
                 self.customEmoji=defaultCustomEmoji
         except json.JSONDecodeError as e:
             self.logger.put({'text':"customEmoji.json配置文件解析异常,详情："+str(e),"level":"error"})
-            raise e
+            self.logger.put({'text':"正在创建备份文件并重新生成配置文件","level":"warning"})
+            # 备份损坏的配置文件
+            backup_path = self.path_dict['customEmoji.json'] + ".backup"
+            try:
+                shutil.copy2(self.path_dict['customEmoji.json'], backup_path)
+                self.logger.put({'text':f"已备份损坏的配置文件到: {backup_path}","level":"info"})
+            except:
+                pass
+            # 重新生成默认配置文件
+            with open(self.path_dict['customEmoji.json'], 'w', encoding="utf8") as f:
+                defaultCustomEmoji={"测试惊讶":"・ࡇ・","测试心碎":"💔"}
+                f.write(json.dumps(defaultCustomEmoji,ensure_ascii=False, indent=4))
+                self.customEmoji=defaultCustomEmoji
         
     def setOSCClient(self,logger):
         self.oscClient=OSCClient(logger=logger,host=self.config.get("osc-ip"),port=int(self.config.get("osc-port")))
@@ -123,7 +169,11 @@ class StartUp:
                     file.write(json.dumps(self.config,ensure_ascii=False, indent=4))
         except json.JSONDecodeError as e:
             self.logger.put({'text':"client.json配置文件解析异常,详情："+str(e),"level":"error"})
-            raise e
+            self.logger.put({'text':"正在重新生成配置文件","level":"warning"})
+            # 重新生成默认配置文件
+            with open(self.path_dict['client.json'], 'w', encoding="utf8") as file:
+                file.write(json.dumps(defaultConfig,ensure_ascii=False, indent=4))
+                self.config = defaultConfig
         self.tragetTranslateLanguage="en" if self.config["targetTranslationLanguage"] is None or  self.config["targetTranslationLanguage"] == "" else self.config["targetTranslationLanguage"]
         whisperSupportedLanguageList=["af","am","ar","as","az","ba","be","bg","bn","bo","br","bs","ca","cs","cy","da","de","el","en","es"
                                     ,"et","eu","fa","fi","fo","fr","gl","gu","ha","haw","he","hi","hr","ht","hu","hy","id","is","it",
@@ -134,7 +184,7 @@ class StartUp:
         if  self.sourceLanguage not in whisperSupportedLanguageList:
             self.logger.put({'text':'please check your sourceLanguage in config,please choose one in following list\n 请检查sourceLanguage配置是否正确 请从下方语言列表中选择一个(中文是 zh)\n list:'+str(whisperSupportedLanguageList),"level":"warning"})
             input("press any key to exit||按下任意键退出...")
-            exit(0)
+            sys.exit(0)
     def checkAccount(self):
 
         accont_wrong=False
@@ -180,50 +230,110 @@ class StartUp:
         return {'Authorization': 'Bearer '+res["access_token"]}
     def getMics(self):
         # 创建 PyAudio 实例
-        p = pyaudio.PyAudio()
-        host_api_count=p.get_host_api_count()
+        try:
+            p = pyaudio.PyAudio()
+            host_api_count=p.get_host_api_count()
+            
+            # 获取设备数量
+            device_count = p.get_device_count()
         
-        # 获取设备数量
-        device_count = p.get_device_count()
-    
-        hostapis=[]
-        self.micList=['' for _ in range(device_count)]
-        self.outPutList=['' for _ in range(device_count)]
-        for j in range(host_api_count):
-            hostapi=p.get_host_api_info_by_index(j)
-            hostapis.append(hostapi["name"])
-        for i in range(device_count):
-            # 获取每个设备的详细信息
-            dev_info = p.get_device_info_by_index(i)
-            # 检查设备是否是输入设备（麦克风）
-            if dev_info['maxInputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
-                self.micList[i]=f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
-            if dev_info['maxOutputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
-                self.outPutList[i]= f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
-        self.defautMicIndex=p.get_default_input_device_info()['index']
-        self.defautOutPutIndex=p.get_default_output_device_info()['index']
-        # 关闭 PyAudio 实例
-        p.terminate()
+            hostapis=[]
+            self.micList=['' for _ in range(device_count)]
+            self.outPutList=['' for _ in range(device_count)]
+            for j in range(host_api_count):
+                hostapi=p.get_host_api_info_by_index(j)
+                hostapis.append(hostapi["name"])
+            for i in range(device_count):
+                # 获取每个设备的详细信息
+                dev_info = p.get_device_info_by_index(i)
+                # 检查设备是否是输入设备（麦克风）
+                if dev_info['maxInputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
+                    self.micList[i]=f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
+                if dev_info['maxOutputChannels'] > 0 and hostapis[dev_info['hostApi']]=="MME":
+                    self.outPutList[i]= f"{hostapis[dev_info['hostApi']]} - {dev_info['name']}"
+            
+            # 安全地获取默认设备索引
+            try:
+                self.defautMicIndex=p.get_default_input_device_info()['index']
+            except OSError as e:
+                print("\n" + "="*50)
+                print("错误：未找到默认麦克风设备，程序将停止运行")
+                print("请检查麦克风设备是否正确连接或启用")
+                print("")
+                print("按任意键退出程序...")
+                print("="*50)
+                self.logger.put({'text':"未找到默认麦克风设备，程序将停止运行","level":"error"})
+                self.logger.put({'text':"请检查麦克风设备是否正确连接或启用","level":"error"})
+                try:
+                    input()
+                except:
+                    pass
+                sys.exit(1)
+                
+            try:
+                self.defautOutPutIndex=p.get_default_output_device_info()['index']
+            except OSError as e:
+                print("\n" + "="*50)
+                print("错误：未找到默认输出设备，程序将停止运行")
+                print("请检查音频输出设备是否正确连接或启用")
+                print("")
+                print("按任意键退出程序...")
+                print("="*50)
+                self.logger.put({'text':"未找到默认输出设备，程序将停止运行","level":"error"})
+                self.logger.put({'text':"请检查音频输出设备是否正确连接或启用","level":"error"})
+                try:
+                    input()
+                except:
+                    pass
+                sys.exit(1)
+                
+            # 关闭 PyAudio 实例
+            p.terminate()
+            
+        except Exception as e:
+            print("\n" + "="*50)
+            print(f"错误：获取音频设备时发生严重错误: {str(e)}")
+            print("程序无法继续运行，请检查音频设备配置")
+            print("")
+            print("按任意键退出程序...")
+            print("="*50)
+            self.logger.put({'text':f"获取音频设备时发生严重错误: {str(e)}","level":"error"})
+            self.logger.put({'text':"程序无法继续运行，请检查音频设备配置","level":"error"})
+            try:
+                input()
+            except:
+                pass
+            sys.exit(1)
+            
     def list_loopback_devices(self):
         """列出所有可用环路录音设备"""
-        import pyaudiowpatch    
-        p1 = pyaudiowpatch.PyAudio()
         try:
-            self.loopbackList=[]
-            self.loopbackIndexList=[]
-            for device in p1.get_loopback_device_info_generator():
-                # # 提取关键信息
-                # info = {
-                #     "index": device["index"],
-                #     "name": device["name"],
-                #     "defaultSampleRate": device["defaultSampleRate"],
-                #     "maxInputChannels": device["maxInputChannels"]
-                # }
-                self.loopbackList.append(device["name"])
-                self.loopbackIndexList.append({"index": device["index"],"name": device["name"]})
-            
-        finally:
-            p1.terminate()
+            import pyaudiowpatch    
+            p1 = pyaudiowpatch.PyAudio()
+            try:
+                self.loopbackList=[]
+                self.loopbackIndexList=[]
+                for device in p1.get_loopback_device_info_generator():
+                    # # 提取关键信息
+                    # info = {
+                    #     "index": device["index"],
+                    #     "name": device["name"],
+                    #     "defaultSampleRate": device["defaultSampleRate"],
+                    #     "maxInputChannels": device["maxInputChannels"]
+                    # }
+                    self.loopbackList.append(device["name"])
+                    self.loopbackIndexList.append({"index": device["index"],"name": device["name"]})
+                
+            finally:
+                p1.terminate()
+        except ImportError:
+            self.logger.put({'text':"pyaudiowpatch模块未安装，环路录音功能将不可用","level":"warning"})
+            self.loopbackList = []
+            self.loopbackIndexList = []
+        except Exception as e:
+            self.logger.put({'text':f"获取环路录音设备时发生错误: {str(e)}","level":"error"})
+            self.loopbackList = []
+            self.loopbackIndexList = []
 
     # # 设置ffmpeg路径（必须在所有pydub操作之前）
     # def set_ffmpeg_path(self):
