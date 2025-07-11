@@ -889,11 +889,11 @@ if __name__ == '__main__':
 
           ''')
     show_console = '--show-console' in sys.argv
-    # kill_other_vrcls()
+    kill_other_vrcls()
     if show_console:enable_vt_mode()# 在程序启动时立即调用
     try:
 
-        VERSION_NUM='v0.6.0'
+        VERSION_NUM='v0.6.0-fix2'
         listener_thread=None
         startUp=None
         manager = Manager()
