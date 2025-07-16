@@ -279,7 +279,10 @@ def rebootJob():
     if startUp.config.get('enableOscServer'):
         oscServerTread=td.Thread(target=startServer,args=(params,queue),daemon=True)
         oscServerTread.start()
-
+    if startUp.config.get('voiceMode')==3 or startUp.config.get('gameVoiceMode')==3:
+        queue.put({'text':"micStatusListenerThread start",'level':'info'})
+        vrcListenThread=td.Thread(target=micStatusListenerThread,args=(queue,params),daemon=True)
+        vrcListenThread.start()
 
 
     
@@ -292,6 +295,10 @@ def rebootJob():
     params["sourceLanguage"]=startUp.config.get("sourceLanguage")
     params["localizedCapture"]=startUp.config['localizedCapture']
     params["localizedSpeech"]=startUp.config['localizedSpeech']
+    
+    # 重启服务后，将麦克风和桌面音频开关重置为默认的打开状态
+    queue.put({"text":"重启服务后，麦克风和桌面音频开关已重置为默认打开状态","level":"info"})
+    
     queue.put({"text":"sound process restart complete|| 程序完成重启","level":"info"})
     
 @app.route('/api/vadCalibrate', methods=['get'])

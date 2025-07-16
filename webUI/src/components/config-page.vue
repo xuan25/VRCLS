@@ -1670,10 +1670,29 @@ function toggleDesktopAudio(enabled) {
 
 function saveAndBoot() {
     saveconfig()
-    reboot()
+    // 延迟一点时间确保配置保存完成后再重启
+    setTimeout(() => {
+        reboot()
+    }, 500)
 }
 function reboot() {
-    axios.get('/api/reboot')
+    axios.get('/api/reboot').then(response => {
+        if (response.status == 200) {
+            // 重启服务后，将开关状态重置为默认的打开状态
+            data.local.micEnabled = true;
+            data.local.desktopEnabled = true;
+            
+            ElMessage({
+                message: '服务重启完成，麦克风和桌面音频开关已重置为默认打开状态',
+                type: 'success',
+            })
+        }
+    }).catch(error => {
+        ElMessage({
+            message: '重启服务失败: ' + error.message,
+            type: 'error',
+        })
+    })
 }
 function addItem() {
     data.config.defaultScripts.find(item => item.action == data.local.defaultScriptsAction).text.push('');

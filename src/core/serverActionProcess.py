@@ -88,7 +88,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
 原文："""
 
                 # 调用OpenAI API
-                model = params.get("openai_config", {}).get("model", "glm-4-flash")
+                model = params["config"].get("openai_config", {}).get("model", "glm-4-flash")
                 completion = openai_client.chat.completions.create(
                     model=model,
                     messages=[
@@ -258,11 +258,10 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                         # 分配翻译结果
                         if tragetTranslateLanguage != "none":
                             res['translatedText'] = translations.get(tragetTranslateLanguage, "")
-                        if mode == "mic":
-                            if tragetTranslateLanguage2 != "none":
-                                res['translatedText2'] = translations.get(tragetTranslateLanguage2, "")
-                            if tragetTranslateLanguage3 != "none":
-                                res['translatedText3'] = translations.get(tragetTranslateLanguage3, "")
+                        if tragetTranslateLanguage2 != "none":
+                            res['translatedText2'] = translations.get(tragetTranslateLanguage2, "")
+                        if tragetTranslateLanguage3 != "none":
+                            res['translatedText3'] = translations.get(tragetTranslateLanguage3, "")
                     else:
                         # 使用传统单语言翻译
                         if tragetTranslateLanguage != "none":
@@ -271,20 +270,19 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                             else:
                                 res['translatedText']=html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
                         
-                        if mode == "mic":
-                            # 第二语言
-                            if tragetTranslateLanguage2 != "none":
-                                if translator == "openai":
-                                    res['translatedText2'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage2, res, params)
-                                else:
-                                    res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
-                            # 第三语言
-                            if tragetTranslateLanguage3 != "none":
-                                if translator == "openai":
-                                    res['translatedText3'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage3, res, params)
-                                else:
-                                    res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
-                                    
+                        # 第二语言
+                        if tragetTranslateLanguage2 != "none":
+                            if translator == "openai":
+                                res['translatedText2'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage2, res, params)
+                            else:
+                                res['translatedText2']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage2,res)
+                        # 第三语言
+                        if tragetTranslateLanguage3 != "none":
+                            if translator == "openai":
+                                res['translatedText3'] = openai_translator(logger, sourceLanguage, tragetTranslateLanguage3, res, params)
+                            else:
+                                res['translatedText3']=other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage3,res)
+                    
                 except Exception as e:
                     if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):
                         logger.put({"text":f"翻译语言检测同语言：{e}","level":"debug"})
