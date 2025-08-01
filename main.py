@@ -1038,13 +1038,49 @@ if __name__ == '__main__':
         time.sleep(2)
         
         import webview
-    
+        
+        # 创建API类用于前端调用
+        class Api:
+            def __init__(self):
+                self._window = None
+
+            def set_window(self, window):
+                """接收窗口实例"""
+                self._window = window
+
+            def resize(self, width, height):
+                """调整窗口大小"""
+                if self._window:
+                    self._window.resize(int(width), int(height))
+
+            def move(self, x, y):
+                """移动窗口位置"""
+                if self._window:
+                    self._window.move(int(x), int(y))
+
+            def get_window_state(self):
+                """获取当前窗口状态"""
+                if self._window:
+                    return {
+                        'x': self._window.x,
+                        'y': self._window.y,
+                        'width': self._window.width,
+                        'height': self._window.height
+                    }
+                return None
+
+        api = Api()
         window = webview.create_window(
             'VRCLS控制面板', 
             f'http://{startUp.config['api-ip']}:{startUp.config['api-port']}',
+            js_api=api,
             width=1200,
-            height=900,frameless=True, easy_drag=False,resizable=True
+            height=900,
+            frameless=True,
+            easy_drag=False,
+            resizable=True
         )
+        api.set_window(window)
         toggle_console(show_console)
         webview.start()
         
