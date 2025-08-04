@@ -1030,6 +1030,20 @@ if __name__ == '__main__':
             
         
         queue.put({'text':"api ok||api就绪",'level':'info'})
+        
+        # 启动透明识别结果窗口（如果配置开启）
+        if startUp.config.get("enableRecognitionOverlay", False):
+            try:
+                from src.module.overlay_window import start_overlay_window
+                overlay_thread = td.Thread(
+                    target=lambda: start_overlay_window(startUp.config),
+                    daemon=True
+                )
+                overlay_thread.start()
+                queue.put({'text':"透明识别结果窗口已启动",'level':'info'})
+            except Exception as e:
+                queue.put({'text':f"启动透明窗口失败: {e}",'level':'warning'})
+        
         # open_web(startUp.config['api-ip'],startUp.config['api-port'])
         server_thread=td.Thread(target=run_server, daemon=True,args=(app,startUp.config['api-ip'],startUp.config['api-port']))
         server_thread.start()

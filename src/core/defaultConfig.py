@@ -51,6 +51,11 @@ defaultConfig={
     "oscServerPort":9003,
     "chatboxOscMixTemplate":r'{clientdata}{serverdata}',
     "darkmode":False,
+    "enableRecognitionOverlay":False,
+    "overlayWidth":400,
+    "overlayHeight":200,
+    "overlayX":100,
+    "overlayY":100,
     "filteremoji":"false",
     "translateServicecap":'developer',
     "openai_config": {

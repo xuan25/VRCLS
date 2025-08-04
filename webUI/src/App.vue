@@ -4,7 +4,7 @@
     <div id="drag-region" @mousedown="handleMouseDown"></div>
     
     <!-- 主要内容 -->
-    <configPage />
+    <router-view />
     
     <!-- 调整大小手柄 -->
     <div id="resize-handle-top" class="resize-handle" @mousedown="handleMouseDown"></div>
