@@ -325,6 +325,11 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             logger.put({"text":"once未知异常"+str(e),"level":"error"})
             continue
 
+# Include shipped Opus libraries in PATH so opuslib can find them
+import os
+OPUS_LIB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'opusdll'))
+os.environ['PATH'] = OPUS_LIB_PATH + os.pathsep + os.environ['PATH']
+
 import opuslib,io,struct
 def pcm_to_packaged_opus_stream_opuslib(
     pcm_bytes,
