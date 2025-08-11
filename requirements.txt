@@ -21,3 +21,5 @@ py7zr
 flask_socketio
 opuslib
 openai
+pynput
+pywebview
