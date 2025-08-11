@@ -165,8 +165,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             
             data_size = len(raw_pcm_data)
             duration = data_size / (changed_rate * 1 * sample_width)
-            logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面"}音频输出完毕, opus音频长度：{round(duration,2)} s","level":"info"})
-            
+            logger.put({"text":f"{'麦克风' if mode=='mic' else '桌面'}音频输出完毕, opus音频长度：{round(duration,2)} s","level":"info"})
+
             opus_bytes=pcm_to_packaged_opus_stream_opuslib(raw_pcm_data,1,sample_width,changed_rate)
             files = {'file': ('filename', opus_bytes , 'audio/opus')}
             # else:
@@ -216,7 +216,7 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             if response.status_code != 200:
                 if response.status_code == 430:
                     res=response.json()
-                    logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}请求过于频繁,触发规则{res.get("limit")}","level":"warning"})
+                    logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}请求过于频繁,触发规则{res.get('limit')}","level":"warning"})
                 else:    
                     logger.put({"text":f"{'桌面音频'if mode=='cap'else'麦克风'}服务器数据接收异常:{response.text}","level":"warning"})
                 continue
@@ -237,8 +237,8 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
                 res['translatedText2']=''
                 res['translatedText3']=''
                 try:
-                    logger.put({"text":f"restext:{res["text"]}","level":"debug"})
-                    
+                    logger.put({"text":f"restext:{res['text']}","level":"debug"})
+
                     # 收集需要翻译的目标语言
                     target_langs = []
                     if tragetTranslateLanguage != "none":

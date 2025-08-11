@@ -9,7 +9,7 @@ def developer_trasnlator(logger,baseurl,sourceLanguage,tragetTranslateLanguage,r
     if response.status_code != 200:
         if response.status_code == 430:
             res=response.json()
-            logger.put({"text":f"请求过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+            logger.put({"text":f"请求过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get('limit')}","level":"warning"})
         else:    
             logger.put({"text":f"数据接收异常:{response.text}","level":"warning"})
         return ''
@@ -356,7 +356,7 @@ def openai_translator(logger, sourceLanguage, tragetTranslateLanguage, res, para
 def other_trasnlator(logger,translator,sourceLanguage,tragetTranslateLanguage,res):
     import translators,html,traceback
     try:
-        logger.put({"text":f"restext:{res["text"]}","level":"debug"})
+        logger.put({"text":f"restext:{res['text']}","level":"debug"})
         return html.unescape(translators.translate_text(res["text"],translator=translator,from_language=sourceLanguage,to_language=tragetTranslateLanguage))
     except Exception as e:
         if all(i in str(e) for i in["from_language[","] and to_language[","] should not be same"]):

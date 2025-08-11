@@ -333,7 +333,7 @@ def calibrate_vad_threshold():
                 if params["config"].get("gameMicName")==i.get("name"):
                     device_index=True
                     micIndex=i.get('index')
-                    queue.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
+                    queue.put({"text":f"当前桌面音频：{params['config'].get('gameMicName')}","level":"info"})
                     break
             
             
@@ -598,7 +598,7 @@ def sendTextandTranslate():
         if response.status_code != 200:
             if response.status_code == 430:
                 res=response.json()
-                logger.put({"text":f"文字发送请翻译过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+                logger.put({"text":f"文字发送请翻译过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get('limit')}","level":"warning"})
             else:    
                 logger.put({"text":f"文字发送翻译数据接收异常:{response.text}","level":"warning"})
             return '翻译异常',401
@@ -937,7 +937,7 @@ if __name__ == '__main__':
 
                当前版本: '''+str(VERSION_NUM)+r'''
                    
-        '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
+        '''+f'webUI: http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}'+r''' 
                                                 
         》》》》                  《《《《            
         》》》》请保持本窗口持续开启《《《《          
@@ -1086,7 +1086,7 @@ if __name__ == '__main__':
         api = Api()
         window = webview.create_window(
             'VRCLS控制面板', 
-            f'http://{startUp.config['api-ip']}:{startUp.config['api-port']}',
+            f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}',
             js_api=api,
             width=1200,
             height=900,

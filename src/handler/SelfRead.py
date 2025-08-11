@@ -20,7 +20,7 @@ class SelfReadHandler(BaseHandler):
         if transtext:message=f"{transtext} | {transtext2}{transtext3}{text}"
         else:message=text
         logger=self.logger
-        logger.put({"text":f"{Colors.YELLOW if source=="麦克风" else Colors.GREEN}{source}识别结果：{message}{Colors.END}","level":"info"})
+        logger.put({"text":f"{Colors.YELLOW if source=='麦克风' else Colors.GREEN}{source}识别结果：{message}{Colors.END}","level":"info"})
         if self.steamvrOpen and steamready:
             self.steamvrQueue.put(f"{source}识别结果：{message}")
 
