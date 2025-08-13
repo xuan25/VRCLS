@@ -84,7 +84,11 @@ export default {
     openaiConfig: 'OpenAI Configuration',
     openaiApiKey: 'API Key',
     openaiApiUrl: 'API URL',
-    openaiModel: 'Model'
+    openaiModel: 'Model',
+    capOutputStyle: 'Table Display Format',
+    capOutputStyle1: 'All languages output',
+    capOutputStyle2: 'Only default translation language output',
+    capOutputStyle3: 'Default translation language + original text'
   },
   
   // Voice control config

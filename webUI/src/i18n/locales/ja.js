@@ -84,7 +84,11 @@ export default {
     openaiConfig: 'OpenAI設定',
     openaiApiKey: 'APIキー',
     openaiApiUrl: 'API URL',
-    openaiModel: 'モデル'
+    openaiModel: 'モデル',
+    capOutputStyle: 'テーブル内表示形式',
+    capOutputStyle1: 'すべての言語を出力',
+    capOutputStyle2: 'デフォルト翻訳言語のみ出力',
+    capOutputStyle3: 'デフォルト翻訳言語+認識原文'
   },
   
   // 音声制御設定

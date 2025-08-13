@@ -78,8 +78,11 @@ def logger_process(queue, copyqueue, params, socketQueue):
         
         
     }
+    capOutputStyle=None
     try:
         while True:
+            if capOutputStyle is None and params["config"] is not None:
+                capOutputStyle=params["config"].get("capOutputStyle")
             text = queue.get()
             if localizedSpeech != params.get("localizedSpeech"):
                 localizedSpeech=params.get("localizedSpeech")
@@ -103,8 +106,19 @@ def logger_process(queue, copyqueue, params, socketQueue):
             for txt in infoType.keys():
                 if txt in text['text']:
                     tmp_text=text['text'].split(txt, 1)[1].strip()
+                    if '识别结果' in txt:
+                        outputText=tmp_text[:len(tmp_text)-4]
+                        if capOutputStyle==1:
+                            outputTextList=outputText.split("|")
+                            outputText=outputTextList[0]
+                        elif capOutputStyle==2:
+                            outputTextList=outputText.split("|")
+                            outputText=f"{outputTextList[0]} | {outputTextList[-1]}"
+                    else :
+                        outputText=text['text']
+
                     if params['running']:
-                        socketQueue.put({'type':infoType[txt],'text':tmp_text[:len(tmp_text)-4] if '识别结果' in txt else text['text']})
+                        socketQueue.put({'type':infoType[txt],'text':outputText})
             
             today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
             # 新增的统计逻辑

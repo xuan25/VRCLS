@@ -84,7 +84,11 @@ export default {
     openaiConfig: 'OpenAI配置',
     openaiApiKey: 'API密钥',
     openaiApiUrl: 'API地址',
-    openaiModel: '模型'
+    openaiModel: '模型',
+    capOutputStyle: '表格内显示格式',
+    capOutputStyle1: '所有语言全部输出',
+    capOutputStyle2: '只输出默认翻译语言译文',
+    capOutputStyle3: '默认翻译语言译文+识别原文'
   },
   
   // 语音控制配置
