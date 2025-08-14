@@ -58,6 +58,7 @@ defaultConfig={
     "overlayY":100,
     "filteremoji":"false",
     "translateServicecap":'developer',
+    "capOutputStyle":0,
     "openai_config": {
         "api_key": "",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",

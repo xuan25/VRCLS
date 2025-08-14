@@ -333,7 +333,7 @@ def calibrate_vad_threshold():
                 if params["config"].get("gameMicName")==i.get("name"):
                     device_index=True
                     micIndex=i.get('index')
-                    queue.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
+                    queue.put({"text":f"当前桌面音频：{params['config'].get('gameMicName')}","level":"info"})
                     break
             
             
@@ -469,23 +469,12 @@ def saveConfig():
             f.write(file.read())
         with open(startUp.path_dict['client.json'], 'w', encoding="utf8") as f:
                 f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
-        # if startUp.config.get("darkmode") != data["config"].get("darkmode"):
-        #     set_window_frame_color_windows(window.hwnd,data["config"].get("darkmode"))
-        if startUp.config.get("Separate_Self_Game_Mic") != data["config"].get("Separate_Self_Game_Mic"):
-            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
-        if startUp.config.get("CopyBox") != data["config"].get("CopyBox"):
-            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
-        if startUp.config.get("localizedSpeech") != data["config"].get("localizedSpeech"):
-            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
-        if startUp.config.get("localizedCapture") != data["config"].get("localizedCapture"):
-            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
-        if startUp.config.get("textInSteamVR") != data["config"].get("textInSteamVR"):
-            queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
-            return jsonify({"text":"请关闭整个程序后再重启程序"}),220
+        checkParamsList=["Separate_Self_Game_Mic","CopyBox","localizedSpeech","localizedCapture","textInSteamVR","capOutputStyle"]
+        for cpl in checkParamsList:
+            if startUp.config.get(cpl) != data["config"].get(cpl):
+                queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
+                return jsonify({"text":"请关闭整个程序后再重启程序"}),220
+        
         startUp.config=data["config"]
         params["config"]=data["config"]
     except Exception as e:
@@ -598,7 +587,7 @@ def sendTextandTranslate():
         if response.status_code != 200:
             if response.status_code == 430:
                 res=response.json()
-                logger.put({"text":f"文字发送请翻译过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get("limit")}","level":"warning"})
+                logger.put({"text":f"文字发送请翻译过于频繁,可以尝试更换其他翻译引擎,触发规则{res.get('limit')}","level":"warning"})
             else:    
                 logger.put({"text":f"文字发送翻译数据接收异常:{response.text}","level":"warning"})
             return '翻译异常',401
@@ -914,6 +903,7 @@ if __name__ == '__main__':
         params["gameStopped"] = False
         params['serverdata']=''
         params['clientdata']=''
+        params["config"]=None
         stop_for_except=True
 
 
@@ -937,7 +927,7 @@ if __name__ == '__main__':
 
                当前版本: '''+str(VERSION_NUM)+r'''
                    
-        '''+f'webUI: http://{startUp.config['api-ip']}:{startUp.config['api-port']}'+r''' 
+        '''+f'webUI: http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}'+r''' 
                                                 
         》》》》                  《《《《            
         》》》》请保持本窗口持续开启《《《《          
@@ -1015,10 +1005,10 @@ if __name__ == '__main__':
             listener_thread = Process(target=selfMic_listen,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
         listener_thread.start()
         if startUp.config.get("Separate_Self_Game_Mic")==1:
-            listener_thread1 = Process(target=sherpa_onnx_run_local if startUp.config.get("localizedCapture") else gameMic_listen_capture,args=(sendClient,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
+            listener_thread1 = Process(target=gameMic_listen_capture,args=(sendClient,params,queue,startUp.loopbackIndexList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
         elif startUp.config.get("Separate_Self_Game_Mic")==2:
-            listener_thread1 = Process(target=sherpa_onnx_run_mic if startUp.config.get("localizedCapture") else gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
+            listener_thread1 = Process(target=gameMic_listen_VoiceMeeter,args=(sendClient,params,queue,startUp.micList,startUp.defautMicIndex,startUp.filter,steamvrQueue,startUp.customEmoji,startUp.outPutList,startUp.ttsVoice))
             listener_thread1.start()
         if startUp.config.get('enableOscServer'):
             oscServerTread=td.Thread(target=startServer,args=(params,queue),daemon=True)
@@ -1086,7 +1076,7 @@ if __name__ == '__main__':
         api = Api()
         window = webview.create_window(
             'VRCLS控制面板', 
-            f'http://{startUp.config['api-ip']}:{startUp.config['api-port']}',
+            f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}',
             js_api=api,
             width=1200,
             height=900,

@@ -1,5 +1,18 @@
 <template>
-
+  <div class="window-container">
+    <!-- 拖拽区域 -->
+    <div id="drag-region" class="drag-region" @mousedown="handleMouseDown"></div>
+    
+    <!-- 调整大小手柄 -->
+    <div id="resize-handle-top" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-right" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-bottom" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-left" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-top-left" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-top-right" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-bottom-left" class="resize-handle" @mousedown="handleMouseDown"></div>
+    <div id="resize-handle-bottom-right" class="resize-handle" @mousedown="handleMouseDown"></div>
+    
     <el-container>
         <el-header height="10vh" class="custom-header pywebview-drag-region">
             <!-- 居中的标题，使用绝对定位 -->
@@ -247,12 +260,12 @@
                                                     <el-option :label="$t('config.useVirtualSoundcardMic')" :value="2"></el-option>
                                                 </el-select>
                                             </el-form-item>
-                                            <el-form-item :label="$t('config.desktopAudioUseLocalRecognitionModel')" v-if="data.config.Separate_Self_Game_Mic != 0">
+                                            <!-- <el-form-item :label="$t('config.desktopAudioUseLocalRecognitionModel')" v-if="data.config.Separate_Self_Game_Mic != 0">
                                                 <el-select v-model="data.config.localizedCapture" style="width: 100%">
                                                     <el-option :label="$t('common.on')" :value="true"></el-option>
                                                     <el-option :label="$t('common.off')" :value="false"></el-option>
                                                 </el-select>
-                                            </el-form-item>
+                                            </el-form-item> -->
                                             <el-form-item :label="$t('config.desktopAudioTranslationEngine')" v-if="data.config.Separate_Self_Game_Mic != 0">
                                                 <el-select v-model="data.config.translateServicecap" style="width: 100%">
                                                     <el-option v-for="engine in translationEngines" :key="engine.value" :label="engine.label" :value="engine.value"></el-option>
@@ -641,6 +654,13 @@
                                             <el-select v-model="data.config.translateRegion">
                                                 <el-option :label="$t('config.mainlandChina')" value="CN"></el-option>
                                                 <el-option :label="$t('config.other')" value="EN"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <el-form-item :label="$t('config.capOutputStyle')">
+                                            <el-select v-model="data.config.capOutputStyle">
+                                                <el-option :label="$t('config.capOutputStyle1')" :value="0"></el-option>
+                                                <el-option :label="$t('config.capOutputStyle2')" :value="1"></el-option>
+                                                <el-option :label="$t('config.capOutputStyle3')" :value="2"></el-option>
                                             </el-select>
                                         </el-form-item>
                                         
@@ -1196,6 +1216,7 @@
             </div>
         </template>
     </el-dialog>
+    </div>
 </template>
 
 <script setup>
@@ -1477,7 +1498,89 @@ onMounted(() => {
     axios.get('/api/version').then(response => {
         data.local.versionstr = response.data['text'];
     });
+    
+    // 添加拖拽和调整大小的事件监听
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
 })
+
+// 添加拖拽和调整大小的方法
+const isInteracting = ref(false)
+const interactionType = ref('')
+const handleId = ref('')
+const startState = ref({
+    windowX: 0,
+    windowY: 0,
+    windowWidth: 0,
+    windowHeight: 0,
+    mouseX: 0,
+    mouseY: 0
+})
+
+async function handleMouseDown(e) {
+    if (!window.pywebview || !window.pywebview.api) {
+        console.error("pywebview API is not available.")
+        return
+    }
+
+    e.preventDefault()
+    isInteracting.value = true
+    handleId.value = e.target.id
+    interactionType.value = handleId.value === 'drag-region' ? 'drag' : 'resize'
+    
+    const initialState = await window.pywebview.api.get_window_state()
+    if (!initialState) return
+
+    startState.value = {
+        windowX: initialState.x,
+        windowY: initialState.y,
+        windowWidth: initialState.width,
+        windowHeight: initialState.height,
+        mouseX: e.screenX,
+        mouseY: e.screenY
+    }
+}
+
+function handleMouseMove(e) {
+    if (!isInteracting.value) return
+
+    const deltaX = e.screenX - startState.value.mouseX
+    const deltaY = e.screenY - startState.value.mouseY
+
+    if (interactionType.value === 'drag') {
+        const newX = startState.value.windowX + deltaX
+        const newY = startState.value.windowY + deltaY
+        window.pywebview.api.move(newX, newY)
+    } else if (interactionType.value === 'resize') {
+        let newWidth = startState.value.windowWidth
+        let newHeight = startState.value.windowHeight
+
+        if (handleId.value.includes('right')) {
+            newWidth = startState.value.windowWidth + deltaX
+        }
+        if (handleId.value.includes('left')) {
+            newWidth = startState.value.windowWidth - deltaX
+            const newX = startState.value.windowX + deltaX
+            window.pywebview.api.move(newX, startState.value.windowY)
+        }
+        if (handleId.value.includes('bottom')) {
+            newHeight = startState.value.windowHeight + deltaY
+        }
+        if (handleId.value.includes('top')) {
+            newHeight = startState.value.windowHeight - deltaY
+            const newY = startState.value.windowY + deltaY
+            window.pywebview.api.move(startState.value.windowX, newY)
+        }
+        
+        window.pywebview.api.resize(Math.max(200, newWidth), Math.max(150, newHeight))
+    }
+}
+
+function handleMouseUp() {
+    isInteracting.value = false
+    interactionType.value = ''
+    handleId.value = ''
+}
 
 const getCapture = () => {
     axios.get('/api/getcapture', { params: { 'Separate_Self_Game_Mic': data.config.Separate_Self_Game_Mic } }).then(response => {
@@ -2345,4 +2448,92 @@ const computedTranslateLanguage = computed(() => {
 .dark .guide-progress-indicator .progress-text {
     color: #e0e0e0;
 }
+
+.window-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.drag-region {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  z-index: 1000;
+  cursor: move;
+}
+
+.resize-handle {
+  position: fixed;
+  z-index: 1001;
+}
+
+#resize-handle-top {
+  top: 0;
+  left: 5px;
+  right: 5px;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+#resize-handle-bottom {
+  bottom: 0;
+  left: 5px;
+  right: 5px;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+#resize-handle-left {
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+#resize-handle-right {
+  right: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+#resize-handle-top-left {
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nwse-resize;
+}
+
+#resize-handle-top-right {
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nesw-resize;
+}
+
+#resize-handle-bottom-left {
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nesw-resize;
+}
+
+#resize-handle-bottom-right {
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nwse-resize;
+}
+
 </style>
+

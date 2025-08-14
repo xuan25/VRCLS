@@ -2,7 +2,7 @@ from .serverActionProcess import once
 def change_run(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
     params[key]=not params[key]
-    logger.put({"text":f"{"麦克风" if mode=="mic" else "桌面音频"}状态：{"打开" if params[key] else "关闭"}","level":"info"})
+    logger.put({"text":f"{'麦克风' if mode=='mic' else '桌面音频'}状态：{'打开' if params[key] else '关闭'}","level":"info"})
 
 def clearVRCBitmapLed(client,params,logger):
     import time
@@ -61,7 +61,7 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
         params["voiceKeyRun"]=False 
         keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"mic")})
         keyThread.start()
-        logger.put({"text":f"当前麦克风状态：{"打开" if params["voiceKeyRun"] else "关闭"}","level":"info"})
+        logger.put({"text":f"当前麦克风状态：{'打开' if params['voiceKeyRun'] else '关闭'}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
         from .keypress import VKeyHandler
         params["voiceKeyRun"]=False 
@@ -147,7 +147,7 @@ def gameMic_listen_VoiceMeeter(sendClient,params,logger,micList:list,defautMicIn
         params["gameVoiceKeyRun"]=False 
         keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
         keyThread.start()
-        logger.put({"text":f"当前游戏麦克风状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+        logger.put({"text":f"当前游戏麦克风状态：{'打开' if params['gameVoiceKeyRun'] else '关闭'}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
         from .keypress import VKeyHandler
         params["gameVoiceKeyRun"]=False 
@@ -214,7 +214,7 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
             if params["config"].get("gameMicName")==i.get("name"):
                 device_index=True
                 micIndex=i.get('index')
-                logger.put({"text":f"当前桌面音频：{params["config"].get("gameMicName")}","level":"info"})
+                logger.put({"text":f"当前桌面音频：{params['config'].get('gameMicName')}","level":"info"})
                 break
         
             
@@ -231,7 +231,7 @@ def gameMic_listen_capture(sendClient,params,logger,micList:list,defautMicIndex,
         params["gameVoiceKeyRun"]=False 
         keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"cap")})
         keyThread.start()
-        logger.put({"text":f"当前桌面音频捕获状态状态：{"打开" if params["gameVoiceKeyRun"] else "关闭"}","level":"info"})
+        logger.put({"text":f"当前桌面音频捕获状态状态：{'打开' if params['gameVoiceKeyRun'] else '关闭'}","level":"info"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
         from .keypress import VKeyHandler
         params["gameVoiceKeyRun"]=False 
