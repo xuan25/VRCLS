@@ -326,8 +326,10 @@ def once(audioQueue,sendClient,params,logger,filter,mode,steamvrQueue,customEmoj
             continue
 
 # Include shipped Opus libraries in PATH so opuslib can find them
-import os
-OPUS_LIB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'opusdll'))
+import os, sys
+OPUS_LIB_PATH = os.path.join(getattr(sys, '_MEIPASS'), 'opusdll') \
+    if getattr(sys, 'frozen', False) \
+    else os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'opusdll')) 
 os.environ['PATH'] = OPUS_LIB_PATH + os.pathsep + os.environ['PATH']
 
 import opuslib,io,struct
