@@ -703,6 +703,25 @@
                                         <el-form-item :label="$t('config.receiveExternalOscServerIpAddress')">
                                             <el-input v-model="data.config['oscServerIp']"></el-input>
                                         </el-form-item>
+                                        <el-form-item :label="$t('config.transparentWindow')">
+                                            <el-select v-model="data.config.transparentWindow">
+                                                <el-option :label="$t('common.on')" :value="true"></el-option>
+                                                <el-option :label="$t('common.off')" :value="false"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <el-form-item :label="$t('config.transparentWindowSize')">
+                                            <el-select v-model="data.config.transparentWindowSize">
+                                                <el-option label="800×500 (大)" value="large"></el-option>
+                                                <el-option label="400×300 (小)" value="small"></el-option>
+                                                <el-option label="自定义" value="custom"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                        <el-form-item v-if="data.config.transparentWindowSize === 'custom'" label="窗口宽度">
+                                            <el-input-number v-model="data.config.overlayWidth" :min="200" :max="2000" :step="50"></el-input-number>
+                                        </el-form-item>
+                                        <el-form-item v-if="data.config.transparentWindowSize === 'custom'" label="窗口高度">
+                                            <el-input-number v-model="data.config.overlayHeight" :min="150" :max="1200" :step="50"></el-input-number>
+                                        </el-form-item>
                                     </el-form>
                                 </el-card>
 
@@ -2533,6 +2552,40 @@ const computedTranslateLanguage = computed(() => {
   width: 10px;
   height: 10px;
   cursor: nwse-resize;
+}
+
+/* 确保下拉框左对齐 */
+.el-select {
+  text-align: left;
+}
+
+.el-select .el-input__inner {
+  text-align: left;
+}
+
+/* 确保下拉框选项左对齐 */
+.el-select-dropdown__item {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* 修复下拉框内容对齐 */
+.el-select .el-select__tags {
+  justify-content: flex-start;
+}
+
+/* 确保表单中的下拉框左对齐 */
+.el-form-item .el-select {
+  width: 100%;
+  text-align: left;
+}
+
+/* 确保所有下拉框文本左对齐 */
+.el-select-dropdown__item,
+.el-select .el-input__inner,
+.el-select .el-select__tags-text {
+  text-align: left !important;
+  justify-content: flex-start !important;
 }
 
 </style>

@@ -81,6 +81,8 @@ export default {
     externalOscServerPort: '外源OSC服务端端口',
     receiveExternalOscServerPort: '接收外源OSC服务端 端口',
     receiveExternalOscServerIpAddress: '接收外源OSC服务端 IP地址',
+    transparentWindow: '透明窗口',
+    transparentWindowSize: '透明窗口大小',
     openaiConfig: 'OpenAI配置',
     openaiApiKey: 'API密钥',
     openaiApiUrl: 'API地址',

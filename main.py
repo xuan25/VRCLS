@@ -249,7 +249,17 @@ def download_webview2_runtime(arch):
     return download_url
 processList=[]
 app = Flask(__name__,static_folder='templates')
-app.config['SECRET_KEY'] = 'your_secret_key' 
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'
+
+# 配置静态文件mimetype
+import mimetypes
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('image/svg+xml', '.svg')
+mimetypes.add_type('text/html', '.html')
+mimetypes.add_type('application/json', '.json')
+
 socketio = SocketIO(app, cors_allowed_origins="*",async_mode='threading')
 
 def rebootJob():
@@ -465,18 +475,38 @@ def saveConfig():
     data=request.get_json()
     queue.put({"text":"/saveandreboot","level":"debug"})
     try:
+        # 清理空关键词
+        config = data["config"]
+        
+        # 清理scripts中的空关键词
+        if 'scripts' in config and isinstance(config['scripts'], list):
+            for script in config['scripts']:
+                if 'text' in script and isinstance(script['text'], list):
+                    # 过滤掉空字符串和null值
+                    script['text'] = [text for text in script['text'] if text and str(text).strip()]
+        
+        # 清理defaultScripts中的空关键词
+        if 'defaultScripts' in config and isinstance(config['defaultScripts'], list):
+            for script in config['defaultScripts']:
+                if 'text' in script and isinstance(script['text'], list):
+                    # 过滤掉空字符串和null值
+                    script['text'] = [text for text in script['text'] if text and str(text).strip()]
+        
+        # 备份原始配置
         with open(startUp.path_dict['client.json'], 'r',encoding='utf8') as file, open(startUp.path_dict['client-back.json'], 'w', encoding="utf8") as f:
             f.write(file.read())
+        
+        # 保存清理后的配置
         with open(startUp.path_dict['client.json'], 'w', encoding="utf8") as f:
-                f.write(json.dumps(data["config"],ensure_ascii=False, indent=4))
+                f.write(json.dumps(config,ensure_ascii=False, indent=4))
         checkParamsList=["Separate_Self_Game_Mic","CopyBox","localizedSpeech","localizedCapture","textInSteamVR","capOutputStyle"]
         for cpl in checkParamsList:
-            if startUp.config.get(cpl) != data["config"].get(cpl):
+            if startUp.config.get(cpl) != config.get(cpl):
                 queue.put({"text":f"请关闭整个程序后再重启程序","level":"info"})
                 return jsonify({"text":"请关闭整个程序后再重启程序"}),220
         
-        startUp.config=data["config"]
-        params["config"]=data["config"]
+        startUp.config=config
+        params["config"]=config
     except Exception as e:
         queue.put({"text":f"config saved 配置保存异常:{e}","level":"warning"})
         return jsonify({"text":f"config saved 配置保存异常:{e}","level":"warning"}),401
@@ -1022,11 +1052,12 @@ if __name__ == '__main__':
         queue.put({'text':"api ok||api就绪",'level':'info'})
         
         # 启动透明识别结果窗口（如果配置开启）
-        if startUp.config.get("enableRecognitionOverlay", False):
+        if startUp.config.get("transparentWindow", False):
             try:
                 from src.module.overlay_window import start_overlay_window
                 overlay_thread = td.Thread(
-                    target=lambda: start_overlay_window(startUp.config),
+                    target=start_overlay_window,
+                    args=(startUp.config,),
                     daemon=True
                 )
                 overlay_thread.start()
@@ -1096,6 +1127,12 @@ if __name__ == '__main__':
         params["running"]=False
         socketio.stop()
         
+        # 关闭透明窗口
+        try:
+            from src.module.overlay_window import close_transparent_window
+            close_transparent_window()
+        except Exception as e:
+            print(f"关闭透明窗口时发生错误: {e}")
         
         # logger_thread.terminate()
         

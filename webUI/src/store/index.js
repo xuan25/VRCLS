@@ -4,20 +4,29 @@ export default createStore({
   state: {
     overlay: {
       micResults: [],
-      capResults: []
+      capResults: [],
+      allResults: []
     }
   },
   mutations: {
     addMicResult(state, text) {
-      state.overlay.micResults.unshift(text)
-      if (state.overlay.micResults.length > 3) {
-        state.overlay.micResults = state.overlay.micResults.slice(0, 3)
+      state.overlay.allResults.unshift({
+        text: text,
+        type: 'mic',
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      })
+      if (state.overlay.allResults.length > 20) {
+        state.overlay.allResults = state.overlay.allResults.slice(0, 20)
       }
     },
     addCapResult(state, text) {
-      state.overlay.capResults.unshift(text)
-      if (state.overlay.capResults.length > 3) {
-        state.overlay.capResults = state.overlay.capResults.slice(0, 3)
+      state.overlay.allResults.unshift({
+        text: text,
+        type: 'cap',
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      })
+      if (state.overlay.allResults.length > 20) {
+        state.overlay.allResults = state.overlay.allResults.slice(0, 20)
       }
     },
     clearMicResults(state) {
@@ -25,6 +34,12 @@ export default createStore({
     },
     clearCapResults(state) {
       state.overlay.capResults = []
+    },
+    SET_MIC_RESULTS(state, results) {
+      state.overlay.micResults = results
+    },
+    SET_CAP_RESULTS(state, results) {
+      state.overlay.capResults = results
     }
   },
   actions: {
@@ -37,6 +52,7 @@ export default createStore({
   },
   getters: {
     micResults: state => state.overlay.micResults,
-    capResults: state => state.overlay.capResults
+    capResults: state => state.overlay.capResults,
+    allResults: state => state.overlay.allResults
   }
 })

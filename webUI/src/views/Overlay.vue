@@ -1,65 +1,26 @@
 <template>
   <div class="overlay-container">
-    <!-- 拖拽区域 -->
-    <div id="drag-region" class="drag-region" @mousedown="handleMouseDown"></div>
-    
-    <!-- 调整大小手柄 -->
-    <div id="resize-handle-top" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-right" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-bottom" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-left" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-top-left" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-top-right" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-bottom-left" class="resize-handle" @mousedown="handleMouseDown"></div>
-    <div id="resize-handle-bottom-right" class="resize-handle" @mousedown="handleMouseDown"></div>
-    
-    <div class="recognition-panel">
-      <div class="mic-section">
-        <div class="section-header">
-          <div class="icon mic-icon"></div>
-          <span>麦克风</span>
-        </div>
-        <div class="results">
-          <div 
-            v-for="(text, index) in micResults" 
-            :key="`mic-${index}`"
-            class="result-item"
-            :class="{ 'fade-in': index === 0 }"
-          >
-            {{ text }}
+    <div class="results-list">
+      <div 
+        v-for="(item, index) in allResults" 
+        :key="item.id"
+        class="result-card"
+        :class="{ 'mic-result': item.type === 'mic', 'cap-result': item.type === 'cap', 'fade-in': index === 0 }"
+        draggable="true"
+        @dragstart="handleDragStart(index)"
+        @dragover="handleDragOver"
+        @drop="handleDrop(index)"
+      >
+        <div class="result-content">
+          <div class="source-tag" :class="item.type">
+            {{ item.type === 'mic' ? '麦克风' : '桌面音频' }}
           </div>
-          <div 
-            v-for="i in (3 - micResults.length)" 
-            :key="`mic-empty-${i}`"
-            class="result-item empty"
-          >
-            等待识别...
-          </div>
+          <div class="result-text">{{ item.text }}</div>
         </div>
       </div>
-
-      <div class="cap-section">
-        <div class="section-header">
-          <div class="icon cap-icon"></div>
-          <span>桌面音频</span>
-        </div>
-        <div class="results">
-          <div 
-            v-for="(text, index) in capResults" 
-            :key="`cap-${index}`"
-            class="result-item"
-            :class="{ 'fade-in': index === 0 }"
-          >
-            {{ text }}
-          </div>
-          <div 
-            v-for="i in (3 - capResults.length)" 
-            :key="`cap-empty-${i}`"
-            class="result-item empty"
-          >
-            等待识别...
-          </div>
-        </div>
+      
+      <div v-if="allResults.length === 0" class="empty-state">
+        等待识别结果...
       </div>
     </div>
   </div>
@@ -76,27 +37,14 @@ export default {
     }
   },
   computed: {
-    micResults() {
-      return this.$store.getters.micResults
-    },
-    capResults() {
-      return this.$store.getters.capResults
+    allResults() {
+      return this.$store.getters.allResults
     }
   },
   data() {
     return {
       socket: null,
-      isInteracting: false,
-      interactionType: '',
-      handleId: '',
-      startState: {
-        windowX: 0,
-        windowY: 0,
-        windowWidth: 0,
-        windowHeight: 0,
-        mouseX: 0,
-        mouseY: 0
-      }
+      draggedIndex: null
     }
   },
   mounted() {
@@ -198,10 +146,34 @@ export default {
       }
     },
     
-    handleMouseUp() {
-      this.isInteracting = false
-      this.interactionType = ''
-      this.handleId = ''
+    handleDragStart(index) {
+      this.draggedIndex = index
+    },
+    
+    handleDragOver(e) {
+      e.preventDefault()
+    },
+    
+    handleDrop(targetIndex) {
+      if (this.draggedIndex === null || this.draggedIndex === targetIndex) return
+      
+      const results = [...this.allResults]
+      const draggedItem = results[this.draggedIndex]
+      
+      // 移除拖拽的项目
+      results.splice(this.draggedIndex, 1)
+      
+      // 插入到目标位置
+      results.splice(targetIndex, 0, draggedItem)
+      
+      // 更新store中的数据
+      const micResults = results.filter(r => r.type === 'mic').map(r => r.text)
+      const capResults = results.filter(r => r.type === 'cap').map(r => r.text)
+      
+      this.$store.commit('SET_MIC_RESULTS', micResults)
+      this.$store.commit('SET_CAP_RESULTS', capResults)
+      
+      this.draggedIndex = null
     }
   }
 }
@@ -209,99 +181,98 @@ export default {
 
 <style scoped>
 .overlay-container {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
+  width: 100%;
+  height: 100%;
+  background: rgba(128, 128, 128, 0.05);
   user-select: none;
+  position: relative;
+  border: none;
+  border-radius: 8px;
+  box-sizing: border-box;
+  backdrop-filter: blur(2px);
+}
+
+.results-list {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-card {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: move;
+  transition: all 0.3s ease;
+  margin-bottom: 6px;
+  backdrop-filter: blur(1px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
 }
 
-.recognition-panel {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
+.result-card:hover {
   background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  backdrop-filter: blur(5px);
+  transform: translateY(-1px);
 }
 
-.mic-section, .cap-section {
-  flex: 1;
-  min-width: 180px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.section-header {
+.result-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  margin-bottom: 10px;
-  font-size: 12px;
+}
+
+.source-tag {
+  font-size: 11px;
   font-weight: bold;
-  color: #00ff88;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #000;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.icon {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.mic-icon {
+.source-tag.mic {
   background: #00ff88;
 }
 
-.cap-icon {
+.source-tag.cap {
   background: #ff6b35;
 }
 
-.results {
+.result-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  flex: 1;
+}
+
+.empty-state {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.result-item {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 8px 10px;
-  font-size: 11px;
-  line-height: 1.3;
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
-  border-left: 2px solid transparent;
-  max-height: 40px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.result-item:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-left-color: #00ff88;
-}
-
-.result-item.empty {
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   color: rgba(255, 255, 255, 0.5);
   font-style: italic;
-  text-align: center;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .fade-in {
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn 0.3s ease-in;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -309,82 +280,39 @@ export default {
   }
 }
 
-.drag-region {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  z-index: 1000;
-  cursor: move;
+.result-card[draggable="true"] {
+  cursor: grab;
 }
 
-.resize-handle {
-  position: fixed;
-  z-index: 1001;
+.result-card[draggable="true"]:active {
+  cursor: grabbing;
 }
 
-#resize-handle-top {
-  top: 0;
-  left: 5px;
-  right: 5px;
-  height: 5px;
-  cursor: ns-resize;
+/* 半透明滚动条样式 */
+.results-list::-webkit-scrollbar {
+  width: 6px;
 }
 
-#resize-handle-bottom {
-  bottom: 0;
-  left: 5px;
-  right: 5px;
-  height: 5px;
-  cursor: ns-resize;
+.results-list::-webkit-scrollbar-track {
+  background: rgba(128, 128, 128, 0.1);
+  border-radius: 3px;
 }
 
-#resize-handle-left {
-  left: 0;
-  top: 5px;
-  bottom: 5px;
-  width: 5px;
-  cursor: ew-resize;
+.results-list::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 3px;
 }
 
-#resize-handle-right {
-  right: 0;
-  top: 5px;
-  bottom: 5px;
-  width: 5px;
-  cursor: ew-resize;
+.results-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.5);
 }
 
-#resize-handle-top-left {
-  top: 0;
-  left: 0;
-  width: 10px;
-  height: 10px;
-  cursor: nwse-resize;
+/* Firefox滚动条 */
+.results-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.3) rgba(128, 128, 128, 0.1);
 }
-
-#resize-handle-top-right {
-  top: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  cursor: nesw-resize;
-}
-
-#resize-handle-bottom-left {
-  bottom: 0;
-  left: 0;
-  width: 10px;
-  height: 10px;
-  cursor: nesw-resize;
-}
-
-#resize-handle-bottom-right {
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  cursor: nwse-resize;
-}
+body {
+            background-color: transparent !important; /* 重要，以覆盖可能的父容器背景 */
+        }
 </style>

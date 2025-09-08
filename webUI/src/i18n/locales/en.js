@@ -81,6 +81,8 @@ export default {
     externalOscServerPort: 'External OSC Server Port',
     receiveExternalOscServerPort: 'Receive External OSC Server Port',
     receiveExternalOscServerIpAddress: 'Receive External OSC Server IP Address',
+    transparentWindow: 'Transparent Window',
+    transparentWindowSize: 'Transparent Window Size',
     openaiConfig: 'OpenAI Configuration',
     openaiApiKey: 'API Key',
     openaiApiUrl: 'API URL',
