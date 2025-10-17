@@ -190,5 +190,7 @@ B站使用教程：[[VRCLS]VRCHAT语音控制与翻译软件基础使用教程�
 
 ```
 
-qq群：<img width="128" height="228" alt="qrcode_1760669615571" src="https://github.com/user-attachments/assets/a7e3677d-4f52-4266-ba7b-faa8590b5abb" />
+## QQ群
+
+<img width="256" height="246" alt="qrcode_1760669615571" src="https://github.com/user-attachments/assets/a7e3677d-4f52-4266-ba7b-faa8590b5abb" />
 
