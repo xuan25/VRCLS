@@ -20,8 +20,6 @@ import requests
 import threading as td
 from engineio.async_drivers import threading
 from flask_socketio import SocketIO, emit
-import win32api
-import win32com.client
 import subprocess
 import ctypes
 import os
@@ -34,6 +32,9 @@ def is_admin():
     
 
 def kill_other_vrcls():
+
+    import win32api
+    import win32com.client
 
     current_pid = win32api.GetCurrentProcessId()
     print(f"当前脚本进程 PID: {current_pid}")
@@ -220,9 +221,14 @@ def toggle_console(show: bool):
         if console_handler != 0:
             ctypes.windll.user32.ShowWindow(console_handler, 1 if show else 0)
 
-import winreg
+
 
 def check_webview2_registry():
+
+    if sys.platform != 'win32':
+        return False
+
+    import winreg
     reg_paths = [
         r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  # 64位系统
         r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"             # 32位系统
@@ -261,6 +267,48 @@ mimetypes.add_type('text/html', '.html')
 mimetypes.add_type('application/json', '.json')
 
 socketio = SocketIO(app, cors_allowed_origins="*",async_mode='threading')
+
+# System initialization flag
+_system_initialized = False
+
+# Initialize global variables for multiprocessing
+# These will be properly set in __main__ but need to exist at module level
+# to avoid AttributeError when Flask routes access them
+manager = None
+params = None
+queue = None
+copyQueue = None
+socketQueue = None
+steamvrQueue = None
+startUp = None
+sendClient = None
+listener_thread = None
+listener_thread1 = None
+logger_thread = None
+steamvrThread = None
+window = None
+stop_for_except = True
+
+# Helper function to check if system is initialized
+def is_system_initialized():
+    """Check if critical global variables are initialized"""
+    return _system_initialized and (manager is not None and 
+            params is not None and 
+            queue is not None and 
+            startUp is not None)
+
+# Flask before_request handler to check initialization
+@app.before_request
+def check_initialization():
+    """Ensure system is initialized before processing API requests"""
+    # Skip check for static files and root path
+    if request.path.startswith('/static/') or request.path == '/' or request.path.startswith('/js/') or request.path.startswith('/css/'):
+        return None
+    
+    # For API endpoints, check if system is initialized
+    if request.path.startswith('/api/'):
+        if not _system_initialized:
+            return jsonify({"error": "System is still initializing, please wait"}), 503
 
 def rebootJob():
     global queue,params,listener_thread,listener_thread,startUp,sendClient,manager,steamvrQueue
@@ -314,7 +362,12 @@ def rebootJob():
 @app.route('/api/vadCalibrate', methods=['get'])
 def calibrate_vad_threshold():
     global queue,params,startUp,socketio
-    import pyaudiowpatch as pyaudio
+    if queue is None or params is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
+    if sys.platform != 'win32':
+        import pyaudio
+    else:
+        import pyaudiowpatch as pyaudio
     import math
     import audioop
     
@@ -472,6 +525,8 @@ def calibrate_vad_threshold():
 @app.route('/api/saveConfig', methods=['post'])
 def saveConfig():
     global queue,params,listener_thread,startUp,sendClient,window
+    if queue is None or params is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
     data=request.get_json()
     queue.put({"text":"/saveandreboot","level":"debug"})
     try:
@@ -524,6 +579,8 @@ def send_static(path):
 @app.route('/api/getConfig', methods=['get'])
 def getConfig():
     global startUp,queue
+    if queue is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
     queue.put({"text":"/getConfig","level":"debug"})
     return jsonify(startUp.config),200
 @app.route('/api/closewindow', methods=['get'])
@@ -576,6 +633,8 @@ def sendTextandTranslate():
         """通过字典替换多个占位符"""
         return template.format(**replacements)
     global params,queue,steamvrQueue,sendClient
+    if params is None or queue is None or steamvrQueue is None or sendClient is None:
+        return jsonify({"error": "System not initialized"}), 503
     res=request.get_json(silent=True)
     logger=queue
     selfRead=SelfReadHandler(logger=logger,osc_client=sendClient,steamvrQueue=steamvrQueue,params=params)
@@ -650,10 +709,12 @@ def sendTextandTranslate():
     return 'ok',200
 @app.route('/api/getAvatarParameters', methods=['get'])
 def getAvatarParameters():
+    global queue
     try:
         avatarInfo=OSCListener()
     except Exception as e:
-        queue.put({"text":"未成功检测到vrchat",'level':'warning'})
+        if queue is not None:
+            queue.put({"text":"未成功检测到vrchat",'level':'warning'})
     avatarID=avatarInfo.getAvatarID()
     avatar_json_path,userID=find_avatar_json(avatarID)
     with open(avatar_json_path,'rb') as file:
@@ -678,12 +739,16 @@ def getAvatarParameters():
 @app.route('/api/getMics', methods=['get'])
 def getMics():
     global queue,startUp
+    if queue is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
     queue.put({"text":"/getMics","level":"debug"})
     return jsonify([item for item in startUp.micList if item != '']),200
 
 @app.route('/api/getUpdate', methods=['get'])
 def getUpdate():
     global queue,params
+    if queue is None or params is None:
+        return jsonify({"error": "System not initialized"}), 503
     queue.put({"text":"/getUpdate","level":"debug"})
     if params["updateInfo"].get('version','None')!='None':return jsonify({"info":params["updateInfo"],"changelog":params['updateChangeLog']}),200
     return jsonify({}),400
@@ -691,11 +756,15 @@ def getUpdate():
 @app.route('/api/getOutputs', methods=['get'])
 def getOutputs():
     global queue,startUp
+    if queue is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
     queue.put({"text":"/getOutputs","level":"debug"})
     return jsonify([item for item in startUp.outPutList if item != '']),200
 @app.route('/api/getcapture', methods=['get'])
 def getCapture():
     global queue,startUp
+    if queue is None or startUp is None:
+        return jsonify({"error": "System not initialized"}), 503
     queue.put({"text":"/getcapture","level":"debug"})
 
     Separate_Self_Game_Mic = int(request.args.get('Separate_Self_Game_Mic', 0))
@@ -761,7 +830,17 @@ def open_web(host,port):
 
 def get_db_connection():
     import os
-    db_dir = os.path.join(os.environ['USERPROFILE'], 'Documents', 'VRCLS')
+
+    if sys.platform == "win32":
+        db_dir = os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS')
+    else:
+        # Linux/MacOS try $XDG_CONFIG_HOME first
+        xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+        if xdg_config_home:
+            db_dir = os.path.join(xdg_config_home, 'VRCLS')
+        else:
+            db_dir = os.path.join(os.path.expanduser('~'), '.config', 'VRCLS')
+
     os.makedirs(db_dir, exist_ok=True)
     db_path = os.path.join(db_dir, 'log_statistics.db')
     conn = sqlite3.connect(db_path)
@@ -805,6 +884,8 @@ def get_stats():
 @app.route('/api/toggleMicAudio', methods=['get'])
 def toggleMicAudio():
     global queue, params
+    if queue is None or params is None:
+        return jsonify({"error": "System not initialized"}), 503
     enabled = request.args.get('enabled', 'true').lower() == 'true'
     queue.put({"text":f"/api/toggleMicAudio - enabled: {enabled}","level":"debug"})
     
@@ -821,6 +902,8 @@ def toggleMicAudio():
 @app.route('/api/getMicStatus', methods=['get'])
 def getMicStatus():
     global params
+    if params is None:
+        return jsonify({"error": "System not initialized"}), 503
     # 返回麦克风状态，micStopped为True表示麦克风已停止
     micEnabled = not params.get("micStopped", False)
     desktopEnabled = not params.get("gameStopped", False)
@@ -833,6 +916,8 @@ def getMicStatus():
 @app.route('/api/toggleDesktopAudio', methods=['get'])
 def toggleDesktopAudio():
     global queue, params
+    if queue is None or params is None:
+        return jsonify({"error": "System not initialized"}), 503
     enabled = request.args.get('enabled', 'true').lower() == 'true'
     queue.put({"text":f"/api/toggleDesktopAudio - enabled: {enabled}","level":"debug"})
     
@@ -894,31 +979,35 @@ def run_server(app,host,port):
     print('server exit')   
 if __name__ == '__main__':
     freeze_support()
-    if not is_admin():
-        print("警告: 程序未以管理员权限运行。可能会出现问题。")
-        print("请尝试右键单击脚本，选择\"以管理员身份运行\"。或者勾选程序属性-兼容性-以管理员身份启动此程序\n")
-        input('可以直接关闭当前脚本或按任意键继续。。。。。。')
-        # 可以选择在这里直接退出，或者继续尝试但提示可能失败
-        # return
-    
-    
-    
-    if not check_webview2_registry():
-        arch = get_system_arch()
-        url_webview = download_webview2_runtime(arch)
-        print(f'未检测到vebview环境\n请通过以下网页链接安装webview环境：{url_webview}')
-        while not check_webview2_registry():time.sleep(5)
-    
-    print('''
-          检测到vebview环境
-          本窗口将自动关闭，程序启动......
 
-          ''')
-    show_console = '--show-console' in sys.argv
-    kill_other_vrcls()
-    if show_console:enable_vt_mode()# 在程序启动时立即调用
+    if sys.platform == 'win32':
+
+        if not is_admin():
+            print("警告: 程序未以管理员权限运行。可能会出现问题。")
+            print("请尝试右键单击脚本，选择\"以管理员身份运行\"。或者勾选程序属性-兼容性-以管理员身份启动此程序\n")
+            input('可以直接关闭当前脚本或按任意键继续。。。。。。')
+            # 可以选择在这里直接退出，或者继续尝试但提示可能失败
+            # return
+        
+
+
+        if not check_webview2_registry():
+            arch = get_system_arch()
+            url_webview = download_webview2_runtime(arch)
+            print(f'未检测到vebview环境\n请通过以下网页链接安装webview环境：{url_webview}')
+            while not check_webview2_registry():time.sleep(5)
+        
+        print('''
+            检测到vebview环境
+            本窗口将自动关闭，程序启动......
+
+            ''')
+        show_console = '--show-console' in sys.argv
+        kill_other_vrcls()
+        if show_console:enable_vt_mode()# 在程序启动时立即调用
+
     try:
-
+        
         VERSION_NUM='v0.6.0-fix2'
         listener_thread=None
         startUp=None
@@ -1051,6 +1140,9 @@ if __name__ == '__main__':
         
         queue.put({'text':"api ok||api就绪",'level':'info'})
         
+        # Mark system as initialized
+        _system_initialized = True
+        
         # 启动透明识别结果窗口（如果配置开启）
         if startUp.config.get("transparentWindow", False):
             try:
@@ -1068,56 +1160,65 @@ if __name__ == '__main__':
         # open_web(startUp.config['api-ip'],startUp.config['api-port'])
         server_thread=td.Thread(target=run_server, daemon=True,args=(app,startUp.config['api-ip'],startUp.config['api-port']))
         server_thread.start()
+
+        if sys.platform == 'win32':
         
-        # 等待WebSocket服务器启动
-        time.sleep(2)
-        
-        import webview
-        
-        # 创建API类用于前端调用
-        class Api:
-            def __init__(self):
-                self._window = None
+            # 等待WebSocket服务器启动
+            time.sleep(2)
+            
+            import webview
+            
+            # 创建API类用于前端调用
+            class Api:
+                def __init__(self):
+                    self._window = None
 
-            def set_window(self, window):
-                """接收窗口实例"""
-                self._window = window
+                def set_window(self, window):
+                    """接收窗口实例"""
+                    self._window = window
 
-            def resize(self, width, height):
-                """调整窗口大小"""
-                if self._window:
-                    self._window.resize(int(width), int(height))
+                def resize(self, width, height):
+                    """调整窗口大小"""
+                    if self._window:
+                        self._window.resize(int(width), int(height))
 
-            def move(self, x, y):
-                """移动窗口位置"""
-                if self._window:
-                    self._window.move(int(x), int(y))
+                def move(self, x, y):
+                    """移动窗口位置"""
+                    if self._window:
+                        self._window.move(int(x), int(y))
 
-            def get_window_state(self):
-                """获取当前窗口状态"""
-                if self._window:
-                    return {
-                        'x': self._window.x,
-                        'y': self._window.y,
-                        'width': self._window.width,
-                        'height': self._window.height
-                    }
-                return None
+                def get_window_state(self):
+                    """获取当前窗口状态"""
+                    if self._window:
+                        return {
+                            'x': self._window.x,
+                            'y': self._window.y,
+                            'width': self._window.width,
+                            'height': self._window.height
+                        }
+                    return None
 
-        api = Api()
-        window = webview.create_window(
-            'VRCLS控制面板', 
-            f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}',
-            js_api=api,
-            width=1200,
-            height=900,
-            frameless=True,
-            easy_drag=False,
-            resizable=True
-        )
-        api.set_window(window)
-        toggle_console(show_console)
-        webview.start()
+            api = Api()
+            window = webview.create_window(
+                'VRCLS控制面板', 
+                f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}',
+                js_api=api,
+                width=1200,
+                height=900,
+                frameless=True,
+                easy_drag=False,
+                resizable=True
+            )
+            api.set_window(window)
+            toggle_console(show_console)
+            webview.start()
+        else:
+            # open in default browser for non-Windows platforms
+            import webbrowser
+            print(f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}')
+            webbrowser.open(f'http://{startUp.config["api-ip"]}:{startUp.config["api-port"]}', new=0, autoraise=True)
+
+            input("按下回车键退出程序...\n")
         
         
     except Exception as e:

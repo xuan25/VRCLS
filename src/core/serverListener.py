@@ -1,3 +1,4 @@
+import sys
 from .serverActionProcess import once
 def change_run(params,logger,mode):
     key="voiceKeyRun"if mode=="mic" else "gameVoiceKeyRun"
@@ -33,7 +34,9 @@ def clearVRCBitmapLed(client,params,logger):
 def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,steamvrQueue,customEmoji,outputList,ttsVoice):
     import speech_recognition as sr
     from multiprocessing import Process,Queue
-    from pynput import keyboard
+    if sys.platform == "win32":
+        from pynput import keyboard
+    
     from functools import partial
     import time
     import pyttsx3
@@ -58,16 +61,22 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
     if voiceMode == 0 :#常开模式
         pass
     elif voiceMode == 1 and voiceHotKey is not None:#按键切换模式
-        params["voiceKeyRun"]=False 
-        keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"mic")})
-        keyThread.start()
-        logger.put({"text":f"当前麦克风状态：{'打开' if params['voiceKeyRun'] else '关闭'}","level":"info"})
+        if sys.platform == "win32":
+            params["voiceKeyRun"]=False 
+            keyThread=keyboard.GlobalHotKeys({voiceHotKey:partial(change_run,params,logger,"mic")})
+            keyThread.start()
+            logger.put({"text":f"当前麦克风状态：{'打开' if params['voiceKeyRun'] else '关闭'}","level":"info"})
+        else:
+            logger.put({"text":"按键切换模式仅支持Windows系统","level":"warning"})
     elif voiceMode == 2 and voiceHotKey is not None:#按住说话
-        from .keypress import VKeyHandler
-        params["voiceKeyRun"]=False 
-        keyThread = VKeyHandler(params,"voiceKeyRun")
-        keyThread.start()
-        logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
+        if sys.platform == "win32":
+            params["voiceKeyRun"]=False
+            from .keypress import VKeyHandler
+            keyThread = VKeyHandler(params,"voiceKeyRun")
+            keyThread.start()
+            logger.put({"text":f"按住说话已开启，请按住v键说话","level":"info"})
+        else:
+            logger.put({"text":"按住说话模式仅支持Windows系统","level":"warning"})
 
 
     if customthreshold is None or not isinstance(customthreshold, (int, float)) or dynamicVoice:
@@ -108,9 +117,10 @@ def selfMic_listen(sendClient,params,logger,micList:list,defautMicIndex,filter,s
         p.terminate()
         while p.is_alive():time.sleep(0.5)
         else: p.close()
-        if voiceMode!=0:
-            try:keyThread.stop()
-            except:pass
+        if sys.platform == "win32":
+            if voiceMode!=0:
+                try:keyThread.stop()
+                except:pass
         logger.put({"text":"sound process exited complete||麦克风音频进程退出完毕","level":"info"})
         params["micStopped"]=True
 

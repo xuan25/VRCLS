@@ -1,0 +1,22 @@
+bwrap \
+  --ro-bind /usr /usr \
+  --symlink usr/lib64 /lib64 \
+  --proc /proc \
+  --dev /dev \
+  --new-session \
+  --unshare-pid \
+  --tmpfs /tmp \
+  --tmpfs /dev/shm \
+  --bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR" \
+  --setenv XDG_RUNTIME_DIR "$XDG_RUNTIME_DIR" \
+  --setenv PULSE_SERVER "unix:${XDG_RUNTIME_DIR}/pulse/native" \
+  --bind-try "$XDG_RUNTIME_DIR/pipewire-0" "$XDG_RUNTIME_DIR/pipewire-0" \
+  --ro-bind /usr/share/alsa /usr/share/alsa \
+  --ro-bind /etc/alsa /etc/alsa \
+  --ro-bind /etc/resolv.conf /etc/resolv.conf \
+  --ro-bind /usr/share/ca-certificates /usr/share/ca-certificates \
+  --ro-bind /etc/ssl /etc/ssl \
+  --ro-bind /etc/ca-certificates /etc/ca-certificates \
+  --ro-bind ./ /app \
+  --setenv ALSA_CONFIG_PATH /app/linux/asoundrc \
+  /app/.venv/bin/python /app/main.py

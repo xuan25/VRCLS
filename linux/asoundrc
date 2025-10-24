@@ -1,0 +1,10 @@
+pcm.pulse { type pulse }
+ctl.pulse { type pulse }
+
+pcm.!default { type pulse }
+ctl.!default { type pulse }
+
+# Catch common fallbacks so they also land on Pulse
+pcm.dmix       { type plug ; slave.pcm "pulse" }
+pcm.dsnoop     { type plug ; slave.pcm "pulse" }
+pcm.sysdefault { type plug ; slave.pcm "pulse" }

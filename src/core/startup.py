@@ -22,7 +22,17 @@ class StartUp:
         self.loopbackIndexList=[]
         self.defautMicIndex=0
         self.defautOutPutIndex=0
-        docs_dir = os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS')
+
+        if sys.platform == "win32":
+            docs_dir = os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS')
+        else:
+            # Linux/MacOS try $XDG_CONFIG_HOME first
+            xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+            if xdg_config_home:
+                docs_dir = os.path.join(xdg_config_home, 'VRCLS')
+            else:
+                docs_dir = os.path.join(os.path.expanduser('~'), '.config', 'VRCLS')
+
         self.path_dict={
             'client.json':os.path.join(docs_dir,'client.json'),
             'filter.json':os.path.join(docs_dir,'filter.json'),

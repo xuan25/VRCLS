@@ -1,6 +1,5 @@
 from typing import Optional
 from .base_handler import BaseHandler
-import winsound
 import time
 import pyttsx3
 class AvatarHandler(BaseHandler):

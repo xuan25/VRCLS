@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import sys
 from typing import Optional
 class MyLogger:
     def __init__(self):
@@ -42,7 +43,20 @@ def logger_process(queue, copyqueue, params, socketQueue):
     logger = MyLogger().logger
 
     # 初始化数据库连接
-    conn = sqlite3.connect(os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS','log_statistics.db'), check_same_thread=False)
+    if sys.platform == "win32":
+        db_dir = os.path.join(os.environ['USERPROFILE'], 'Documents','VRCLS')
+    else:
+        # Linux/MacOS try $XDG_CONFIG_HOME first
+        xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+        if xdg_config_home:
+            db_dir = os.path.join(xdg_config_home, 'VRCLS')
+        else:
+            db_dir = os.path.join(os.path.expanduser('~'), '.config', 'VRCLS')
+
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, 'log_statistics.db')
+
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     cursor = conn.cursor()
     
     # 创建统计表（如果不存在）
